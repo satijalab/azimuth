@@ -18,7 +18,7 @@ LazyData: true
 RoxygenNote: 7.1.1
 Remotes: mojaveazure/seurat-disk,
   url::http://saucyx220.nygenome.org/src/contrib/Seurat_3.1.5.9011.tar.gz,
-  yuhanH/uwot@feat/transfer_nn,
+  yuhanH/uwot@feat/nn_model,
   yuhanH/sctransform@feat/select_gene
 Depends:
   R (>= 3.6.0)
@@ -32,6 +32,9 @@ Imports:
   shiny (>= 1.5.0),
   shinyjs (>= 1.1),
   tools
-Collate: 
+Suggests:
+  flexdashboard,
+  rmarkdown
+Collate:
     'zzz.R'
     'app.R'
