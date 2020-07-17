@@ -23,11 +23,8 @@ Useful links:
 Authors:
 \itemize{
   \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID})
-}
-
-Other contributors:
-\itemize{
-  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID}) [contributor]
+  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
+  \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID})
 }
 
 }
