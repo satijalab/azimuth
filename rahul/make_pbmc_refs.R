@@ -5,6 +5,7 @@ Idents(object.ref.ori) <- 'cluster'
 object.ref <- subset(object.ref.ori,  downsample=500)
 newcells <- unique(c(Cells(object.ref),WhichCells(object.ref.ori,expression = id%in%c('CD8 Memory','CD4 Memory'))))
 object.ref <- subset(object.ref.ori,cells = newcells)
+object.ref <- subset(object.ref, id=='Doublet',invert=TRUE)
 
 object.ref$ori.index <-  match( Cells(object.ref), Cells(object.ref.ori) )
 ref.nn <- AnnoyNN(data = object.ref[["spca"]]@cell.embeddings[,1:50], metric = "cosine", k = 31, return.annoy_index = T )
@@ -22,6 +23,8 @@ o1 <- subset(object.ref.ori,  downsample=500)
 Idents(object.ref.ori) <- 'id'
 o2 <- subset(object.ref.ori,  downsample=2000,idents = c("CD14 Mono","CD4 Naive"))
 plotref <- subset(object.ref.ori,cells = unique(c(Cells(o1),Cells(o2))))
+plotref <- subset(plotref, id=='Doublet',invert=TRUE)
+
 plotref[["spca"]] <- NULL
 plotref[["umap"]] <- CreateDimReducObject(embeddings = plotref[["jumap"]]@cell.embeddings,key = "UMAP_")
 plotref[["jumap"]] <- NULL
