@@ -4,13 +4,14 @@ library(shinyjs)
 library(shiny)
 library(uwot)
 library(sctransform)
+library(ggplot2)
 load_all("~/seurat/")
 options(shiny.maxRequestSize = 100 * (1024 ^ 2))
 # example app for prepending/appending a navbarMenu
 
 reference <- readRDS("~/demo/reference_pbmc.rds")
 reference.nn <- readAnnoyNN(file = "~/demo/reference.nn_pbmc.rds")
-
+plotref <- readRDS("~/demo/plotref_pbmc.rds")
 
 ui <-tagList(useShinyjs(),  fluidPage(title = "HuBMAPer",  
                                       sidebarLayout(sidebarPanel = sidebarPanel(
@@ -121,16 +122,20 @@ server <- function(input, output, session) {
         ingest.spca@neighbors$query_ref.nn$nn.idx  <- ori.nn.idx
         
         
-        plot.env$user[["umap.proj"]] <- RunUMAP(object = ingest.spca[["query_ref.nn"]],
+        plot.env$user[["umap"]] <- RunUMAP(object = ingest.spca[["query_ref.nn"]],
                                                 reduction.model =  reference[["jumap"]], 
-                                                reduction.key = "ProjU_")
-        output$mapDimPlot <- shiny::renderPlot(expr = Seurat::DimPlot(plot.env$user,reduction = 'umap.proj',group.by = 'predicted.id'))
+                                                reduction.key = "UMAP_")
+      
+        plot.env$user$predicted.id <- factor(plot.env$user$predicted.id,levels=levels(reference$id))
+        output$refDimPlot <- shiny::renderPlot(expr = Seurat::DimPlot(plotref,group.by = 'id',label = F))
+        mapPlot <- Seurat::DimPlot(plot.env$user,group.by = 'predicted.id',label = F)+scale_colour_hue(limits=levels(reference$id),drop=FALSE)
+        output$mapDimPlot <- shiny::renderPlot(expr = mapPlot)
         
         # provide download corrected UMAP and meta.data
         output$umap <- downloadHandler(filename = function(){
           paste0(input$name, "_umap.rds") } ,
           content = function(file){ 
-            saveRDS(plot.env$user[["umap.proj"]], file = file )
+            saveRDS(plot.env$user[["umap"]], file = file )
           } )
         output$metadata <- downloadHandler(filename =  function(){
           paste0(input$name, "_metadata.csv")} ,
@@ -144,6 +149,7 @@ server <- function(input, output, session) {
         setProgress(value = 1,message = 'Done mapping')
         insertTab(inputId = "tabs", position = 'after',
                   tabPanel("Mapped",
+                           shiny::plotOutput(outputId = "refDimPlot"), 
                            shiny::plotOutput(outputId = "mapDimPlot"), 
                            downloadButton(outputId = "umap", label = "Download the umap"),
                            downloadButton(outputId = "metadata",
@@ -184,7 +190,7 @@ server <- function(input, output, session) {
   
   ##gene expression
   output$violinGene <- shiny::renderPlot(expr = Seurat::VlnPlot(plot.env$user, input$feature, group.by = "predicted.id")+NoLegend())
-  output$featureGene <- shiny::renderPlot(expr = Seurat::FeaturePlot(plot.env$user,input$feature,pt.size = 0.1,reduction = 'umap.proj'))
+  output$featureGene <- shiny::renderPlot(expr = Seurat::FeaturePlot(plot.env$user,input$feature,pt.size = 0.1,reduction = 'umap'))
   
 }
 shinyApp(ui, server)
