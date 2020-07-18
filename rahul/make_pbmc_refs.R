@@ -15,7 +15,11 @@ reference.nn <- ref.nn
 saveRDS(reference,file = "/home/satijar/demo/reference_pbmc.rds")
 saveAnnoyNN(nn = reference.nn,file = "/home/satijar/demo/reference.nn_pbmc.rds")
 
-
+library(SeuratDisk)
+obj.adt <- LoadH5Seurat("/home/haoy/i12.joint.h5seurat", assay =c("ADT"))
+obj.adt <- subset(obj.adt,cells = Cells(object.ref))
+obj.adt <- DietSeurat(obj.adt,counts = FALSE,data = TRUE,scale.data = F)
+saveRDS(obj.adt,file = "/home/satijar/demo/adtreference_pbmc.rds")
 
 #make plotting refs
 Idents(object.ref.ori) <- 'cluster'

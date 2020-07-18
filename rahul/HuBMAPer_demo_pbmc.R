@@ -12,6 +12,8 @@ options(shiny.maxRequestSize = 100 * (1024 ^ 2))
 reference <- readRDS("~/demo/reference_pbmc.rds")
 reference.nn <- readAnnoyNN(file = "~/demo/reference.nn_pbmc.rds")
 plotref <- readRDS("~/demo/plotref_pbmc.rds")
+adtref <- readRDS("/home/satijar/demo/adtreference_pbmc.rds")
+reference[["ADT"]] <- adtref[["ADT"]]
 
 ui <-tagList(useShinyjs(),  fluidPage(title = "HuBMAPer",  
                                       sidebarLayout(sidebarPanel = sidebarPanel(
@@ -110,7 +112,7 @@ server <- function(input, output, session) {
                                           dims = 1:50,k.weight = 25,
                                           transfer.anchors = spca.anchor,
                                           reference.nnidx = reference.nn$annoy_index,
-                                          transfer.labels = reference$id)
+                                          transfer.labels = reference$id,transfer.expression = reference[["ADT"]]@data)
         setProgress(value = 0.8, message = 'Running UMAP transform')
         
         plot.env$user$predicted.id <- ingest.spca$predicted.id[ Cells(plot.env$user) ]
@@ -130,6 +132,8 @@ server <- function(input, output, session) {
         output$refDimPlot <- shiny::renderPlot(expr = Seurat::DimPlot(plotref,group.by = 'id',label = F))
         mapPlot <- Seurat::DimPlot(plot.env$user,group.by = 'predicted.id',label = F)+scale_colour_hue(limits=levels(reference$id),drop=FALSE)
         output$mapDimPlot <- shiny::renderPlot(expr = mapPlot)
+        
+        plot.env$user[["ADT"]] <- CreateAssayObject( data = ingest.spca[["transfer"]]@data[,Cells(plot.env$user)])
         
         # provide download corrected UMAP and meta.data
         output$umap <- downloadHandler(filename = function(){
@@ -160,8 +164,7 @@ server <- function(input, output, session) {
         
         #grep removes useless features, otherwise too many and you get weird errors starting with T
         features <- sort(grep("\\.1",rownames(plot.env$user[["RNA"]]), value = T, invert = T))
-        features <- c(features,  "predicted.id.score")
-        
+        features_adt <- paste0('adt_',rownames(reference[["ADT"]]))
         insertTab(inputId = "tabs",position = 'after',
                   tabPanel("Gene Expression",  
                            sidebarLayout(
@@ -169,7 +172,7 @@ server <- function(input, output, session) {
                                           selectInput(
                                             inputId = 'feature',
                                             label = 'Gene',
-                                            choices = c(sort(features),'predicted.id.score','nFeature_RNA'),
+                                            choices = c(sort(features),sort(features_adt),'predicted.id.score','nFeature_RNA'),
                                             selected = "GNLY",
                                             selectize = FALSE,
                                             width = '100%'
