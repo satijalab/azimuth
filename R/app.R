@@ -1,13 +1,14 @@
 #' @include zzz.R
 #' @importFrom htmltools tagList
 #' @importFrom shinyjs useShinyjs disabled
-#' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput
+#' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput verbatimTextOutput shinyApp
 #'
 NULL
 
-app.title <- 'Azimuth'
+# app.title <- 'Azimuth'
+app.title <- 'SuperCoolMappingNameTBD'
 
 ui <- tagList(
   useShinyjs(),
@@ -16,6 +17,20 @@ ui <- tagList(
     sidebarLayout(
       sidebarPanel = sidebarPanel(
         fileInput(inputId = "file", label = app.title),
+        disabled(sliderInput(
+          inputId = 'ncount',
+          label = 'nCount',
+          min = 0L,
+          max = 1L,
+          value = c(0L, 1L),
+        )),
+        disabled(sliderInput(
+          inputId = 'nfeature',
+          label = 'nFeature',
+          min = 0L,
+          max = 1L,
+          value = c(0L, 1L),
+        )),
         disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
         disabled(actionButton(inputId = "map", label = "Map cells to reference")),
         disabled(selectInput(
@@ -56,12 +71,12 @@ ui <- tagList(
 #' @name AzimuthServer
 #' @rdname AzimuthServer
 #'
-#' @importFrom shinyjs enable
-#' @importFrom Seurat Idents<- SCTransform VariableFeatures DefaultAssay Idents
+#' @importFrom shinyjs enable disable
+#' @importFrom Seurat Idents<- DefaultAssay SCTransform VariableFeatures Idents
 #' RunUMAP VlnPlot DimPlot Reductions FeaturePlot
 #' @importFrom shiny reactiveValues appendTab tabPanel plotOutput observeEvent
-#' withProgress setProgress renderText updateSelectInput updateTabsetPanel
-#' renderPlot downloadHandler
+#' withProgress setProgress updateSliderInput renderText updateSelectInput
+#' updateTabsetPanel renderPlot downloadHandler
 #'
 #' @keywords internal
 #'
@@ -89,6 +104,28 @@ server <- function(input, output, session) {
           setProgress(value = 1)
         }
       )
+      enable(id = 'ncount')
+      enable(id = 'nfeature')
+      ncount <- paste0('nCount_', DefaultAssay(object = app.env$object))
+      nfeature <- paste0('nFeature_', DefaultAssay(object = app.env$object))
+      ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
+      nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
+      updateSliderInput(
+        session = session,
+        inputId = 'ncount',
+        label = ncount,
+        value = ncount.val,
+        min = min(ncount.val),
+        max = max(ncount.val)
+      )
+      updateSliderInput(
+        session = session,
+        inputId = 'nfeature',
+        label = nfeature,
+        value = nfeature.val,
+        min = min(nfeature.val),
+        max = max(nfeature.val)
+      )
     }
   )
   observeEvent(eventExpr = input$file, handlerExpr = enable(id = 'proc1'))
@@ -100,7 +137,20 @@ server <- function(input, output, session) {
         message = "Normalizing with SCTransform",
         expr = {
           output$sct <- renderText(expr = NULL)
-          setProgress(value = 0)
+          setProgress(
+            value = 0,
+            message = "Filtering based on nCount and nFeature"
+          )
+          ncount <- paste0('nCount_', DefaultAssay(object = app.env$object))
+          nfeature <- paste0('nFeature_', DefaultAssay(object = app.env$object))
+          cells.use <- app.env$object[[ncount, drop = TRUE]] >= min(input$ncount) &
+            app.env$object[[ncount, drop = TRUE]] <= max(input$ncount) &
+            app.env$object[[nfeature, drop = TRUE]] >= min(input$nfeature) &
+            app.env$object[[nfeature, drop = TRUE]] <= max(input$nfeature)
+          app.env$object <- app.env$object[, cells.use]
+          disable(id = 'ncount')
+          disable(id = 'nfeature')
+          setProgress(value = 0.2, message = "Normalizing with SCTransform")
           app.env$object <- suppressWarnings(expr = SCTransform(
             object = app.env$object,
             residual.features = rownames(x = refs$reference),
