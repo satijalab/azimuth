@@ -80,7 +80,7 @@ LoadFileInput <- function(path) {
       CreateSeuratObject(counts = mat)
     },
     'rds' = readRDS(file = path),
-    'h5seurat' = LoadH5Seurat(file = path),
+    'h5seurat' = LoadH5Seurat(file = path, assays = 'counts'),
     stop("Unknown file type: ", type, call. = FALSE)
   ))
 }
