@@ -1,6 +1,4 @@
 #' @docType package
-#' @name SeuratMapper-pacakge
-#' @rdname SeuratMapper-pacakge
 #'
 #' @aliases SeuratMapper
 #'
