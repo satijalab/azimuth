@@ -16,10 +16,12 @@ License: GPL-3 | file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
-Remotes: mojaveazure/seurat-disk,
-  url::http://saucyx220.nygenome.org/src/contrib/Seurat_3.1.5.9011.tar.gz,
-  yuhanH/uwot@feat/transform_nn,
-  yuhanH/sctransform@feat/select_gene
+Remotes:
+  immunogenomics/presto,
+  jlmelville/uwot,
+  mojaveazure/seurat-disk,
+  yuhanH/sctransform@feat/select_gene,
+  url::http://satijalab04.nygenome.org/src/contrib/Seurat_3.1.5.9011.tar.gz
 Depends:
   R (>= 3.6.0)
 Imports:
