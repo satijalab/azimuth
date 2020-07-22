@@ -9,6 +9,24 @@
 \description{
 What the package does (one paragraph).
 }
+\section{Package options}{
+
+
+SeuratMapper uses the following options to control the behaviour of the app,
+users can configure these with \code{\link[base]{options}}:
+
+\describe{
+ \item{\code{Azimuth.de.mincells}}{
+  Minimum number of cells per cluster for differential expression; defaults
+  to \code{15}
+ }
+ \item{\code{Azimuth.map.pcthresh}}{
+  Only show mapped plot if the percentage of cells mapped meets or
+  exceeds this threshold; defaults to \code{60}
+ }
+}
+}
+
 \seealso{
 Useful links:
 \itemize{

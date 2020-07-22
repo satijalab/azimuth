@@ -15,16 +15,16 @@ LoadReference(path, seconds = 10L)
 A list with four entries:
 \describe{
  \item{\code{map}}{
-   The downsampled reference \code{\link[Seurat]{Seurat}}
-   object (for mapping)
+  The downsampled reference \code{\link[Seurat]{Seurat}}
+  object (for mapping)
  }
  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
  \item{\code{full}}{
-   The full reference \code{Seurat} object (for density estimation)
+  The full reference \code{Seurat} object (for density estimation)
  }
  \item{\code{index}}{
-   A list with nearest-neighbor index information, includes an
-   \code{\link[RcppAnnoy]{AnnoyIndex}} object
+  A list with nearest-neighbor index information, includes an
+  \code{\link[RcppAnnoy]{AnnoyIndex}} object
  }
 }
 }

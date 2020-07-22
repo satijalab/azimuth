@@ -1,8 +1,29 @@
 #' @docType package
 #'
+#' @section Package options:
+#'
+#' SeuratMapper uses the following options to control the behaviour of the app,
+#' users can configure these with \code{\link[base]{options}}:
+#'
+#' \describe{
+#'  \item{\code{Azimuth.de.mincells}}{
+#'   Minimum number of cells per cluster for differential expression; defaults
+#'   to \code{15}
+#'  }
+#'  \item{\code{Azimuth.map.pcthresh}}{
+#'   Only show mapped plot if the percentage of cells mapped meets or
+#'   exceeds this threshold; defaults to \code{60}
+#'  }
+#' }
+#'
 #' @aliases SeuratMapper
 #'
 "_PACKAGE"
+
+default.options <- list(
+  Azimuth.de.mincells = 15L,
+  Azimuth.map.pcthresh = 60L
+)
 
 #' Create an annoy index
 #'
@@ -107,16 +128,16 @@ LoadFileInput <- function(path) {
 #' @return A list with four entries:
 #' \describe{
 #'  \item{\code{map}}{
-#'    The downsampled reference \code{\link[Seurat]{Seurat}}
-#'    object (for mapping)
+#'   The downsampled reference \code{\link[Seurat]{Seurat}}
+#'   object (for mapping)
 #'  }
 #'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
 #'  \item{\code{full}}{
-#'    The full reference \code{Seurat} object (for density estimation)
+#'   The full reference \code{Seurat} object (for density estimation)
 #'  }
 #'  \item{\code{index}}{
-#'    A list with nearest-neighbor index information, includes an
-#'    \code{\link[RcppAnnoy]{AnnoyIndex}} object
+#'   A list with nearest-neighbor index information, includes an
+#'   \code{\link[RcppAnnoy]{AnnoyIndex}} object
 #'  }
 #' }
 #'
@@ -268,4 +289,9 @@ Oxford <- function(..., join = c('and', 'or')) {
   op <- options()
   # TODO: replace this
   options(shiny.maxRequestSize = 100 * (1024 ^ 2))
+  # Set some default options
+  toset <- !names(x = default.options) %in% names(x = op)
+  if (any(toset)) {
+    options(default.options[toset])
+  }
 }
