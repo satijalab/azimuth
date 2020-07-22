@@ -12,11 +12,18 @@ LoadReference(path, seconds = 10L)
 \item{seconds}{Timeout to check for URLs in seconds}
 }
 \value{
-A list with two entries:
+A list with four entries:
 \describe{
- \item{\code{reference}}{The reference \code{\link[Seurat]{Seurat}} object}
+ \item{\code{map}}{
+   The downsampled reference \code{\link[Seurat]{Seurat}}
+   object (for mapping)
+ }
+ \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
+ \item{\code{full}}{
+   The full reference \code{Seurat} object (for density estimation)
+ }
  \item{\code{index}}{
-   A list with index information, includes an
+   A list with nearest-neighbor index information, includes an
    \code{\link[RcppAnnoy]{AnnoyIndex}} object
  }
 }
@@ -26,10 +33,15 @@ Read in a reference \code{\link[Seurat]{Seurat}} object and annoy index. This
 function can read either from URLs or a file path. In order to read properly,
 there must be the following files:
 \itemize{
- \item \dQuote{ref.Rds} for the reference \code{Seurat} object
- \item \dQuote{idx.Rds} for the R-based index object
- \item \dQuote{idx.annoy} for the
- \link{RcppAnnoy::AnnoyIndex}{RcppAnnoy-based} index object
+ \item \dQuote{ref.Rds} for the downsampled reference \code{Seurat}
+ object (for mapping)
+ \item \dQuote{plotref.Rds} for the reference \code{Seurat}
+ object (for plotting)
+ \item \dQuote{fullref.Rds} for the full reference \code{Seurat}
+ object (for density estimation)
+ \item \dQuote{adtref.Rds} for the ADT data for the reference \code{Seurat}
+ object (for feature imputation)
+ \item \dQuote{idx.Rds} for the nearest-neighbor index object
 }
 }
 \examples{

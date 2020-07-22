@@ -69,6 +69,7 @@ FilterFeatures <- function(features) {
 #' @keywords internal
 #'
 LoadFileInput <- function(path) {
+  # TODO: add support for H5AD and loom files
   type <- tolower(x = file_ext(x = path))
   return(switch(
     EXPR = type,
@@ -91,25 +92,37 @@ LoadFileInput <- function(path) {
 #' function can read either from URLs or a file path. In order to read properly,
 #' there must be the following files:
 #' \itemize{
-#'  \item \dQuote{ref.Rds} for the reference \code{Seurat} object
-#'  \item \dQuote{idx.Rds} for the R-based index object
-#'  \item \dQuote{idx.annoy} for the
-#'  \link{RcppAnnoy::AnnoyIndex}{RcppAnnoy-based} index object
+#'  \item \dQuote{ref.Rds} for the downsampled reference \code{Seurat}
+#'  object (for mapping)
+#'  \item \dQuote{plotref.Rds} for the reference \code{Seurat}
+#'  object (for plotting)
+#'  \item \dQuote{fullref.Rds} for the full reference \code{Seurat}
+#'  object (for density estimation)
+#'  \item \dQuote{adtref.Rds} for the ADT data for the reference \code{Seurat}
+#'  object (for feature imputation)
+#'  \item \dQuote{idx.Rds} for the nearest-neighbor index object
 #' }
 #'
 #' @param path Path or URL to the two RDS files
 #' @param seconds Timeout to check for URLs in seconds
 #'
-#' @return A list with two entries:
+#' @return A list with four entries:
 #' \describe{
-#'  \item{\code{reference}}{The reference \code{\link[Seurat]{Seurat}} object}
+#'  \item{\code{map}}{
+#'    The downsampled reference \code{\link[Seurat]{Seurat}}
+#'    object (for mapping)
+#'  }
+#'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
+#'  \item{\code{full}}{
+#'    The full reference \code{Seurat} object (for density estimation)
+#'  }
 #'  \item{\code{index}}{
-#'    A list with index information, includes an
+#'    A list with nearest-neighbor index information, includes an
 #'    \code{\link[RcppAnnoy]{AnnoyIndex}} object
 #'  }
 #' }
 #'
-#' @importFrom httr build_url parse_url modify_url status_code GET timeout
+#' @importFrom httr build_url parse_url status_code GET timeout
 #'
 #' @keywords internal
 #'
@@ -122,79 +135,130 @@ LoadFileInput <- function(path) {
 #' }
 #'
 LoadReference <- function(path, seconds = 10L) {
-  ref.name <- 'ref.Rds'
-  idx.name <- 'idx.Rds'
-  ann.name <- 'idx.annoy'
+  ref.names <- list(
+    map = 'ref.Rds',
+    plt = 'plotref.Rds',
+    ref = 'fullref.Rds',
+    adt = 'adtref.Rds',
+    idx = 'idx.Rds',
+    ann = 'idx.annoy'
+  )
+  if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
+    path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
+  }
   uri <- build_url(url = parse_url(url = path))
   if (grepl(pattern = '^://', x = uri)) {
     if (!dir.exists(paths = path)) {
       stop("Cannot find directory ", path, call. = FALSE)
     }
-    reference <- file.path(path, ref.name)
-    index <- file.path(path, idx.name)
-    annoy <- file.path(path, ann.name)
-    if (!file.exists(reference)) {
-      stop("Cannot find reference RDS in ", path, call. = FALSE)
-    } else if (!file.exists(index)) {
-      stop("Cannot find index RDS in ", path, call. = FALSE)
-    } else if (!file.exists(annoy)) {
-      stop("Cannot find index annoy in ", path, call. = FALSE)
+    mapref <- file.path(path, ref.names$map)
+    pltref <- file.path(path, ref.names$plt)
+    fllref <- file.path(path, ref.names$ref)
+    adtref <- file.path(path, ref.names$adt)
+    idxref <- file.path(path, ref.names$idx)
+    annref <- file.path(path, ref.names$ann)
+    exists <- file.exists(c(mapref, pltref, fllref, adtref, idxref, annref))
+    if (!all(exists)) {
+      stop(
+        "Missing the following files from the directory provided: ",
+        Oxford(unlist(x = ref.names)[!exists], join = 'and')
+      )
     }
   } else {
-    Online <- function(url) {
-      return(identical(
+    Online <- function(url, strict = FALSE) {
+      if (isTRUE(x = strict)) {
+        code <- 200L
+        comp <- identical
+      } else {
+        code <- 404L
+        comp <- Negate(f = identical)
+      }
+      return(comp(
         x = status_code(x = GET(url = url, timeout(seconds = seconds))),
-        y = 200L
+        y = code
       ))
     }
-    uri <- parse_url(url = uri)
-    ref.uri <- modify_url(url = uri, path = ref.name)
-    idx.uri <- modify_url(url = uri, path = idx.name)
-    ann.uri <- modify_url(url = uri, path = ann.name)
-    if (!Online(url = ref.uri)) {
-      stop("Cannot find reference RDS object at ", path, call. = FALSE)
-    } else if (!Online(url = idx.uri)) {
-      stop("Cannot find index RDS object at ", path, call = FALSE)
-    } else if (!Online(url = ann.uri)) {
-      stop("Cannot find index annoy object at ", path, call. = FALSE)
+    ref.uris <- paste(uri, ref.names, sep = '/')
+    names(x = ref.uris) <- names(x = ref.names)
+    online <- vapply(
+      X = ref.uris,
+      FUN = Online,
+      FUN.VALUE = logical(length = 1L),
+      USE.NAMES = FALSE
+    )
+    if (!all(online)) {
+      stop(
+        "Cannot find the following files at the site given: ",
+        Oxford(unlist(x = ref.names)[!online], join = 'and')
+      )
     }
-    reference <- url(description = ref.uri)
-    index <- url(description = idx.uri)
-    annoy <- tempfile()
-    download.file(url = ann.uri, destfile = annoy, quiet = TRUE)
+    mapref <- url(description = ref.uris[['map']])
+    pltref <- url(description = ref.uris[['plt']])
+    fllref <- url(description = ref.uris[['ref']])
+    adtref <- url(description = ref.uris[['adt']])
+    idxref <- url(description = ref.uris[['idx']])
+    # annref <- url(description = ref.uris[6])
+    annref <- tempfile()
+    download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
     on.exit(expr = {
-      close(con = reference)
-      close(con = index)
-      unlink(x = annoy)
+      close(con = mapref)
+      close(con = pltref)
+      close(con = fllref)
+      close(con = adtref)
+      close(con = idxref)
+      unlink(x = annref)
     })
   }
-  nn <- readRDS(file = index)
+  # Load the map reference and ADT values for imputation
+  map <- readRDS(file = mapref)
+  map[['ADT']] <- readRDS(file = adtref)[['ADT']]
+  # Load the annoy index
+  nn <- readRDS(file = idxref)
   annoy.index <- CreateAnn(name = nn$metric, ndim = nn$ndim)
-  annoy.index$load(file = annoy)
+  annoy.index$load(file = annref)
   nn$annoy_index <- annoy.index
+  gc(verbose = FALSE)
   return(list(
-    reference = readRDS(file = reference),
+    map = map,
+    plot = readRDS(file = pltref),
+    full = readRDS(file = fllref),
     index = nn
   ))
 }
 
-GetDefaultArguments <- function(f, method = NULL) {
-  UseMethod(generic = 'GetDefaultArguments', object = f)
-}
-
-#' @method GetDefaultArguments character
+#' Make An English List
 #'
-GetDefaultArguments.character <- function(f, method = NULL) {
-  ''
-}
-
-#' @method GetDefaultArguments function
+#' Joins items together to make an English list; uses the Oxford comma for the
+#' last item in the list.
 #'
-GetDefaultArguments.function <- function(f, method = NULL) {
-  browser()
-  return(GetDefaultArguments(
-    f = as.character(x = substitute(expr = f)),
-    method = method
+#' @inheritParams base::paste
+#' @param join either \dQuote{and} or \dQuote{or}
+#'
+#' @return A character vector of the values, joined together with commas and
+#' \code{join}
+#'
+#' @keywords internal
+#'
+#' @examples
+#' \donttest{
+#' Oxford("red")
+#' Oxford("red", "blue")
+#' Oxford("red", "green", "blue")
+#' }
+#'
+Oxford <- function(..., join = c('and', 'or')) {
+  join <- match.arg(arg = join)
+  args <- as.character(x = c(...))
+  args <- Filter(f = nchar, x = args)
+  if (length(x = args) == 1) {
+    return(args)
+  } else if (length(x = args) == 2) {
+    return(paste(args, collapse = paste0(' ', join, ' ')))
+  }
+  return(paste0(
+    paste(args[1:(length(x = args) - 1)], collapse = ', '),
+    paste0(', ', join, ' '),
+    args[length(x = args)]
   ))
 }
 
