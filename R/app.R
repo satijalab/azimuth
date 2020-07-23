@@ -1,11 +1,11 @@
 #' @include zzz.R
 #' @include seurat.R
 #' @import V8
-#' @importFrom htmltools tagList
+#' @importFrom htmltools tagList h3
 #' @importFrom shinyjs useShinyjs extendShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
-#' plotOutput tableOutput verbatimTextOutput shinyApp
+#' plotOutput tableOutput verbatimTextOutput
 #'
 NULL
 
@@ -26,7 +26,11 @@ ui <- tagList(
       sidebarPanel = sidebarPanel(
         # TODO: disable this initially? I don't think we can browse for data
         # while the reference is being loaded
-        fileInput(inputId = "file", label = app.title),
+        fileInput(
+          inputId = "file",
+          label = app.title,
+          accept = c('.h5', '.h5seurat', '.rds')
+        ),
         disabled(sliderInput(
           inputId = 'ncount',
           label = 'nCount',
@@ -69,6 +73,13 @@ ui <- tagList(
           inputId = 'presto',
           # label = 'Perform Differential Expression'
           label = 'Determine Biomarkers'
+        )),
+        disabled(selectInput(
+          inputId = 'declusters',
+          label = 'Cell Type',
+          choices = '',
+          selectize = FALSE,
+          width = '100%'
         ))
       ),
       mainPanel = mainPanel(tabsetPanel(
@@ -102,7 +113,11 @@ ui <- tagList(
         tabPanel(
           # title = 'Differential Expression',
           title = 'Biomarkers',
-          value = 'diffexp'
+          value = 'diffexp',
+          h3('Biomarkers'),
+          tableOutput(outputId = 'biomarkers'),
+          h3('ADT Biomarkers'),
+          tableOutput(outputId = 'adtbio')
         )
       ))
     )
@@ -135,7 +150,11 @@ ui <- tagList(
 server <- function(input, output, session) {
   mt.key <- 'percent.mt'
   adt.key <- 'impADT'
-  app.env <- reactiveValues(object = NULL, default.assay = NULL)
+  app.env <- reactiveValues(
+    object = NULL,
+    default.assay = NULL,
+    diff.exp = list()
+  )
   withProgress(
     message = "Loading reference",
     expr = {
@@ -361,12 +380,53 @@ server <- function(input, output, session) {
       shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'imputed'))
     }
   )
-  # observeEvent(
-  #   eventExpr = input$presto,
-  #   handlerExpr = {
-  #     ''
-  #   }
-  # )
+  observeEvent(
+    eventExpr = input$presto,
+    handlerExpr = {
+      withProgress(
+        message = "Running differential expression",
+        expr = {
+          setProgress(value = 0)
+          app.env$diff.expr[[app.env$default.assay]] <- wilcoxauc(
+            X = app.env$object,
+            group_by = 'predicted.id',
+            assay = 'data',
+            seurat_assay = app.env$default.assa
+          )
+          setProgress(value = 0.6)
+          app.env$diff.expr[[adt.key]] <- wilcoxauc(
+            X = app.env$object,
+            group_by = 'predicted.id',
+            assay = 'data',
+            seurat_assay = adt.key
+          )
+          setProgress(value = 1)
+        }
+      )
+      enable(id = 'declusters')
+      allowed.clusters <- names(x = which(
+        x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells'),
+      ))
+      allowed.clusters <- factor(
+        x = allowed.clusters,
+        levels = levels(x = app.env$object)
+      )
+      allowed.clusters <- levels(x = droplevels(x = allowed.clusters))
+      updateSelectInput(
+        session = session,
+        inputId = 'declusters',
+        label = 'Cell Type',
+        choices = allowed.clusters,
+        selected = allowed.clusters[1]
+      )
+      shinyjs::show(selector = TabJSKey(id = 'tabs', 'diffexp'))
+      updateTabsetPanel(
+        session = session,
+        inputId = 'tabs',
+        selected = 'diffexp'
+      )
+    }
+  )
   # Plots
   output$qcvln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
@@ -423,7 +483,8 @@ server <- function(input, output, session) {
           features = paste0(
             Key(object = app.env$object[[adt.key]]),
             input$adtfeature
-          )
+          ),
+          cols = c('lightgrey', 'darkred')
         )
       }
     }
@@ -441,6 +502,28 @@ server <- function(input, output, session) {
           colnames(x = tbl)[3] <- 'Mitochondrial percentage per cell'
         }
         t(x = tbl)
+      }
+    },
+    rownames = TRUE
+  )
+  output$biomarkers <- renderTable(
+    expr = {
+      if (!is.null(x = app.env$diff.expr[[app.env$default.assay]])) {
+        RenderDiffExp(
+          diff.exp = app.env$diff.expr[[app.env$default.assay]],
+          groups.use = input$declusters
+        )
+      }
+    },
+    rownames = TRUE
+  )
+  output$adtbio <- renderTable(
+    expr = {
+      if (!is.null(x = app.env$diff.expr[[adt.key]])) {
+        RenderDiffExp(
+          diff.exp = app.env$diff.expr[[adt.key]],
+          groups.use = input$declusters
+        )
       }
     },
     rownames = TRUE
@@ -486,7 +569,7 @@ server <- function(input, output, session) {
 #'
 #' @return None, launches the mapping Shiny app
 #'
-#' @importFrom shiny runApp
+#' @importFrom shiny runApp shinyApp
 #'
 #' @export
 #'
