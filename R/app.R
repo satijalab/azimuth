@@ -482,16 +482,18 @@ server <- function(input, output, session) {
 
 #' Launch the mapping app
 #'
+#' @param reference Path or URL to reference dataset
+#'
 #' @return None, launches the mapping Shiny app
 #'
 #' @importFrom shiny runApp
 #'
 #' @export
 #'
-AzimuthApp <- function() {
+AzimuthApp <- function(reference = 'http://satijalab04.nygenome.org/pbmc') {
   opts <- list(
     shiny.maxRequestSize = 100 * (1024 ^ 2),
-    Azimuth.app.reference = 'http://satijalab04.nygenome.org/pbmc'
+    Azimuth.app.reference = reference
   )
   withr::with_options(
     new = opts,
