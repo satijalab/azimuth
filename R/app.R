@@ -391,7 +391,7 @@ server <- function(input, output, session) {
             X = app.env$object,
             group_by = 'predicted.id',
             assay = 'data',
-            seurat_assay = app.env$default.assa
+            seurat_assay = app.env$default.assay
           )
           setProgress(value = 0.6)
           app.env$diff.expr[[adt.key]] <- wilcoxauc(
@@ -574,6 +574,7 @@ server <- function(input, output, session) {
 #' @export
 #'
 AzimuthApp <- function(reference = 'http://satijalab04.nygenome.org/pbmc') {
+  useShinyjs()
   opts <- list(
     shiny.maxRequestSize = 100 * (1024 ^ 2),
     Azimuth.app.reference = reference
