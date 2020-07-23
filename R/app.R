@@ -1,21 +1,31 @@
 #' @include zzz.R
+#' @include seurat.R
+#' @import V8
 #' @importFrom htmltools tagList
-#' @importFrom shinyjs useShinyjs disabled
+#' @importFrom shinyjs useShinyjs extendShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
-#' plotOutput verbatimTextOutput shinyApp
+#' plotOutput tableOutput verbatimTextOutput shinyApp
 #'
 NULL
 
-# app.title <- 'Azimuth'
-app.title <- 'SuperCoolMappingNameTBD'
+app.title <- 'Azimuth'
 
 ui <- tagList(
   useShinyjs(),
+  extendShinyjs(
+    text = TabJSHide(
+      id = 'tabs',
+      values = c('mapped', 'fexplorer', 'imputed', 'diffexp'),
+      fxn = 'init'
+    )
+  ),
   fluidPage(
     title = app.title,
     sidebarLayout(
       sidebarPanel = sidebarPanel(
+        # TODO: disable this initially? I don't think we can browse for data
+        # while the reference is being loaded
         fileInput(inputId = "file", label = app.title),
         disabled(sliderInput(
           inputId = 'ncount',
@@ -47,15 +57,52 @@ ui <- tagList(
         disabled(downloadButton(
           outputId = 'dlpred',
           label = 'Download the predicted IDs and scores'
+        )),
+        disabled(selectInput(
+          inputId = 'adtfeature',
+          label = 'Imputed Protein',
+          choices = '',
+          selectize = FALSE,
+          width = '100%'
+        )),
+        disabled(actionButton(
+          inputId = 'presto',
+          # label = 'Perform Differential Expression'
+          label = 'Determine Biomarkers'
         ))
       ),
       mainPanel = mainPanel(tabsetPanel(
         id = "tabs",
         tabPanel(
           title = "Preprocessing and Quality Control",
+          value = 'preprocessing',
           plotOutput(outputId = "qcvln"),
+          tableOutput(outputId = 'qctbl'),
           verbatimTextOutput(outputId = "sct"),
           verbatimTextOutput(outputId = "mapping")
+        ),
+        tabPanel(
+          title = 'Mapped Data',
+          value = 'mapped',
+          plotOutput(outputId = 'refdim'),
+          plotOutput(outputId = 'objdim')
+        ),
+        tabPanel(
+          title = 'Feature Explorer',
+          value = 'fexplorer',
+          plotOutput(outputId = 'fvln'),
+          plotOutput(outputId = 'fdim')
+        ),
+        tabPanel(
+          title = 'Imputed Protein Expression',
+          value = 'imputed',
+          plotOutput(outputId = 'ivln'),
+          plotOutput(outputId = 'idim')
+        ),
+        tabPanel(
+          # title = 'Differential Expression',
+          title = 'Biomarkers',
+          value = 'diffexp'
         )
       ))
     )
@@ -71,27 +118,39 @@ ui <- tagList(
 #' @name AzimuthServer
 #' @rdname AzimuthServer
 #'
-#' @importFrom shinyjs enable disable
-#' @importFrom Seurat Idents<- DefaultAssay SCTransform VariableFeatures Idents
-#' RunUMAP VlnPlot DimPlot Reductions FeaturePlot
-#' @importFrom shiny reactiveValues appendTab tabPanel plotOutput observeEvent
+#' @importFrom methods slot<-
+#' @importFrom ggplot2 ggtitle
+#' @importFrom presto wilcoxauc
+#' @importFrom shinyjs show enable disable
+#' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
+#' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
+#' CreateDimReducObject Embeddings AddMetaData Key
+#' VlnPlot DimPlot Reductions FeaturePlot Assays
+#' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
-#' updateTabsetPanel renderPlot downloadHandler
+#' updateTabsetPanel renderPlot renderTable downloadHandler
 #'
 #' @keywords internal
 #'
 server <- function(input, output, session) {
-  app.env <- reactiveValues(object = NULL)
-  refs <- LoadReference(path = "http://saucyx220.nygenome.org")
-  Idents(object = refs$reference) <- 'id'
-  appendTab(
-    inputId = 'tabs',
-    tab = tabPanel(
-      title = "Mapped Data",
-      plotOutput(outputId = 'refdim'),
-      plotOutput(outputId = 'objdim')
-    )
+  mt.key <- 'percent.mt'
+  adt.key <- 'impADT'
+  app.env <- reactiveValues(object = NULL, default.assay = NULL)
+  withProgress(
+    message = "Loading reference",
+    expr = {
+      setProgress(value = 0)
+      refs <- LoadReference(
+        path = getOption(
+          x = 'Azimuth.app.reference',
+          default = stop(safeError(error = "No reference provided"))
+        )
+      )
+      setProgress(value = 1)
+      # enable(id = 'file')
+    }
   )
+  shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'mapped'))
   # React to events
   observeEvent( # Load the data
     eventExpr = input$file,
@@ -104,10 +163,11 @@ server <- function(input, output, session) {
           setProgress(value = 1)
         }
       )
+      app.env$default.assay <- DefaultAssay(object = app.env$object)
       enable(id = 'ncount')
       enable(id = 'nfeature')
-      ncount <- paste0('nCount_', DefaultAssay(object = app.env$object))
-      nfeature <- paste0('nFeature_', DefaultAssay(object = app.env$object))
+      ncount <- paste0('nCount_', app.env$default.assay)
+      nfeature <- paste0('nFeature_', app.env$default.assay)
       ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
       nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
       updateSliderInput(
@@ -126,6 +186,15 @@ server <- function(input, output, session) {
         min = min(nfeature.val),
         max = max(nfeature.val)
       )
+      mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
+      if (any(grepl(pattern = mito.pattern, x = rownames(x = app.env$object)))) {
+        app.env$object <- PercentageFeatureSet(
+          object = app.env$object,
+          pattern = mito.pattern,
+          col.name = mt.key,
+          assay = app.env$default.assay
+        )
+      }
     }
   )
   observeEvent(eventExpr = input$file, handlerExpr = enable(id = 'proc1'))
@@ -153,8 +222,12 @@ server <- function(input, output, session) {
           setProgress(value = 0.2, message = "Normalizing with SCTransform")
           app.env$object <- suppressWarnings(expr = SCTransform(
             object = app.env$object,
-            residual.features = rownames(x = refs$reference),
-            ncells = min(3000, ncol(x = app.env$object))
+            residual.features = rownames(x = refs$map),
+            ncells = getOption(x = 'Azimuth.sct.ncells'),
+            n_genes = getOption(x = 'Azimuth.sct.nfeats'),
+            do.correct.umi = FALSE,
+            do.scale = FALSE,
+            do.center = TRUE
           ))
           setProgress(value = 1)
           output$sct <- renderText(expr = "SCTransform complete")
@@ -170,14 +243,7 @@ server <- function(input, output, session) {
         choices = FilterFeatures(features = rownames(x = app.env$object)),
         selected = VariableFeatures(object = app.env$object)[1]
       )
-      appendTab(
-        inputId = 'tabs',
-        tabPanel(
-          title = "Feature Explorer",
-          plotOutput(outputId = 'fvln'),
-          plotOutput(outputId = 'fdim')
-        )
-      )
+      shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'fexplorer'))
     }
   )
   observeEvent( # Map data
@@ -187,45 +253,82 @@ server <- function(input, output, session) {
         message = 'Mapping data',
         expr = {
           setProgress(value = 0, message = "Finding anchors")
+          cells <- colnames(x = app.env$object)
           # TODO: export FindTransferAnchors_Fast
           anchors <- Seurat:::FindTransferAnchors_Fast(
-            reference = refs$reference,
+            reference = refs$map,
             query = app.env$object,
             reference.nn = refs$index,
             reference.nnidx = refs$index$annoy_index,
-            reference.assay = DefaultAssay(object = refs$reference),
+            reference.assay = DefaultAssay(object = refs$map),
             npcs = NULL,
             k.filter = NA,
             query.assay = 'SCT',
             reference.reduction = 'spca',
             normalization.method = 'SCT',
-            features = rownames(x = refs$reference),
+            features = rownames(x = refs$map),
             dims = 1:50
           )
           setProgress(value = 0.6, message = 'Integrating data')
-          # TODO: export IngestNewData_Fase
+          # TODO: export IngestNewData_Fast
           ingested <- Seurat:::IngestNewData_Fast(
-            reference = refs$reference,
+            reference = refs$map,
             query = app.env$object,
             dims = 1:50,
             transfer.anchors = anchors,
             reference.nnidx = refs$index$annoy_index,
-            transfer.labels = Idents(object = refs$reference)
+            transfer.labels = Idents(object = refs$map),
+            transfer.expression = GetAssayData(
+              object = refs$map[['ADT']],
+              slot = 'data'
+            )
           )
+          rm(anchors)
+          gc(verbose = FALSE)
           setProgress(value = 0.8, message = "Running UMAP transform")
-          cells <- colnames(x = app.env$object)
-          app.env$object$predicted.id <- ingested$predicted.id[cells]
-          app.env$object$predicted.id.score <- ingested$predicted.id.score[cells]
+          slot(object = ingested, name = 'neighbors')[['query_ref.nn']] <- NNTransform(
+            neighbors = ingested[['query_ref.nn']],
+            meta.data = refs$map[[]]
+          )
+          app.env$object <- AddPredictions(
+            object = app.env$object,
+            preds = ingested$predicted.id,
+            scores = ingested$predicted.id.score,
+            preds.levels = levels(x = refs$map),
+            preds.drop = TRUE
+          )
           app.env$object[['umap.proj']] <- RunUMAP(
             object = ingested[['query_ref.nn']],
-            reduction.model = refs$reference[['jumap']],
+            reduction.model = refs$map[['jumap']],
             reduction.key = 'ProjU_'
           )
+          suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
+            data = ingested[['transfer']][, cells]
+          ))
+          setProgress(value = 0.9, message = 'Calculating mapping metrics')
+          app.env$object[['int']] <- CreateDimReducObject(
+            embeddings = Embeddings(object = ingested[['int']])[cells, ],
+            assay = app.env$default.assay
+          )
+          dsqr <- QueryReference(
+            reference = refs$map,
+            query = app.env$object,
+            assay.query = app.env$default.assay
+          )
+          app.env$object <- AddMetaData(
+            object = app.env$object,
+            metadata = CalcMappingMetric(object = dsqr)
+          )
+          rm(dsqr, ingested)
+          gc(verbose = FALSE)
           setProgress(value = 1)
         }
       )
+      if (sum(app.env$object$mapped) * 100 < getOption(x = "Azimuth.map.pcthresh")) {
+        stop(safeError(error = "Query dataset could not be mapped to the reference"))
+      }
+      app.env$object <- app.env$object[, app.env$object$mapped]
       # Add the predicted ID and score to the plots
-      Idents(object = app.env$object) <- 'predicted.id'
       updateSelectInput(
         session = session,
         inputId = 'feature',
@@ -236,33 +339,51 @@ server <- function(input, output, session) {
         ),
         selected = 'predicted.id.score'
       )
+      adt.features <- sort(x = FilterFeatures(features = rownames(
+        x = app.env$object[[adt.key]]
+      )))
+      enable(id = 'adtfeature')
+      updateSelectInput(
+        session = session,
+        inputId = 'adtfeature',
+        choices = adt.features,
+        selected = adt.features
+      )
       updateTabsetPanel(
         session = session,
         inputId = 'tabs',
-        selected = 'Mapped Data'
+        selected = 'mapped'
       )
-      # Enable downloads
+      # Enable downloads and downstream analyses
       enable(id = 'dlumap')
       enable(id = 'dlpred')
+      enable(id = 'presto')
+      shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'imputed'))
     }
   )
+  # observeEvent(
+  #   eventExpr = input$presto,
+  #   handlerExpr = {
+  #     ''
+  #   }
+  # )
   # Plots
   output$qcvln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
-      qc <- paste0(
-        c('nCount_', 'nFeature_'),
-        DefaultAssay(object = app.env$object)
-      )
+      qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
+      if (mt.key %in% colnames(x = app.env$object[[]])) {
+        qc <- c(qc, mt.key)
+      }
       VlnPlot(object = app.env$object, features = qc)
     }
   })
   output$refdim <- renderPlot(expr = {
-    DimPlot(object = refs$reference)
+    DimPlot(object = refs$map) + ggtitle(label = 'Reference')
   })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
-        DimPlot(object = app.env$object)
+        DimPlot(object = app.env$object) + ggtitle(label = 'Query')
       }
     }
   })
@@ -281,6 +402,49 @@ server <- function(input, output, session) {
       }
     }
   })
+  output$ivln <- renderPlot(expr = {
+    if (!is.null(x = app.env$object)) {
+      if (adt.key %in% Assays(object = app.env$object)) {
+        VlnPlot(
+          object = app.env$object,
+          features = paste0(
+            Key(object = app.env$object[[adt.key]]),
+            input$adtfeature
+          )
+        )
+      }
+    }
+  })
+  output$idim <- renderPlot(expr = {
+    if (!is.null(x = app.env$object)) {
+      if (adt.key %in% Assays(object = app.env$object)) {
+        FeaturePlot(
+          object = app.env$object,
+          features = paste0(
+            Key(object = app.env$object[[adt.key]]),
+            input$adtfeature
+          )
+        )
+      }
+    }
+  })
+  # Tables
+  output$qctbl <- renderTable(
+    expr = {
+      if (!is.null(x = app.env$object)) {
+        qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
+        tbl <- apply(X = app.env$object[[qc]], MARGIN = 2, FUN = quantile)
+        tbl <- as.data.frame(x = tbl)
+        colnames(x = tbl) <- c('nUMI per cell', 'Genes detected per cell')
+        if (mt.key %in% colnames(x = app.env$object[[]])) {
+          tbl[, 3] <- quantile(x = app.env$object[[mt.key, drop = TRUE]])
+          colnames(x = tbl)[3] <- 'Mitochondrial percentage per cell'
+        }
+        t(x = tbl)
+      }
+    },
+    rownames = TRUE
+  )
   # Downloads
   output$dlumap <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_umap.Rds'),
@@ -292,6 +456,7 @@ server <- function(input, output, session) {
       }
     }
   )
+  # TODO: Add data from CalcMappingMetric to _pred.tsv?
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
@@ -324,6 +489,13 @@ server <- function(input, output, session) {
 #' @export
 #'
 AzimuthApp <- function() {
-  runApp(appDir = shinyApp(ui = ui, server = server))
+  opts <- list(
+    shiny.maxRequestSize = 100 * (1024 ^ 2),
+    Azimuth.app.reference = 'http://satijalab04.nygenome.org/pbmc'
+  )
+  withr::with_options(
+    new = opts,
+    code = runApp(appDir = shinyApp(ui = ui, server = server))
+  )
   return(invisible(x = NULL))
 }

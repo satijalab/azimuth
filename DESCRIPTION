@@ -41,4 +41,5 @@ Suggests:
   rmarkdown
 Collate:
     'zzz.R'
+    'seurat.R'
     'app.R'
