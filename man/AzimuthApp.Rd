@@ -4,7 +4,10 @@
 \alias{AzimuthApp}
 \title{Launch the mapping app}
 \usage{
-AzimuthApp()
+AzimuthApp(reference = "http://satijalab04.nygenome.org/pbmc")
+}
+\arguments{
+\item{reference}{Path or URL to reference dataset}
 }
 \value{
 None, launches the mapping Shiny app
