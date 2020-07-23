@@ -14,6 +14,11 @@
 #'   Only show mapped plot if the percentage of cells mapped meets or
 #'   exceeds this threshold; defaults to \code{60}
 #'  }
+#'  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
+#'   Number of cells and features to use for
+#'   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{1000}
+#'   for each
+#'  }
 #' }
 #'
 #' @aliases SeuratMapper
@@ -22,7 +27,9 @@
 
 default.options <- list(
   Azimuth.de.mincells = 15L,
-  Azimuth.map.pcthresh = 60L
+  Azimuth.map.pcthresh = 60L,
+  Azimuth.sct.ncells = 1000L,
+  Azimuth.sct.nfeats = 1000L
 )
 
 #' Create an annoy index

@@ -24,6 +24,11 @@ users can configure these with \code{\link[base]{options}}:
   Only show mapped plot if the percentage of cells mapped meets or
   exceeds this threshold; defaults to \code{60}
  }
+ \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
+  Number of cells and features to use for
+  \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{1000}
+  for each
+ }
 }
 }
 
