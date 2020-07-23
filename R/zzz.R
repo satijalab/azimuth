@@ -304,6 +304,48 @@ Oxford <- function(..., join = c('and', 'or')) {
   ))
 }
 
+#' Prepare differential expression results for rendering
+#'
+#' @param diff.exp A dataframe with differential expression results from
+#' \code{\link{presto::wilcoxauc}}
+#' @param groups.use Names of groups to filter \code{diff.exp} to; groups must
+#' be found in \code{diff.exp$group}
+#' @param n Number of feature to filter \code{diff.exp} to per group
+#' @param logfc.thresh logFC threshold
+#'
+#' @return \code{diff.exp}, ordered by adjusted p-value, filtered to \code{n}
+#' features per group in \code{group.use}
+#'
+#' @importFrom rlang %||%
+#' @importFrom utils head
+#'
+#' @seealso \code{\link[presto]{wilcoxauc}}
+#'
+#' @keywords internal
+#'
+RenderDiffExp <- function(
+  diff.exp,
+  groups.use = NULL,
+  n = 10L,
+  logfc.thresh = 0L
+) {
+  cols.remove <- c('feature', 'logFC', 'auc')
+  groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
+  diff.exp <- lapply(
+    X = groups.use,
+    FUN = function(group) {
+      group.de <- diff.exp[diff.exp$group == group, , drop = FALSE]
+      group.de <- group.de[group.de$logFC > logfc.thresh, , drop = FALSE]
+      group.de <- group.de[order(group.de$padj, -group.de$auc), , drop = FALSE]
+      return(head(x = group.de, n = n))
+    }
+  )
+  diff.exp <- do.call(what = 'rbind', diff.exp)
+  rownames(x = diff.exp) <- make.unique(names = diff.exp$feature)
+  diff.exp <- diff.exp[, !colnames(x = diff.exp) %in% cols.remove, drop = FALSE]
+  return(diff.exp)
+}
+
 #' Manage tabs with \pkg{shinyjs}
 #'
 #' Quickly generate JavaScript IDs for Shiny tab panels. Also build a function
