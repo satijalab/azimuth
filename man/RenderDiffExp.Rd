@@ -8,7 +8,7 @@ RenderDiffExp(diff.exp, groups.use = NULL, n = 10L, logfc.thresh = 0L)
 }
 \arguments{
 \item{diff.exp}{A dataframe with differential expression results from
-\code{\link{presto::wilcoxauc}}}
+\code{\link[presto:wilcoxauc]{presto::wilcoxauc}}}
 
 \item{groups.use}{Names of groups to filter \code{diff.exp} to; groups must
 be found in \code{diff.exp$group}}

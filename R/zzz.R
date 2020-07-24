@@ -21,6 +21,9 @@
 #'  }
 #' }
 #'
+#' @inheritSection AzimuthApp App options
+#'
+#'
 #' @aliases SeuratMapper
 #'
 "_PACKAGE"
@@ -307,7 +310,7 @@ Oxford <- function(..., join = c('and', 'or')) {
 #' Prepare differential expression results for rendering
 #'
 #' @param diff.exp A dataframe with differential expression results from
-#' \code{\link{presto::wilcoxauc}}
+#' \code{\link[presto:wilcoxauc]{presto::wilcoxauc}}
 #' @param groups.use Names of groups to filter \code{diff.exp} to; groups must
 #' be found in \code{diff.exp$group}
 #' @param n Number of feature to filter \code{diff.exp} to per group

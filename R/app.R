@@ -565,7 +565,23 @@ server <- function(input, output, session) {
 
 #' Launch the mapping app
 #'
-#' @param reference Path or URL to reference dataset
+#' @param reference,mito See \strong{App options} for more details
+#'
+#' @section App options:
+#'
+#' The following options are used for passing information into the app; users
+#' can configure these either \link[base:options]{globally} or via arguments to
+#' \code{\link{AzimuthApp}} (omitting the \dQuote{Azimuth.app} prefix):
+#'
+#' \describe{
+#'  \item{\code{Azimuth.app.mito}}{
+#'   Regular expression pattern indicating mitochondrial features in query object
+#'  }
+#'  \item{\code{Azimuth.app.reference}}{
+#'   URL or directory path to reference dataset; see \code{\link{LoadReference}}
+#'   for more details
+#'  }
+#' }
 #'
 #' @return None, launches the mapping Shiny app
 #'
@@ -573,10 +589,19 @@ server <- function(input, output, session) {
 #'
 #' @export
 #'
-AzimuthApp <- function(reference = 'http://satijalab04.nygenome.org/pbmc') {
+#' @seealso \code{\link{SeruatMapper-package}}
+#'
+AzimuthApp <- function(
+  mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
+  reference = getOption(
+    x = 'Azimuth.app.reference',
+    default = 'http://satijalab04.nygenome.org/pbmc'
+  )
+) {
   useShinyjs()
   opts <- list(
     shiny.maxRequestSize = 100 * (1024 ^ 2),
+    Azimuth.app.mito = mito,
     Azimuth.app.reference = reference
   )
   withr::with_options(

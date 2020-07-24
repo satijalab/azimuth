@@ -32,6 +32,24 @@ users can configure these with \code{\link[base]{options}}:
 }
 }
 
+\section{App options}{
+
+
+The following options are used for passing information into the app; users
+can configure these either \link[base:options]{globally} or via arguments to
+\code{\link{AzimuthApp}} (omitting the \dQuote{Azimuth.app} prefix):
+
+\describe{
+ \item{\code{Azimuth.app.mito}}{
+  Regular expression pattern indicating mitochondrial features in query object
+ }
+ \item{\code{Azimuth.app.reference}}{
+  URL or directory path to reference dataset; see \code{\link{LoadReference}}
+  for more details
+ }
+}
+}
+
 \seealso{
 Useful links:
 \itemize{
@@ -46,8 +64,8 @@ Useful links:
 Authors:
 \itemize{
   \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID})
-  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
   \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID})
+  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
 }
 
 }

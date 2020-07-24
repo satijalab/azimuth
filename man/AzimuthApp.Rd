@@ -4,14 +4,39 @@
 \alias{AzimuthApp}
 \title{Launch the mapping app}
 \usage{
-AzimuthApp(reference = "http://satijalab04.nygenome.org/pbmc")
+AzimuthApp(
+  mito = getOption(x = "Azimuth.app.mito", default = "^MT-"),
+  reference = getOption(x = "Azimuth.app.reference", default =
+    "http://satijalab04.nygenome.org/pbmc")
+)
 }
 \arguments{
-\item{reference}{Path or URL to reference dataset}
+\item{reference, mito}{See \strong{App options} for more details}
 }
 \value{
 None, launches the mapping Shiny app
 }
 \description{
 Launch the mapping app
+}
+\section{App options}{
+
+
+The following options are used for passing information into the app; users
+can configure these either \link[base:options]{globally} or via arguments to
+\code{\link{AzimuthApp}} (omitting the \dQuote{Azimuth.app} prefix):
+
+\describe{
+ \item{\code{Azimuth.app.mito}}{
+  Regular expression pattern indicating mitochondrial features in query object
+ }
+ \item{\code{Azimuth.app.reference}}{
+  URL or directory path to reference dataset; see \code{\link{LoadReference}}
+  for more details
+ }
+}
+}
+
+\seealso{
+\code{\link{SeruatMapper-package}}
 }
