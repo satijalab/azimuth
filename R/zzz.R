@@ -118,8 +118,9 @@ LoadFileInput <- function(path) {
         object <- CreateSeuratObject(counts = as.sparse(x = object))
       }
       if (!inherits(x = object, what = 'Seurat')) {
-        stop("The RDS file must be a Seurat object", call. = )
+        stop("The RDS file must be a Seurat object", call. = FALSE)
       }
+      object
     },
     'h5seurat' = LoadH5Seurat(file = path, assays = 'counts'),
     stop("Unknown file type: ", type, call. = FALSE)
