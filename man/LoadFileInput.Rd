@@ -10,9 +10,10 @@ LoadFileInput(path)
 \item{path}{Path to input data}
 }
 \value{
-A \code{Seurat} object
+A \code{\link[Seurat]{Seurat}} object
 }
 \description{
-Load file input into a \code{Seurat} object
+Take a file and load it into a \code{\link[Seurat]{Seurat}} object. Supports
+a variety of file types and always returns a \code{Seurat} object
 }
 \keyword{internal}

@@ -87,13 +87,16 @@ FilterFeatures <- function(features) {
 
 #' Load file input into a \code{Seurat} object
 #'
+#' Take a file and load it into a \code{\link[Seurat]{Seurat}} object. Supports
+#' a variety of file types and always returns a \code{Seurat} object
+#'
 #' @param path Path to input data
 #'
-#' @return A \code{Seurat} object
+#' @return A \code{\link[Seurat]{Seurat}} object
 #'
 #' @importFrom tools file_ext
-#' @importFrom SeuratDisk LoadH5Seurat
-#' @importFrom Seurat Read10X_h5 CreateSeuratObject
+#' @importFrom SeuratDisk Connect LoadH5Seurat
+#' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse
 #'
 #' @keywords internal
 #'
@@ -109,7 +112,15 @@ LoadFileInput <- function(path) {
       }
       CreateSeuratObject(counts = mat)
     },
-    'rds' = readRDS(file = path),
+    'rds' = {
+      object <- readRDS(file = path)
+      if (inherits(x = object, what = c('Matrix', 'matrix', 'data.frame'))) {
+        object <- CreateSeuratObject(counts = as.sparse(x = object))
+      }
+      if (!inherits(x = object, what = 'Seurat')) {
+        stop("The RDS file must be a Seurat object", call. = )
+      }
+    },
     'h5seurat' = LoadH5Seurat(file = path, assays = 'counts'),
     stop("Unknown file type: ", type, call. = FALSE)
   ))
