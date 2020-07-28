@@ -124,6 +124,7 @@ FilterFeatures <- function(features) {
 #'
 LoadFileInput <- function(path) {
   # TODO: add support for loom files
+  on.exit(expr = gc(verbose = FALSE))
   type <- tolower(x = file_ext(x = path))
   return(switch(
     EXPR = type,
