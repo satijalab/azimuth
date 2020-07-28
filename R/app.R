@@ -29,7 +29,7 @@ ui <- tagList(
         fileInput(
           inputId = "file",
           label = app.title,
-          accept = c('.h5', '.h5seurat', '.rds')
+          accept = c('.h5', '.h5ad', '.h5seurat', '.rds')
         ),
         disabled(sliderInput(
           inputId = 'ncount',
