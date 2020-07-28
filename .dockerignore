@@ -1,0 +1,9 @@
+data-raw/*
+inst/*
+man/*
+.dockerignore
+.Rbuildignore
+.gitignore
+*.Rmd
+*.md
+*.Rproj
