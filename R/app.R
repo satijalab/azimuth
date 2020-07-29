@@ -250,6 +250,7 @@ server <- function(input, output, session) {
         }
       )
       enable(id = "map")
+      disable(id = 'proc1')
       # Enable the feature explorer
       enable(id = 'feature')
       app.env$default.feature <- ifelse(
@@ -434,6 +435,7 @@ server <- function(input, output, session) {
       )
       enable(id = 'dlumap')
       enable(id = 'dlpred')
+      disable(id = 'map')
     }
   )
   # Plots
