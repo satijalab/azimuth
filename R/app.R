@@ -84,14 +84,14 @@ ui <- tagList(
           value = 'preprocessing',
           plotOutput(outputId = "qcvln"),
           tableOutput(outputId = 'qctbl'),
-          verbatimTextOutput(outputId = "sct"),
-          verbatimTextOutput(outputId = "mapping")
+          verbatimTextOutput(outputId = "sct")
         ),
         tabPanel(
           title = 'Mapped Data',
           value = 'mapped',
           plotOutput(outputId = 'refdim'),
-          plotOutput(outputId = 'objdim')
+          plotOutput(outputId = 'objdim'),
+          verbatimTextOutput(outputId = "mapping")
         ),
         tabPanel(
           title = 'Feature Explorer',
@@ -349,6 +349,17 @@ server <- function(input, output, session) {
       if (sum(app.env$object$mapped) * 100 < getOption(x = "Azimuth.map.pcthresh")) {
         stop(safeError(error = "Query dataset could not be mapped to the reference"))
       }
+      output$mapping <- renderText(expr = {
+        paste0(
+          sum(app.env$object$mapped),
+          " cells mapped to reference (",
+          round(
+            x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
+            digits = 2
+          ),
+          "%)"
+        )
+      })
       app.env$object <- app.env$object[, app.env$object$mapped]
       # Add the predicted ID and score to the plots
       updateSelectInput(
