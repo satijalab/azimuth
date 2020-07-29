@@ -565,7 +565,7 @@ server <- function(input, output, session) {
 
 #' Launch the mapping app
 #'
-#' @param reference,mito See \strong{App options} for more details
+#' @param reference,mito,max.upload.mb See \strong{App options} for more details
 #'
 #' @section App options:
 #'
@@ -580,6 +580,9 @@ server <- function(input, output, session) {
 #'  \item{\code{Azimuth.app.reference}}{
 #'   URL or directory path to reference dataset; see \code{\link{LoadReference}}
 #'   for more details
+#'  }
+#'  \item{\code{Azimuth.app.max.upload.mb}}{
+#'   Maximum file size (in MB) allowed to upload
 #'  }
 #' }
 #'
@@ -596,11 +599,15 @@ AzimuthApp <- function(
   reference = getOption(
     x = 'Azimuth.app.reference',
     default = 'http://satijalab04.nygenome.org/pbmc'
+  ),
+  max.upload.mb = getOption(
+    x = 'Azimuth.app.max.upload.mb',
+    default = 500
   )
 ) {
   useShinyjs()
   opts <- list(
-    shiny.maxRequestSize = 100 * (1024 ^ 2),
+    shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
     Azimuth.app.mito = mito,
     Azimuth.app.reference = reference
   )
