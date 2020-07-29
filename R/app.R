@@ -141,7 +141,7 @@ ui <- tagList(
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays
-#' NoLegend
+#' NoLegend Idents<-
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler
@@ -180,6 +180,7 @@ server <- function(input, output, session) {
         expr = {
           setProgress(value = 0)
           app.env$object <- LoadFileInput(path = input$file$datapath)
+          Idents(app.env$object) <- 'query'
           setProgress(value = 1)
         }
       )
