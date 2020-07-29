@@ -134,9 +134,8 @@ ui <- tagList(
 #' @importFrom shinyjs show enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
-#' CreateDimReducObject Embeddings AddMetaData Key
-#' VlnPlot DimPlot Reductions FeaturePlot Assays
-#' NoLegend Idents<-
+#' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
+#' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<-
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler
@@ -342,6 +341,12 @@ server <- function(input, output, session) {
             metadata = CalcMappingMetric(object = dsqr)
           )
           rm(dsqr, ingested)
+          app.env$object <- SetAssayData(
+            object = app.env$object,
+            assay = 'SCT',
+            slot = 'scale.data',
+            new.data = new(Class = 'matrix')
+          )
           gc(verbose = FALSE)
           setProgress(value = 1)
         }
