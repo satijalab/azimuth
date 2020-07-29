@@ -319,7 +319,7 @@ server <- function(input, output, session) {
           app.env$object[['umap.proj']] <- RunUMAP(
             object = ingested[['query_ref.nn']],
             reduction.model = refs$map[['jumap']],
-            reduction.key = 'ProjU_'
+            reduction.key = 'UMAP_'
           )
           suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
             data = ingested[['transfer']][, cells]
