@@ -47,6 +47,9 @@ can configure these either \link[base:options]{globally} or via arguments to
   URL or directory path to reference dataset; see \code{\link{LoadReference}}
   for more details
  }
+ \item{\code{Azimuth.app.max.upload.mb}}{
+  Maximum file size (in MB) allowed to upload
+ }
 }
 }
 

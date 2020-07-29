@@ -69,11 +69,6 @@ ui <- tagList(
           selectize = FALSE,
           width = '100%'
         )),
-        disabled(actionButton(
-          inputId = 'presto',
-          # label = 'Perform Differential Expression'
-          label = 'Determine Biomarkers'
-        )),
         disabled(selectInput(
           inputId = 'declusters',
           label = 'Cell Type',
@@ -89,14 +84,14 @@ ui <- tagList(
           value = 'preprocessing',
           plotOutput(outputId = "qcvln"),
           tableOutput(outputId = 'qctbl'),
-          verbatimTextOutput(outputId = "sct"),
-          verbatimTextOutput(outputId = "mapping")
+          verbatimTextOutput(outputId = "sct")
         ),
         tabPanel(
           title = 'Mapped Data',
           value = 'mapped',
           plotOutput(outputId = 'refdim'),
-          plotOutput(outputId = 'objdim')
+          plotOutput(outputId = 'objdim'),
+          verbatimTextOutput(outputId = "mapping")
         ),
         tabPanel(
           title = 'Feature Explorer',
@@ -139,9 +134,8 @@ ui <- tagList(
 #' @importFrom shinyjs show enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
-#' CreateDimReducObject Embeddings AddMetaData Key
-#' VlnPlot DimPlot Reductions FeaturePlot Assays
-#' NoLegend Idents<-
+#' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
+#' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<-
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler
@@ -154,6 +148,7 @@ server <- function(input, output, session) {
   app.env <- reactiveValues(
     object = NULL,
     default.assay = NULL,
+    default.feature = NULL,
     diff.exp = list()
   )
   withProgress(
@@ -180,6 +175,7 @@ server <- function(input, output, session) {
         expr = {
           setProgress(value = 0)
           app.env$object <- LoadFileInput(path = input$file$datapath)
+          app.env$object$query <- 'query'
           Idents(app.env$object) <- 'query'
           setProgress(value = 1)
         }
@@ -255,14 +251,20 @@ server <- function(input, output, session) {
         }
       )
       enable(id = "map")
+      disable(id = 'proc1')
       # Enable the feature explorer
       enable(id = 'feature')
+      app.env$default.feature <- ifelse(
+        test = 'GNLY' %in% rownames(x = app.env$object),
+        yes = 'GNLY',
+        no = VariableFeatures(object = app.env$object)[1]
+      )
       updateSelectInput(
         session = session,
         inputId = 'feature',
         label = 'Feature',
         choices = FilterFeatures(features = rownames(x = app.env$object)),
-        selected = VariableFeatures(object = app.env$object)[1]
+        selected = app.env$default.feature
       )
       shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'fexplorer'))
     }
@@ -341,6 +343,12 @@ server <- function(input, output, session) {
             metadata = CalcMappingMetric(object = dsqr)
           )
           rm(dsqr, ingested)
+          app.env$object <- SetAssayData(
+            object = app.env$object,
+            assay = 'SCT',
+            slot = 'scale.data',
+            new.data = new(Class = 'matrix')
+          )
           gc(verbose = FALSE)
           setProgress(value = 1)
         }
@@ -348,6 +356,17 @@ server <- function(input, output, session) {
       if (sum(app.env$object$mapped) * 100 < getOption(x = "Azimuth.map.pcthresh")) {
         stop(safeError(error = "Query dataset could not be mapped to the reference"))
       }
+      output$mapping <- renderText(expr = {
+        paste0(
+          sum(app.env$object$mapped),
+          " cells mapped to reference (",
+          round(
+            x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
+            digits = 2
+          ),
+          "%)"
+        )
+      })
       app.env$object <- app.env$object[, app.env$object$mapped]
       # Add the predicted ID and score to the plots
       updateSelectInput(
@@ -358,7 +377,7 @@ server <- function(input, output, session) {
           'predicted.id.score',
           FilterFeatures(features = rownames(x = app.env$object))
         ),
-        selected = 'predicted.id.score'
+        selected = app.env$default.feature
       )
       adt.features <- sort(x = FilterFeatures(features = rownames(
         x = app.env$object[[adt.key]]
@@ -370,21 +389,8 @@ server <- function(input, output, session) {
         choices = adt.features,
         selected = adt.features
       )
-      updateTabsetPanel(
-        session = session,
-        inputId = 'tabs',
-        selected = 'mapped'
-      )
-      # Enable downloads and downstream analyses
-      enable(id = 'dlumap')
-      enable(id = 'dlpred')
-      enable(id = 'presto')
       shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'imputed'))
-    }
-  )
-  observeEvent(
-    eventExpr = input$presto,
-    handlerExpr = {
+      # Compute biomarkers
       withProgress(
         message = "Running differential expression",
         expr = {
@@ -405,7 +411,6 @@ server <- function(input, output, session) {
           setProgress(value = 1)
         }
       )
-      enable(id = 'declusters')
       allowed.clusters <- names(x = which(
         x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells'),
       ))
@@ -414,6 +419,7 @@ server <- function(input, output, session) {
         levels = levels(x = app.env$object)
       )
       allowed.clusters <- levels(x = droplevels(x = allowed.clusters))
+      enable(id = 'declusters')
       updateSelectInput(
         session = session,
         inputId = 'declusters',
@@ -422,11 +428,15 @@ server <- function(input, output, session) {
         selected = allowed.clusters[1]
       )
       shinyjs::show(selector = TabJSKey(id = 'tabs', 'diffexp'))
+      # Enable downloads and downstream analyses
       updateTabsetPanel(
         session = session,
         inputId = 'tabs',
-        selected = 'diffexp'
+        selected = 'mapped'
       )
+      enable(id = 'dlumap')
+      enable(id = 'dlpred')
+      disable(id = 'map')
     }
   )
   # Plots
@@ -436,7 +446,7 @@ server <- function(input, output, session) {
       if (mt.key %in% colnames(x = app.env$object[[]])) {
         qc <- c(qc, mt.key)
       }
-      VlnPlot(object = app.env$object, features = qc)
+      VlnPlot(object = app.env$object, features = qc, group.by = 'query')
     }
   })
   output$refdim <- renderPlot(expr = {
