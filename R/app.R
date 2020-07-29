@@ -80,6 +80,10 @@ ui <- tagList(
           choices = '',
           selectize = FALSE,
           width = '100%'
+        )),
+        disabled(downloadButton(
+          outputId = 'dlscript',
+          label = 'Download the analysis script'
         ))
       ),
       mainPanel = mainPanel(tabsetPanel(
@@ -136,6 +140,7 @@ ui <- tagList(
 #' @importFrom methods slot<-
 #' @importFrom ggplot2 ggtitle
 #' @importFrom presto wilcoxauc
+#' @importFrom stringr str_interp
 #' @importFrom shinyjs show enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
@@ -185,6 +190,7 @@ server <- function(input, output, session) {
       app.env$default.assay <- DefaultAssay(object = app.env$object)
       enable(id = 'ncount')
       enable(id = 'nfeature')
+      enable(id = 'dlscript')
       ncount <- paste0('nCount_', app.env$default.assay)
       nfeature <- paste0('nFeature_', app.env$default.assay)
       ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
@@ -559,6 +565,29 @@ server <- function(input, output, session) {
           sep = '\t'
         )
       }
+    }
+  )
+  output$dlscript <- downloadHandler(
+    filename = paste0(tolower(x = app.title), '_analysis.R'),
+    content = function(file) {
+      template <- readLines(con = system.file(
+        file.path('resources', 'template.R'),
+        package = 'SeuratMapper'
+      ))
+      template <- paste(template, collapse = '\n')
+      e <- new.env()
+      e$ref.uri <- getOption(x = 'Azimuth.app.reference')
+      e$path <- input$file$name
+      e$mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
+      e$mito.key <- mt.key
+      e$ncount.max <- max(input$ncount)
+      e$ncount.min <- min(input$ncount)
+      e$nfeature.max <- max(input$nfeature)
+      e$nfeature.min <- min(input$nfeature)
+      e$sct.ncells <- getOption(x = 'Azimuth.sct.ncells')
+      e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
+      e$adt.key <- adt.key
+      writeLines(text = str_interp(string = template, env = e), con = file)
     }
   )
 }

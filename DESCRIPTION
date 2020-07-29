@@ -37,6 +37,7 @@ Imports:
   SeuratDisk,
   shiny (>= 1.5.0),
   shinyjs (>= 1.1),
+  stringr (>= 1.4.0),
   tools,
   V8 (>= 3.2.0)
 Suggests:
