@@ -175,6 +175,7 @@ server <- function(input, output, session) {
         expr = {
           setProgress(value = 0)
           app.env$object <- LoadFileInput(path = input$file$datapath)
+          app.env$object$query <- 'query'
           Idents(app.env$object) <- 'query'
           setProgress(value = 1)
         }
@@ -445,7 +446,7 @@ server <- function(input, output, session) {
       if (mt.key %in% colnames(x = app.env$object[[]])) {
         qc <- c(qc, mt.key)
       }
-      VlnPlot(object = app.env$object, features = qc)
+      VlnPlot(object = app.env$object, features = qc, group.by = 'query')
     }
   })
   output$refdim <- renderPlot(expr = {
