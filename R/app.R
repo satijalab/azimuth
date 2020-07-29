@@ -69,11 +69,6 @@ ui <- tagList(
           selectize = FALSE,
           width = '100%'
         )),
-        # disabled(actionButton(
-        #   inputId = 'presto',
-        #   # label = 'Perform Differential Expression'
-        #   label = 'Determine Biomarkers'
-        # )),
         disabled(selectInput(
           inputId = 'declusters',
           label = 'Cell Type',
@@ -410,11 +405,6 @@ server <- function(input, output, session) {
       )
       shinyjs::show(selector = TabJSKey(id = 'tabs', 'diffexp'))
       # Enable downloads and downstream analyses
-      # updateTabsetPanel(
-      #   session = session,
-      #   inputId = 'tabs',
-      #   selected = 'diffexp'
-      # )
       updateTabsetPanel(
         session = session,
         inputId = 'tabs',
@@ -422,56 +412,8 @@ server <- function(input, output, session) {
       )
       enable(id = 'dlumap')
       enable(id = 'dlpred')
-      # enable(id = 'presto')
     }
   )
-  # observeEvent(
-  #   eventExpr = input$presto,
-  #   handlerExpr = {
-  #     withProgress(
-  #       message = "Running differential expression",
-  #       expr = {
-  #         setProgress(value = 0)
-  #         app.env$diff.expr[[app.env$default.assay]] <- wilcoxauc(
-  #           X = app.env$object,
-  #           group_by = 'predicted.id',
-  #           assay = 'data',
-  #           seurat_assay = app.env$default.assay
-  #         )
-  #         setProgress(value = 0.6)
-  #         app.env$diff.expr[[adt.key]] <- wilcoxauc(
-  #           X = app.env$object,
-  #           group_by = 'predicted.id',
-  #           assay = 'data',
-  #           seurat_assay = adt.key
-  #         )
-  #         setProgress(value = 1)
-  #       }
-  #     )
-  #     enable(id = 'declusters')
-  #     allowed.clusters <- names(x = which(
-  #       x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells'),
-  #     ))
-  #     allowed.clusters <- factor(
-  #       x = allowed.clusters,
-  #       levels = levels(x = app.env$object)
-  #     )
-  #     allowed.clusters <- levels(x = droplevels(x = allowed.clusters))
-  #     updateSelectInput(
-  #       session = session,
-  #       inputId = 'declusters',
-  #       label = 'Cell Type',
-  #       choices = allowed.clusters,
-  #       selected = allowed.clusters[1]
-  #     )
-  #     shinyjs::show(selector = TabJSKey(id = 'tabs', 'diffexp'))
-  #     updateTabsetPanel(
-  #       session = session,
-  #       inputId = 'tabs',
-  #       selected = 'diffexp'
-  #     )
-  #   }
-  # )
   # Plots
   output$qcvln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
