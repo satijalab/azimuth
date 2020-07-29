@@ -134,7 +134,7 @@ ui <- tagList(
 #' @rdname AzimuthServer
 #'
 #' @importFrom methods slot<-
-#' @importFrom ggplot2 ggtitle
+#' @importFrom ggplot2 ggtitle scale_colour_hue
 #' @importFrom presto wilcoxauc
 #' @importFrom shinyjs show enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
@@ -440,12 +440,14 @@ server <- function(input, output, session) {
     }
   })
   output$refdim <- renderPlot(expr = {
-    DimPlot(object = refs$map) + ggtitle(label = 'Reference')
+    DimPlot(object = refs$plot) + ggtitle(label = 'Reference')
   })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
-        DimPlot(object = app.env$object) + ggtitle(label = 'Query')
+        DimPlot(object = app.env$object) +
+          scale_colour_hue(limits = levels(refs$plot$id), drop = FALSE) +
+          ggtitle(label = 'Query')
       }
     }
   })
