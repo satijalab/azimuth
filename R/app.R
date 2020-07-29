@@ -149,6 +149,7 @@ server <- function(input, output, session) {
   app.env <- reactiveValues(
     object = NULL,
     default.assay = NULL,
+    default.feature = NULL,
     diff.exp = list()
   )
   withProgress(
@@ -252,12 +253,17 @@ server <- function(input, output, session) {
       enable(id = "map")
       # Enable the feature explorer
       enable(id = 'feature')
+      app.env$default.feature <- ifelse(
+        test = 'GNLY' %in% rownames(x = app.env$object),
+        yes = 'GNLY',
+        no = VariableFeatures(object = app.env$object)[1]
+      )
       updateSelectInput(
         session = session,
         inputId = 'feature',
         label = 'Feature',
         choices = FilterFeatures(features = rownames(x = app.env$object)),
-        selected = VariableFeatures(object = app.env$object)[1]
+        selected = app.env$default.feature
       )
       shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'fexplorer'))
     }
@@ -353,7 +359,7 @@ server <- function(input, output, session) {
           'predicted.id.score',
           FilterFeatures(features = rownames(x = app.env$object))
         ),
-        selected = 'predicted.id.score'
+        selected = app.env$default.feature
       )
       adt.features <- sort(x = FilterFeatures(features = rownames(
         x = app.env$object[[adt.key]]
