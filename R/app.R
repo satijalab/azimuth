@@ -484,7 +484,9 @@ server <- function(input, output, session) {
             Key(object = app.env$object[[adt.key]]),
             input$adtfeature
           ),
-          cols = c('lightgrey', 'darkred')
+          cols = c('lightgrey', 'darkred'),
+          min.cutoff = 'q10',
+          max.cutoff = 'q99'
         )
       }
     }
