@@ -141,6 +141,7 @@ ui <- tagList(
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays
+#' NoLegend
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler
@@ -451,7 +452,8 @@ server <- function(input, output, session) {
     if (!is.null(x = app.env$object)) {
       avail <- c(rownames(x = app.env$object), colnames(x = app.env$object[[]]))
       if (input$feature %in% avail) {
-        VlnPlot(object = app.env$object, features = input$feature)
+        VlnPlot(object = app.env$object, features = input$feature) +
+          NoLegend()
       }
     }
   })
@@ -471,7 +473,8 @@ server <- function(input, output, session) {
             Key(object = app.env$object[[adt.key]]),
             input$adtfeature
           )
-        )
+        ) +
+          NoLegend()
       }
     }
   })
