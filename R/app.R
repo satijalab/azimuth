@@ -97,16 +97,14 @@ ui <- tagList(
           title = 'Feature Explorer',
           value = 'fexplorer',
           plotOutput(outputId = 'fvln'),
-          plotOutput(outputId = 'fdim')
-        ),
-        tabPanel(
-          title = 'Imputed Protein Expression',
-          value = 'imputed',
+          plotOutput(outputId = 'fdim'),
+          htmltools::hr(),
+          h3("Imputed Proteins"),
+          htmltools::hr(),
           plotOutput(outputId = 'ivln'),
           plotOutput(outputId = 'idim')
         ),
         tabPanel(
-          # title = 'Differential Expression',
           title = 'Biomarkers',
           value = 'diffexp',
           h3('Biomarkers'),
@@ -369,6 +367,7 @@ server <- function(input, output, session) {
       })
       app.env$object <- app.env$object[, app.env$object$mapped]
       # Add the predicted ID and score to the plots
+      enable(id = 'adtfeature')
       updateSelectInput(
         session = session,
         inputId = 'feature',
@@ -382,14 +381,12 @@ server <- function(input, output, session) {
       adt.features <- sort(x = FilterFeatures(features = rownames(
         x = app.env$object[[adt.key]]
       )))
-      enable(id = 'adtfeature')
       updateSelectInput(
         session = session,
         inputId = 'adtfeature',
         choices = adt.features,
-        selected = adt.features
+        selected = adt.features[1]
       )
-      shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'imputed'))
       # Compute biomarkers
       withProgress(
         message = "Running differential expression",
