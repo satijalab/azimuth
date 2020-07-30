@@ -1,7 +1,7 @@
 #' @include zzz.R
 #' @include seurat.R
 #' @import V8
-#' @importFrom htmltools tagList h3 hr
+#' @importFrom htmltools tagList h4 hr h3
 #' @importFrom shinyjs useShinyjs extendShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
@@ -31,6 +31,8 @@ ui <- tagList(
           label = app.title,
           accept = c('.h5', '.h5seurat', '.rds')
         ),
+        h4("Preprocessing Controls"),
+        hr(),
         disabled(sliderInput(
           inputId = 'ncount',
           label = 'nCount',
@@ -47,20 +49,14 @@ ui <- tagList(
         )),
         disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
         disabled(actionButton(inputId = "map", label = "Map cells to reference")),
+        h4("Feature Selection"),
+        hr(),
         disabled(selectInput(
           inputId = 'feature',
           label = 'Feature',
           choices = '',
           selectize = FALSE,
           width = '100%'
-        )),
-        disabled(downloadButton(
-          outputId = 'dlumap',
-          label = 'Download UMAP RDS'
-        )),
-        disabled(downloadButton(
-          outputId = 'dlpred',
-          label = 'Download the predicted IDs and scores'
         )),
         disabled(selectInput(
           inputId = 'adtfeature',
@@ -69,12 +65,24 @@ ui <- tagList(
           selectize = FALSE,
           width = '100%'
         )),
+        h4("Cluster Selection"),
+        hr(),
         disabled(selectInput(
           inputId = 'declusters',
           label = 'Cell Type',
           choices = '',
           selectize = FALSE,
           width = '100%'
+        )),
+        h4("Downloads"),
+        hr(),
+        disabled(downloadButton(
+          outputId = 'dlumap',
+          label = 'Download UMAP RDS'
+        )),
+        disabled(downloadButton(
+          outputId = 'dlpred',
+          label = 'Download the predicted IDs and scores'
         ))
       ),
       mainPanel = mainPanel(tabsetPanel(
