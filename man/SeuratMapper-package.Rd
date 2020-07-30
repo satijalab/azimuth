@@ -50,6 +50,12 @@ can configure these either \link[base:options]{globally} or via arguments to
  \item{\code{Azimuth.app.max.upload.mb}}{
   Maximum file size (in MB) allowed to upload
  }
+ \item{\code{Azimuth.app.default.gene}}{
+  Gene to select by default in Feature Explorer
+ }
+ \item{\code{Azimuth.app.default.adt}}{
+  ADT to select by default in Feature Explorer
+ }
 }
 }
 

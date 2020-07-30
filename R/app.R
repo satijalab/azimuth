@@ -156,6 +156,7 @@ server <- function(input, output, session) {
     object = NULL,
     default.assay = NULL,
     default.feature = NULL,
+    default.adt = NULL,
     diff.exp = list()
   )
   withProgress(
@@ -262,8 +263,8 @@ server <- function(input, output, session) {
       # Enable the feature explorer
       enable(id = 'feature')
       app.env$default.feature <- ifelse(
-        test = 'GNLY' %in% rownames(x = app.env$object),
-        yes = 'GNLY',
+        test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
+        yes = getOption(x = 'Azimuth.app.default.gene'),
         no = VariableFeatures(object = app.env$object)[1]
       )
       updateSelectInput(
@@ -389,11 +390,16 @@ server <- function(input, output, session) {
       adt.features <- sort(x = FilterFeatures(features = rownames(
         x = app.env$object[[adt.key]]
       )))
+      app.env$default.adt <- ifelse(
+        test = getOption(x = 'Azimuth.app.default.adt') %in% adt.features,
+        yes = getOption(x = 'Azimuth.app.default.adt'),
+        no = adt.features[1]
+      )
       updateSelectInput(
         session = session,
         inputId = 'adtfeature',
         choices = adt.features,
-        selected = adt.features[1]
+        selected = app.env$default.adt
       )
       # Compute biomarkers
       withProgress(
@@ -607,6 +613,12 @@ server <- function(input, output, session) {
 #'  \item{\code{Azimuth.app.max.upload.mb}}{
 #'   Maximum file size (in MB) allowed to upload
 #'  }
+#'  \item{\code{Azimuth.app.default.gene}}{
+#'   Gene to select by default in Feature Explorer
+#'  }
+#'  \item{\code{Azimuth.app.default.adt}}{
+#'   ADT to select by default in Feature Explorer
+#'  }
 #' }
 #'
 #' @return None, launches the mapping Shiny app
@@ -626,13 +638,23 @@ AzimuthApp <- function(
   max.upload.mb = getOption(
     x = 'Azimuth.app.max.upload.mb',
     default = 500
+  ),
+  default.gene = getOption(
+    x = 'Azimuth.app.default.gene',
+    default = "GNLY"
+  ),
+  default.adt = getOption(
+    x = 'Azimuth.app.default.adt',
+    default = "CD3-1"
   )
 ) {
   useShinyjs()
   opts <- list(
     shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
     Azimuth.app.mito = mito,
-    Azimuth.app.reference = reference
+    Azimuth.app.reference = reference,
+    Azimuth.app.default.gene = default.gene,
+    Azimuth.app.default.adt = default.adt
   )
   withr::with_options(
     new = opts,
