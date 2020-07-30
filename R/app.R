@@ -260,21 +260,6 @@ server <- function(input, output, session) {
       )
       enable(id = "map")
       disable(id = 'proc1')
-      # Enable the feature explorer
-      enable(id = 'feature')
-      app.env$default.feature <- ifelse(
-        test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
-        yes = getOption(x = 'Azimuth.app.default.gene'),
-        no = VariableFeatures(object = app.env$object)[1]
-      )
-      updateSelectInput(
-        session = session,
-        inputId = 'feature',
-        label = 'Feature',
-        choices = FilterFeatures(features = rownames(x = app.env$object)),
-        selected = app.env$default.feature
-      )
-      shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'fexplorer'))
     }
   )
   observeEvent( # Map data
@@ -375,6 +360,21 @@ server <- function(input, output, session) {
       )
       output$mapping <- renderText(expr = mappingtext)
       app.env$object <- app.env$object[, app.env$object$mapped]
+      # Enable the feature explorer
+      enable(id = 'feature')
+      app.env$default.feature <- ifelse(
+        test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
+        yes = getOption(x = 'Azimuth.app.default.gene'),
+        no = VariableFeatures(object = app.env$object)[1]
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'feature',
+        label = 'Feature',
+        choices = FilterFeatures(features = rownames(x = app.env$object)),
+        selected = app.env$default.feature
+      )
+      shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'fexplorer'))
       # Add the predicted ID and score to the plots
       enable(id = 'adtfeature')
       updateSelectInput(
