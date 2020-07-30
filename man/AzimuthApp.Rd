@@ -8,7 +8,9 @@ AzimuthApp(
   mito = getOption(x = "Azimuth.app.mito", default = "^MT-"),
   reference = getOption(x = "Azimuth.app.reference", default =
     "http://satijalab04.nygenome.org/pbmc"),
-  max.upload.mb = getOption(x = "Azimuth.app.max.upload.mb", default = 500)
+  max.upload.mb = getOption(x = "Azimuth.app.max.upload.mb", default = 500),
+  default.gene = getOption(x = "Azimuth.app.default.gene", default = "GNLY"),
+  default.adt = getOption(x = "Azimuth.app.default.adt", default = "CD3-1")
 )
 }
 \arguments{
@@ -37,6 +39,12 @@ can configure these either \link[base:options]{globally} or via arguments to
  }
  \item{\code{Azimuth.app.max.upload.mb}}{
   Maximum file size (in MB) allowed to upload
+ }
+ \item{\code{Azimuth.app.default.gene}}{
+  Gene to select by default in Feature Explorer
+ }
+ \item{\code{Azimuth.app.default.adt}}{
+  ADT to select by default in Feature Explorer
  }
 }
 }

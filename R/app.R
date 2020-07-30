@@ -105,13 +105,13 @@ ui <- tagList(
         tabPanel(
           title = 'Feature Explorer',
           value = 'fexplorer',
-          plotOutput(outputId = 'fvln'),
           plotOutput(outputId = 'fdim'),
+          plotOutput(outputId = 'fvln'),
           hr(),
           h3("Imputed Proteins"),
           hr(),
-          plotOutput(outputId = 'ivln'),
-          plotOutput(outputId = 'idim')
+          plotOutput(outputId = 'idim'),
+          plotOutput(outputId = 'ivln')
         ),
         tabPanel(
           title = 'Biomarkers',
@@ -156,6 +156,7 @@ server <- function(input, output, session) {
     object = NULL,
     default.assay = NULL,
     default.feature = NULL,
+    default.adt = NULL,
     diff.exp = list()
   )
   withProgress(
@@ -259,21 +260,6 @@ server <- function(input, output, session) {
       )
       enable(id = "map")
       disable(id = 'proc1')
-      # Enable the feature explorer
-      enable(id = 'feature')
-      app.env$default.feature <- ifelse(
-        test = 'GNLY' %in% rownames(x = app.env$object),
-        yes = 'GNLY',
-        no = VariableFeatures(object = app.env$object)[1]
-      )
-      updateSelectInput(
-        session = session,
-        inputId = 'feature',
-        label = 'Feature',
-        choices = FilterFeatures(features = rownames(x = app.env$object)),
-        selected = app.env$default.feature
-      )
-      shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'fexplorer'))
     }
   )
   observeEvent( # Map data
@@ -363,18 +349,32 @@ server <- function(input, output, session) {
       if (sum(app.env$object$mapped) * 100 < getOption(x = "Azimuth.map.pcthresh")) {
         stop(safeError(error = "Query dataset could not be mapped to the reference"))
       }
-      output$mapping <- renderText(expr = {
-        paste0(
-          sum(app.env$object$mapped),
-          " cells mapped to reference (",
-          round(
-            x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
-            digits = 2
-          ),
-          "%)"
-        )
-      })
+      mappingtext <- paste0(
+        sum(app.env$object$mapped),
+        " cells mapped to reference (",
+        round(
+          x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
+          digits = 2
+        ),
+        "%)"
+      )
+      output$mapping <- renderText(expr = mappingtext)
       app.env$object <- app.env$object[, app.env$object$mapped]
+      # Enable the feature explorer
+      enable(id = 'feature')
+      app.env$default.feature <- ifelse(
+        test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
+        yes = getOption(x = 'Azimuth.app.default.gene'),
+        no = VariableFeatures(object = app.env$object)[1]
+      )
+      updateSelectInput(
+        session = session,
+        inputId = 'feature',
+        label = 'Feature',
+        choices = FilterFeatures(features = rownames(x = app.env$object)),
+        selected = app.env$default.feature
+      )
+      shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'fexplorer'))
       # Add the predicted ID and score to the plots
       enable(id = 'adtfeature')
       updateSelectInput(
@@ -390,11 +390,16 @@ server <- function(input, output, session) {
       adt.features <- sort(x = FilterFeatures(features = rownames(
         x = app.env$object[[adt.key]]
       )))
+      app.env$default.adt <- ifelse(
+        test = getOption(x = 'Azimuth.app.default.adt') %in% adt.features,
+        yes = getOption(x = 'Azimuth.app.default.adt'),
+        no = adt.features[1]
+      )
       updateSelectInput(
         session = session,
         inputId = 'adtfeature',
         choices = adt.features,
-        selected = adt.features[1]
+        selected = app.env$default.adt
       )
       # Compute biomarkers
       withProgress(
@@ -608,6 +613,12 @@ server <- function(input, output, session) {
 #'  \item{\code{Azimuth.app.max.upload.mb}}{
 #'   Maximum file size (in MB) allowed to upload
 #'  }
+#'  \item{\code{Azimuth.app.default.gene}}{
+#'   Gene to select by default in Feature Explorer
+#'  }
+#'  \item{\code{Azimuth.app.default.adt}}{
+#'   ADT to select by default in Feature Explorer
+#'  }
 #' }
 #'
 #' @return None, launches the mapping Shiny app
@@ -627,13 +638,23 @@ AzimuthApp <- function(
   max.upload.mb = getOption(
     x = 'Azimuth.app.max.upload.mb',
     default = 500
+  ),
+  default.gene = getOption(
+    x = 'Azimuth.app.default.gene',
+    default = "GNLY"
+  ),
+  default.adt = getOption(
+    x = 'Azimuth.app.default.adt',
+    default = "CD3-1"
   )
 ) {
   useShinyjs()
   opts <- list(
     shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
     Azimuth.app.mito = mito,
-    Azimuth.app.reference = reference
+    Azimuth.app.reference = reference,
+    Azimuth.app.default.gene = default.gene,
+    Azimuth.app.default.adt = default.adt
   )
   withr::with_options(
     new = opts,
