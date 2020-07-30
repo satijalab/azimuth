@@ -1,7 +1,7 @@
 #' @include zzz.R
 #' @include seurat.R
 #' @import V8
-#' @importFrom htmltools tagList h3
+#' @importFrom htmltools tagList h3 hr
 #' @importFrom shinyjs useShinyjs extendShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
@@ -98,9 +98,9 @@ ui <- tagList(
           value = 'fexplorer',
           plotOutput(outputId = 'fvln'),
           plotOutput(outputId = 'fdim'),
-          htmltools::hr(),
+          hr(),
           h3("Imputed Proteins"),
-          htmltools::hr(),
+          hr(),
           plotOutput(outputId = 'ivln'),
           plotOutput(outputId = 'idim')
         ),
