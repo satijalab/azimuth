@@ -7,11 +7,12 @@
 AzimuthApp(
   mito = getOption(x = "Azimuth.app.mito", default = "^MT-"),
   reference = getOption(x = "Azimuth.app.reference", default =
-    "http://satijalab04.nygenome.org/pbmc")
+    "http://satijalab04.nygenome.org/pbmc"),
+  max.upload.mb = getOption(x = "Azimuth.app.max.upload.mb", default = 500)
 )
 }
 \arguments{
-\item{reference, mito}{See \strong{App options} for more details}
+\item{reference, mito, max.upload.mb}{See \strong{App options} for more details}
 }
 \value{
 None, launches the mapping Shiny app
@@ -33,6 +34,9 @@ can configure these either \link[base:options]{globally} or via arguments to
  \item{\code{Azimuth.app.reference}}{
   URL or directory path to reference dataset; see \code{\link{LoadReference}}
   for more details
+ }
+ \item{\code{Azimuth.app.max.upload.mb}}{
+  Maximum file size (in MB) allowed to upload
  }
 }
 }
