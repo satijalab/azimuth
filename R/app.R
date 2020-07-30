@@ -28,7 +28,8 @@ ui <- tagList(
         # while the reference is being loaded
         fileInput(
           inputId = "file",
-          label = app.title,
+          # TODO list supported filetypes in tooltip or helptext
+          label = "File Upload (h5, h5seurat, or Seurat object as rds)",
           accept = c('.h5', '.h5seurat', '.rds')
         ),
         h4("Preprocessing Controls"),
