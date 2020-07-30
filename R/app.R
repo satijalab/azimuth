@@ -105,13 +105,13 @@ ui <- tagList(
         tabPanel(
           title = 'Feature Explorer',
           value = 'fexplorer',
-          plotOutput(outputId = 'fvln'),
           plotOutput(outputId = 'fdim'),
+          plotOutput(outputId = 'fvln'),
           hr(),
           h3("Imputed Proteins"),
           hr(),
-          plotOutput(outputId = 'ivln'),
-          plotOutput(outputId = 'idim')
+          plotOutput(outputId = 'idim'),
+          plotOutput(outputId = 'ivln')
         ),
         tabPanel(
           title = 'Biomarkers',
