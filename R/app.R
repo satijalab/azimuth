@@ -30,7 +30,7 @@ ui <- tagList(
           inputId = "file",
           # TODO list supported filetypes in tooltip or helptext
           label = "File Upload (h5, h5seurat, or Seurat object as rds)",
-          accept = c('.h5', '.h5seurat', '.rds')
+          accept = c('.h5', '.h5ad', '.h5seurat', '.rds')
         ),
         h4("Preprocessing Controls"),
         hr(),
