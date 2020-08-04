@@ -112,8 +112,17 @@ FilterFeatures <- function(features) {
 #' 10X HDF5 files, only the \emph{first} matrix is read in
 #'
 #' @section Rds File (extension \code{rds}):
-#' Rds files are supported as long as they contain a
-#' \code{\link[Seurat]{Seurat}} object. Other datatypes will error out
+#' Rds files are supported as long as they contain one of the following data
+#' types:
+#' \itemize{
+#'  \item A \code{\link[Seurat]{Seurat}} V3 object
+#'  \item An S4 \code{\link[Matrix]{Matrix}} object
+#'  \item An S3 \code{\link[base]{matrix}} object
+#'  \item A \code{\link[base]{data.frame}} object
+#' }
+#' For S4 \code{Matrix}, S3 \code{matrix}, and \code{data.frame} objects, a
+#' \code{Seurat} object will be made with
+#' \code{\link[Seurat]{CreateSeuratObject}} using the default arguments
 #'
 #' @section h5Seurat File (extension \code{h5seurat}):
 #' h5Seurat files and all of their features are fully supported. They are read
