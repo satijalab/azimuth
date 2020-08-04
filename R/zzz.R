@@ -495,7 +495,8 @@ RenderDiffExp <- function(
   n = 10L,
   logfc.thresh = 0L
 ) {
-  cols.remove <- c('feature', 'logFC', 'auc')
+  # cols.remove <- c('feature', 'logFC', 'auc')
+  cols.keep <- c('avgExpr', 'auc', 'padj', 'pct_in', 'pct_out')
   groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
   diff.exp <- lapply(
     X = groups.use,
@@ -508,7 +509,8 @@ RenderDiffExp <- function(
   )
   diff.exp <- do.call(what = 'rbind', diff.exp)
   rownames(x = diff.exp) <- make.unique(names = diff.exp$feature)
-  diff.exp <- diff.exp[, !colnames(x = diff.exp) %in% cols.remove, drop = FALSE]
+  # diff.exp <- diff.exp[, !colnames(x = diff.exp) %in% cols.remove, drop = FALSE]
+  diff.exp <- diff.exp[, cols.keep, drop = FALSE]
   return(diff.exp)
 }
 
