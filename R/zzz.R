@@ -178,7 +178,7 @@ LoadFileInput <- function(path) {
 #'
 #' @importFrom hdf5r h5attr
 #' @importFrom SeuratDisk Connect
-#' @importFrom Seurat CreateSeuratObject
+#' @importFrom Seurat AddMetaData CreateSeuratObject
 #'
 #' @keywords internal
 #'
@@ -291,7 +291,11 @@ LoadH5AD <- function(path) {
   metadata <- LoadMetadata(md = 'obs')
   rownames(x = counts) <- GetRowNames(md = md)
   colnames(x = counts) <- rownames(x = metadata)
-  return(CreateSeuratObject(counts = counts, meta.data = metadata))
+  object <- CreateSeuratObject(counts = counts)
+  if (ncol(x = metadata)) {
+    object <- AddMetaData(object = object, metadata = metadata)
+  }
+  return(object)
 }
 
 #' Load the reference RDS files
