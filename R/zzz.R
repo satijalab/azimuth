@@ -246,10 +246,17 @@ LoadH5AD <- function(path) {
     index <- GetIndex(md = md)
     col.names <- names(x = adata[[md]])
     if (adata[[md]]$attr_exists(attr_name = 'column-order')) {
-      col.order <- h5attr(x = adata[[md]], which = 'column-order')
-      col.names <- c(
-        intersect(x = col.order, y = col.names),
-        setdiff(x = col.names, y = col.order)
+      tryCatch(
+        expr = {
+          col.order <- h5attr(x = adata[[md]], which = 'column-order')
+          col.names <- c(
+            intersect(x = col.order, y = col.names),
+            setdiff(x = col.names, y = col.order)
+          )
+        },
+        error = function(...) {
+          return(invisible(x = NULL))
+        }
       )
     }
     col.names <- col.names[!col.names %in% c('__categories', index)]
