@@ -189,10 +189,31 @@ server <- function(input, output, session) {
         }
       )
       app.env$default.assay <- DefaultAssay(object = app.env$object)
-      enable(id = 'ncount')
-      enable(id = 'nfeature')
       ncount <- paste0('nCount_', app.env$default.assay)
       nfeature <- paste0('nFeature_', app.env$default.assay)
+      if (!all(c(ncount, nfeature) %in% c(colnames(x = app.env$object[[]])))) {
+        withProgress(
+          message = "Calculating nCount and nFeature",
+          expr = {
+            setProgress(value = 0)
+            calcn <- as.data.frame(x = Seurat:::CalcN(object = app.env$object))
+            colnames(x = calcn) <- paste(
+              colnames(x = calcn),
+              app.env$default.assay,
+              sep = '_'
+            )
+            app.env$object <- AddMetaData(
+              object = app.env$object,
+              metadata = calcn
+            )
+            rm(calcn)
+            gc(verbose = FALSE)
+            setProgress(value = 1)
+          }
+        )
+      }
+      enable(id = 'ncount')
+      enable(id = 'nfeature')
       ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
       nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
       updateSliderInput(
