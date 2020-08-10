@@ -30,6 +30,7 @@ Imports:
   htmltools (>= 0.5.0),
   httr (>= 1.4.1),
   methods,
+  patchwork (>= 1.0.1),
   presto,
   RcppAnnoy (>= 0.0.16),
   rdist (>= 0.0.5),

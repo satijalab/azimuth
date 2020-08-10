@@ -240,7 +240,7 @@ ui <- tagList(
 #' @rdname AzimuthServer
 #'
 #' @importFrom methods slot<- slot
-#' @importFrom ggplot2 ggtitle scale_colour_hue xlab
+#' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline
 #' @importFrom presto wilcoxauc
 #' @importFrom shinyjs show enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
@@ -253,6 +253,7 @@ ui <- tagList(
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
 #' @importFrom stats quantile
 #' @importFrom utils write.table
+#' @importFrom patchwork wrap_plots
 #'
 #' @keywords internal
 #'
@@ -816,8 +817,26 @@ server <- function(input, output, session) {
       if (mt.key %in% colnames(x = app.env$object[[]])) {
         qc <- c(qc, mt.key)
       }
-      VlnPlot(object = app.env$object, features = qc, group.by = 'query') +
-        xlab("")
+      vlnlist <- VlnPlot(object = app.env$object, features = qc, group.by = 'query', combine = FALSE)
+      # nCount
+      vlnlist[[1]] <- vlnlist[[1]] +
+        geom_hline(yintercept = input$num.ncountmin) +
+        geom_hline(yintercept = input$num.ncountmax) +
+        NoLegend() + xlab("")
+      # nFeature
+      vlnlist[[2]] <- vlnlist[[2]] +
+        geom_hline(yintercept = input$num.nfeaturemin) +
+        geom_hline(yintercept = input$num.nfeaturemax) +
+        NoLegend() + xlab("")
+      if (mt.key %in% colnames(x = app.env$object[[]])) {
+        vlnlist[[3]] <- vlnlist[[3]] +
+          geom_hline(yintercept = input$num.mtmin) +
+          geom_hline(yintercept = input$num.mtmax) +
+          NoLegend() + xlab("")
+        wrap_plots(vlnlist, ncol = 3)
+      } else {
+        wrap_plots(vlnlist, ncol = 2)
+      }
     }
   })
   output$refdim <- renderPlot(expr = {
