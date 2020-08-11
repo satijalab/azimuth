@@ -18,15 +18,18 @@ app.title <- 'Azimuth'
 
 ui <- tagList(
   useShinyjs(),
+  tags$style(type = "text/css", "#message {padding: 0px 10px;}"),
   dashboardPage(
   dashboardHeader(title = app.title),
   dashboardSidebar(
     fileInput(
       inputId = "file",
-      label = p("File Upload",
-                 tags$style(type = "text/css", "#q1 {display: inline-block; vertical-align: middle;}"),
-                 bsButton("q1", label = "", icon = icon("question"), style = "info", size = "extra-small")
-              ),
+      label = p(
+        "File Upload",
+        tags$style(type = "text/css", "#q1 {display: inline-block; vertical-align: middle;}"),
+        bsButton("q1", label = "", icon = icon("question"), style = "info", size = "extra-small")
+
+      ),
       accept = c('.h5', '.h5ad', '.h5seurat', '.rds')
     ),
     bsPopover(
@@ -37,9 +40,11 @@ ui <- tagList(
       trigger = "focus",
       options = list(container = "body")
     ),
-    textOutput(outputId = "message.upload"),
-    textOutput(outputId = "message.preproc"),
-    textOutput(outputId = "message.mapped"),
+    # textOutput(outputId = 'message'),
+    shiny::htmlOutput(outputId = "message", inline = FALSE),
+    # textOutput(outputId = "message.upload"),
+    # textOutput(outputId = "message.preproc"),
+    # textOutput(outputId = "message.mapped"),
     sidebarMenu(
       menuItem(
         text = "Welcome",
@@ -294,7 +299,8 @@ server <- function(input, output, session) {
     default.assay = NULL,
     default.feature = NULL,
     default.adt = NULL,
-    diff.exp = list()
+    diff.exp = list(),
+    messages = 'Upload a file'
   )
   withProgress(
     message = "Loading reference",
@@ -307,9 +313,9 @@ server <- function(input, output, session) {
         )
       )
       setProgress(value = 1)
-      output$message.upload <- renderText(
-        expr = "Upload a file"
-      )
+      # output$message.upload <- renderText(
+      #   expr = "Upload a file"
+      # )
     }
   )
   # React to events
@@ -430,7 +436,8 @@ server <- function(input, output, session) {
         selected = TRUE
       ))})
       ncellsupload <- length(colnames(app.env$object))
-      output$message.upload <- renderText(expr = c(ncellsupload, " cells uploaded"))
+      # output$message.upload <- renderText(expr = c(ncellsupload, " cells uploaded"))
+      app.env$messages <- paste(ncellsupload, "cells uploaded")
       if (ncellsupload < getOption(x = "Azimuth.map.ncells")) {
         output$valuebox.upload <- renderValueBox(expr = valueBox(
           value = ncellsupload,
@@ -583,7 +590,8 @@ server <- function(input, output, session) {
               do.center = TRUE
             ))
             setProgress(value = 1)
-            output$message.preproc <- renderText(expr = c(ncellspreproc, " cells preprocessed"))
+            # output$message.preproc <- renderText(expr = c(ncellspreproc, " cells preprocessed"))
+            app.env$messages <- c(app.env$messages, paste(ncellspreproc, "cells preprocessed"))
           }
         }
       )
@@ -676,12 +684,13 @@ server <- function(input, output, session) {
           setProgress(value = 1)
         }
       )
-      mappingtext <- c(sum(app.env$object$mapped)," cells mapped")
+      mappingtext <- paste(sum(app.env$object$mapped)," cells mapped")
       mappingpct <- round(
         x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
         digits = 0
       )
-      output$message.mapped <- renderText(expr = mappingtext)
+      # output$message.mapped <- renderText(expr = mappingtext)
+      app.env$messages <- c(app.env$messages, mappingtext)
       if (mappingpct < getOption(x = "Azimuth.map.pcthresh")) {
         output$valuebox.mapped <- renderValueBox(expr = valueBox(
           value = paste0(mappingpct, "%"),
@@ -951,6 +960,13 @@ server <- function(input, output, session) {
         )
       }
     }
+  })
+  # Messages
+  # output$message <- renderText(expr = paste(app.env$messages, collapse = '\n'))
+  output$message <- shiny::renderUI(expr = {
+    htmltools::p(
+      htmltools::HTML(text = paste(app.env$messages, collapse = "<br />"))
+    )
   })
   # Tables
   output$table.qc <- renderTable(
