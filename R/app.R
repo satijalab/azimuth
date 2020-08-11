@@ -350,7 +350,8 @@ server <- function(input, output, session) {
           dsqr <- QueryReference(
             reference = refs$map,
             query = app.env$object,
-            assay.query = app.env$default.assay
+            assay.query = app.env$default.assay,
+            seed = 4
           )
           app.env$object <- AddMetaData(
             object = app.env$object,
