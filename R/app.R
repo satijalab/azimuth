@@ -218,14 +218,42 @@ ui <- tagList(
     # Downloads tab
     tabItem(
       tabName = "tab_download",
-      disabled(downloadButton(
-        outputId = 'dlumap',
-        label = 'Download UMAP RDS'
-      )),
-      disabled(downloadButton(
-        outputId = 'dlpred',
-        label = 'Download the predicted IDs and scores'
-      ))
+      box(
+        title = "Analysis script template ",
+        verbatimTextOutput(outputId = "text.dlscript", placeholder = TRUE),
+        disabled(downloadButton(
+          outputId = 'dlscript',
+          label = 'Download'
+        )),
+        width = 6
+      ),
+      box(
+        title = "UMAP (Seurat Reduction RDS)",
+        verbatimTextOutput(outputId = "text.dlumap"),
+        disabled(downloadButton(
+          outputId = 'dlumap',
+          label = 'Download'
+        )),
+        width = 6
+      ),
+      box(
+        title = "Imputed protein (Seurat Assay RDS)",
+        verbatimTextOutput(outputId = "text.dladt"),
+        disabled(downloadButton(
+          outputId = 'dladt',
+          label = 'Download'
+        )),
+        width = 6
+      ),
+      box(
+       title = "Predicted cell types and scores (TSV)",
+       verbatimTextOutput(outputId = "text.dlpred"),
+       disabled(downloadButton(
+         outputId = 'dlpred',
+         label = 'Download'
+       )),
+       width = 6
+      )
     )
   )
 )))
@@ -788,7 +816,40 @@ server <- function(input, output, session) {
         )
         # Enable downloads
         enable(id = 'dlumap')
+        enable(id = 'dladt')
         enable(id = 'dlpred')
+        output$text.dladt <- renderText(expr = {
+          c("imputed.assay <- readRDS('azimuth_impADT.Rds')",
+          "object <- object[, Cells(imputed.assay)]",
+          "object[['impADT']] <- imputed.assay")
+          },
+          sep = "\n"
+        )
+        output$text.dlumap <- renderText(expr = {
+          c("projected.umap <- readRDS('azimuth_umap.Rds')",
+            "object <- object[, Cells(projected.umap)]",
+            "object[['umap.proj']] <- projected.umap")
+          },
+          sep = "\n"
+        )
+        output$text.dlpred <- renderText(expr = {
+          c("predictions <- read.delim('azimuth_pred.tsv')",
+            "object <- object[, predictions$cell]",
+            "predicted.id <- predictions$predicted.id",
+            "names(predicted.id) <- predictions$cell",
+            "object <- AddMetaData(",
+            "\tobject = object,",
+            "\tmetadata = predicted.id,",
+            "\tcol.name = 'predicted.id')",
+            "predicted.score <- predictions$predicted.score",
+            "names(predicted.score) <- predictions$cell",
+            "object <- AddMetaData(",
+            "\tobject = object,",
+            "\tmetadata = predicted.score,",
+            "\tcol.name = 'predicted.score')")
+          },
+          sep = "\n"
+        )
         output$menu2 <- renderMenu(expr = {
           sidebarMenu(
           menuItem(
@@ -894,7 +955,7 @@ server <- function(input, output, session) {
             Key(object = app.env$object[[adt.key]]),
             input$adtfeature
           ),
-          cols = c('lightgrey', 'darkred'),
+          cols = c('lightgrey', 'darkgreen'),
           min.cutoff = 'q10',
           max.cutoff = 'q99'
         )
@@ -961,6 +1022,16 @@ server <- function(input, output, session) {
       if (!is.null(x = app.env$object)) {
         if ('umap.proj' %in% Reductions(object = app.env$object)) {
           saveRDS(object = app.env$object[['umap.proj']], file = file)
+        }
+      }
+    }
+  )
+  output$dladt <- downloadHandler(
+    filename = paste0(tolower(x = app.title), '_impADT.Rds'),
+    content = function(file) {
+      if (!is.null(x = app.env$object)) {
+        if ('impADT' %in% Assays(object = app.env$object)) {
+          saveRDS(object = app.env$object[['impADT']], file = file)
         }
       }
     }
