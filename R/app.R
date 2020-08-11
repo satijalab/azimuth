@@ -833,20 +833,10 @@ server <- function(input, output, session) {
           sep = "\n"
         )
         output$text.dlpred <- renderText(expr = {
-          c("predictions <- read.delim('azimuth_pred.tsv')",
-            "object <- object[, predictions$cell]",
-            "predicted.id <- predictions$predicted.id",
-            "names(predicted.id) <- predictions$cell",
+          c("predictions <- read.delim('azimuth_pred.tsv', row.names = 1)",
             "object <- AddMetaData(",
             "\tobject = object,",
-            "\tmetadata = predicted.id,",
-            "\tcol.name = 'predicted.id')",
-            "predicted.score <- predictions$predicted.score",
-            "names(predicted.score) <- predictions$cell",
-            "object <- AddMetaData(",
-            "\tobject = object,",
-            "\tmetadata = predicted.score,",
-            "\tcol.name = 'predicted.score')")
+            "\tmetadata = predictions)")
           },
           sep = "\n"
         )
