@@ -1,11 +1,16 @@
 #' @include zzz.R
 #' @include seurat.R
 #' @import V8
-#' @importFrom htmltools tagList h4 hr h3
+#' @importFrom htmltools tagList h4 hr h3 tags HTML p div
 #' @importFrom shinyjs useShinyjs extendShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
-#' plotOutput tableOutput verbatimTextOutput
+#' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow
+#' updateNumericInput radioButtons textOutput
+#' @importFrom shinydashboard dashboardPage dashboardHeader dashboardSidebar
+#' dashboardBody menuItem tabItems tabItem sidebarMenu box valueBoxOutput
+#' sidebarMenuOutput
+#' @importFrom shinyBS bsPopover bsButton
 #'
 NULL
 
@@ -13,122 +18,250 @@ app.title <- 'Azimuth'
 
 ui <- tagList(
   useShinyjs(),
-  extendShinyjs(
-    text = TabJSHide(
-      id = 'tabs',
-      values = c('mapped', 'fexplorer', 'imputed', 'diffexp'),
-      fxn = 'init'
+  tags$style(type = "text/css", "#message {padding: 0px 10px;}"),
+  dashboardPage(
+  dashboardHeader(title = app.title),
+  dashboardSidebar(
+    fileInput(
+      inputId = "file",
+      label = p(
+        "File Upload",
+        tags$style(type = "text/css", "#q1 {display: inline-block; vertical-align: middle;}"),
+        bsButton("q1", label = "", icon = icon("question"), style = "info", size = "extra-small")
+
+      ),
+      accept = c('.h5', '.h5ad', '.h5seurat', '.rds')
+    ),
+    bsPopover(
+      id = "q1",
+      title = "Supported file types",
+      content = "10x Genomics H5; Seurat object (RDS); H5AD; H5Seurat; Matrix/matrix/data.frame (RDS)",
+      placement = "right",
+      trigger = "focus",
+      options = list(container = "body")
+    ),
+    # textOutput(outputId = 'message'),
+    shiny::htmlOutput(outputId = "message", inline = FALSE),
+    # textOutput(outputId = "message.upload"),
+    # textOutput(outputId = "message.preproc"),
+    # textOutput(outputId = "message.mapped"),
+    sidebarMenu(
+      menuItem(
+        text = "Welcome",
+        tabName = "tab_welcome"
+      ),
+      sidebarMenuOutput(outputId = "menu1"),
+      sidebarMenuOutput(outputId = "menu2")
     )
   ),
-  fluidPage(
-    title = app.title,
-    sidebarLayout(
-      sidebarPanel = sidebarPanel(
-        # TODO: disable this initially? I don't think we can browse for data
-        # while the reference is being loaded
-        fileInput(
-          inputId = "file",
-          # TODO list supported filetypes in tooltip or helptext
-          label = "File Upload (h5, h5seurat, or Seurat object as rds)",
-          accept = c('.h5', '.h5ad', '.h5seurat', '.rds')
+  dashboardBody(
+    # fills background color to bottom of page when scrolling
+    tags$head(tags$style(HTML('.content-wrapper { overflow: auto; }'))),
+    tabItems(
+    # Welcome tab
+    tabItem(
+      tabName = "tab_welcome",
+      box(
+        h3("Welcome to our app"),
+        width = 12
+      )
+    ),
+    # Preprocessing + QC Tab
+    tabItem(
+      tabName = "tab_preproc",
+      fluidRow(
+        box(
+          title = p("QC Filters",
+                     tags$style(type = "text/css", "#q2 {display: inline-block; vertical-align: middle;}"),
+                     bsButton("q2", label = "", icon = icon("question"), style = "info", size = "extra-small")
+          ),
+          disabled(numericInput(inputId = "num.ncountmax", label = NULL, value = 0)),
+          disabled(numericInput(inputId = "num.ncountmin", label = NULL, value = 0)),
+          disabled(numericInput(inputId = "num.nfeaturemax", label = NULL, value = 0)),
+          disabled(numericInput(inputId = "num.nfeaturemin", label = NULL, value = 0)),
+          disabled(numericInput(inputId = "num.mtmax", label = NULL, value = 0)),
+          disabled(numericInput(inputId = "num.mtmin", label = NULL, value = 0)),
+          disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
+          disabled(actionButton(inputId = "map", label = "Map cells to reference")),
+          width = 3
         ),
-        h4("Preprocessing Controls"),
-        hr(),
-        disabled(sliderInput(
-          inputId = 'ncount',
-          label = 'nCount',
-          min = 0L,
-          max = 1L,
-          value = c(0L, 1L),
+        bsPopover(
+          id = "q2",
+          title = "QC Filters",
+          content = "Select a minimum and maximum value for nCount (number of molecules), nFeature (number of genes expressed), and mitochondrial percentage (if applicable)",
+          placement = "right",
+          trigger = "focus",
+          options = list(container = "body")
+        ),
+        box(
+          plotOutput(outputId = "plot.qc"),
+          tableOutput(outputId = 'table.qc'),
+          width = 9
+        )
+      ),
+      fluidRow(
+        valueBoxOutput(outputId = "valuebox.upload", width = 3),
+        valueBoxOutput(outputId = "valuebox.preproc", width = 3),
+        valueBoxOutput(outputId = "valuebox.mapped", width = 3)
+      )
+    ),
+    # Cell tab
+    tabItem(
+      tabName = "tab_cell",
+      box(
+        title = "Reference",
+        plotOutput(outputId = 'refdim'),
+        width = 12
+      ),
+      box(
+        title = "Query",
+        disabled(selectInput(
+          inputId = 'select.metadata',
+          label = 'Metadata to color by',
+          choices = '',
+          selectize = FALSE,
+          width = "25%"
         )),
-        disabled(sliderInput(
-          inputId = 'nfeature',
-          label = 'nFeature',
-          min = 0L,
-          max = 1L,
-          value = c(0L, 1L),
+        plotOutput(outputId = 'objdim'),
+        width = 12
+      ),
+      box(
+        title = "Metadata table",
+        div(style="display: inline-block;vertical-align:top;width: 25%",
+        disabled(selectInput(
+          inputId = 'select.metadata1',
+          label = 'Table rows',
+          choices = '',
+          selectize = FALSE
+        ))),
+        div(style="display: inline-block;vertical-align:top;width: 25%",
+        disabled(selectInput(
+          inputId = 'select.metadata2',
+          label = 'Table columns',
+          choices = '',
+          selectize = FALSE
+        ))),
+        div(style="display: inline-block;vertical-align:top;width: 50%",
+        disabled(radioButtons(
+          inputId = 'radio.pct',
+          label = NULL,
+          choices = c('Percentage','Frequency'),
+          inline = TRUE
+        ))),
+        tableOutput(outputId = 'table.metadata'),
+        width = 12
+      )
+    ),
+    # Feature tab
+    tabItem(
+      tabName = "tab_feature",
+      box(
+        title = "Query cell type prediction scores",
+        disabled(selectInput(
+          inputId = 'select.prediction',
+          label = 'Predicted cell type',
+          choices = '',
+          selectize = FALSE,
+          width = "25%"
         )),
-        disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
-        disabled(actionButton(inputId = "map", label = "Map cells to reference")),
-        h4("Feature Selection"),
-        hr(),
+        # TODO FeaturePlot colored by prediction score of the cluster
+        width = 12
+      ),
+      box(
+        title = p("Predicted cell type cluster biomarkers",
+                  tags$style(type = "text/css", "#q3 {display: inline-block; vertical-align: middle;}"),
+                  bsButton("q3", label = "", icon = icon("question"), style = "info", size = "extra-small")
+        ),
+        bsPopover(
+          id = "q3",
+          title = "Biomarkers Table",
+          content = "TODO: explain column abbreviations",
+          placement = "right",
+          trigger = "focus",
+          options = list(container = "body")
+        ),
+        disabled(selectInput(
+          inputId = 'select.biomarkers',
+          label = 'Predicted cell type',
+          choices = '',
+          selectize = FALSE,
+          width = "25%"
+        )),
+        h3("RNA biomarkers"),
+        tableOutput(outputId = 'biomarkers'),
+        h3("Imputed protein biomarkers"),
+        tableOutput(outputId = 'adtbio'),
+        width = 6
+      ),
+      box(
+        title = "RNA feature plots",
         disabled(selectInput(
           inputId = 'feature',
           label = 'Feature',
           choices = '',
           selectize = FALSE,
-          width = '100%'
+          width = "25%"
         )),
+        plotOutput(outputId = 'fdim'),
+        plotOutput(outputId = 'fvln'),
+        width = 12
+      ),
+      box(
+        title = "Imputed protein plots",
         disabled(selectInput(
           inputId = 'adtfeature',
-          label = 'Imputed Protein',
+          label = 'Imputed protein',
           choices = '',
           selectize = FALSE,
-          width = '100%'
+          width = "25%"
         )),
-        h4("Cluster Selection"),
-        hr(),
-        disabled(selectInput(
-          inputId = 'declusters',
-          label = 'Cell Type',
-          choices = '',
-          selectize = FALSE,
-          width = '100%'
-        )),
-        h4("Downloads"),
-        hr(),
-        disabled(downloadButton(
-          outputId = 'dlumap',
-          label = 'Download UMAP RDS'
-        )),
-        disabled(downloadButton(
-          outputId = 'dlpred',
-          label = 'Download the predicted IDs and scores'
-        )),
+        plotOutput(outputId = 'idim'),
+        plotOutput(outputId = 'ivln'),
+        width = 12
+      )
+    ),
+    # Downloads tab
+    tabItem(
+      tabName = "tab_download",
+      box(
+        title = "Analysis script template ",
+        verbatimTextOutput(outputId = "text.dlscript", placeholder = TRUE),
         disabled(downloadButton(
           outputId = 'dlscript',
-          label = 'Download the analysis script'
+          label = 'Download'
         )),
+        width = 6
       ),
-      mainPanel = mainPanel(tabsetPanel(
-        id = "tabs",
-        tabPanel(
-          title = "Preprocessing and Quality Control",
-          value = 'preprocessing',
-          plotOutput(outputId = "qcvln"),
-          tableOutput(outputId = 'qctbl'),
-          verbatimTextOutput(outputId = "sct")
-        ),
-        tabPanel(
-          title = 'Mapped Data',
-          value = 'mapped',
-          plotOutput(outputId = 'refdim'),
-          plotOutput(outputId = 'objdim'),
-          verbatimTextOutput(outputId = "mapping")
-        ),
-        tabPanel(
-          title = 'Feature Explorer',
-          value = 'fexplorer',
-          plotOutput(outputId = 'fdim'),
-          plotOutput(outputId = 'fvln'),
-          hr(),
-          h3("Imputed Proteins"),
-          hr(),
-          plotOutput(outputId = 'idim'),
-          plotOutput(outputId = 'ivln')
-        ),
-        tabPanel(
-          title = 'Biomarkers',
-          value = 'diffexp',
-          h3('Biomarkers'),
-          tableOutput(outputId = 'biomarkers'),
-          h3('ADT Biomarkers'),
-          tableOutput(outputId = 'adtbio')
-        )
-      ))
+      box(
+        title = "UMAP (Seurat Reduction RDS)",
+        verbatimTextOutput(outputId = "text.dlumap"),
+        disabled(downloadButton(
+          outputId = 'dlumap',
+          label = 'Download'
+        )),
+        width = 6
+      ),
+      box(
+        title = "Imputed protein (Seurat Assay RDS)",
+        verbatimTextOutput(outputId = "text.dladt"),
+        disabled(downloadButton(
+          outputId = 'dladt',
+          label = 'Download'
+        )),
+        width = 6
+      ),
+      box(
+       title = "Predicted cell types and scores (TSV)",
+       verbatimTextOutput(outputId = "text.dlpred"),
+       disabled(downloadButton(
+         outputId = 'dlpred',
+         label = 'Download'
+       )),
+       width = 6
+      )
     )
   )
-)
+)))
 
 #' Server function for the mapping app
 #'
@@ -139,8 +272,8 @@ ui <- tagList(
 #' @name AzimuthServer
 #' @rdname AzimuthServer
 #'
-#' @importFrom methods slot<-
-#' @importFrom ggplot2 ggtitle scale_colour_hue
+#' @importFrom methods slot<- slot
+#' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline
 #' @importFrom presto wilcoxauc
 #' @importFrom stringr str_interp
 #' @importFrom shinyjs show enable disable
@@ -151,18 +284,24 @@ ui <- tagList(
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler
+#' @importFrom shinydashboard renderValueBox valueBox renderMenu
+#' @importFrom stats quantile
+#' @importFrom utils write.table
+#' @importFrom patchwork wrap_plots
 #'
 #' @keywords internal
 #'
 server <- function(input, output, session) {
   mt.key <- 'percent.mt'
+  mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
   adt.key <- 'impADT'
   app.env <- reactiveValues(
     object = NULL,
     default.assay = NULL,
     default.feature = NULL,
     default.adt = NULL,
-    diff.exp = list()
+    diff.exp = list(),
+    messages = 'Upload a file'
   )
   withProgress(
     message = "Loading reference",
@@ -175,14 +314,16 @@ server <- function(input, output, session) {
         )
       )
       setProgress(value = 1)
-      # enable(id = 'file')
+      # output$message.upload <- renderText(
+      #   expr = "Upload a file"
+      # )
     }
   )
-  shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'mapped'))
   # React to events
   observeEvent( # Load the data
     eventExpr = input$file,
     handlerExpr = {
+      # TODO disable file?
       withProgress(
         message = "Reading input",
         expr = {
@@ -217,28 +358,48 @@ server <- function(input, output, session) {
           }
         )
       }
-      enable(id = 'ncount')
-      enable(id = 'nfeature')
-      enable(id = 'dlscript')
       ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
-      nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
-      updateSliderInput(
+      updateNumericInput(
         session = session,
-        inputId = 'ncount',
-        label = ncount,
-        value = ncount.val,
+        inputId = 'num.ncountmin',
+        label = paste("min", ncount),
+        value = min(ncount.val),
         min = min(ncount.val),
-        max = max(ncount.val)
+        max = max(ncount.val),
+        step = 1
       )
-      updateSliderInput(
+      enable(id = 'num.ncountmin')
+      updateNumericInput(
         session = session,
-        inputId = 'nfeature',
-        label = nfeature,
-        value = nfeature.val,
-        min = min(nfeature.val),
-        max = max(nfeature.val)
+        inputId = 'num.ncountmax',
+        label = paste("max", ncount),
+        value = max(ncount.val),
+        min = min(ncount.val),
+        max = max(ncount.val),
+        step = 1
       )
-      mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
+      enable(id = 'num.ncountmax')
+      nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
+      updateNumericInput(
+        session = session,
+        inputId = 'num.nfeaturemin',
+        label = paste("min", nfeature),
+        value = min(nfeature.val),
+        min = min(nfeature.val),
+        max = max(nfeature.val),
+        step = 1
+      )
+      enable(id = 'num.nfeaturemin')
+      updateNumericInput(
+        session = session,
+        inputId = 'num.nfeaturemax',
+        label = paste("max", nfeature),
+        value = max(nfeature.val),
+        min = min(nfeature.val),
+        max = max(nfeature.val),
+        step = 1
+      )
+      enable(id = 'num.nfeaturemax')
       if (any(grepl(pattern = mito.pattern, x = rownames(x = app.env$object)))) {
         app.env$object <- PercentageFeatureSet(
           object = app.env$object,
@@ -246,52 +407,202 @@ server <- function(input, output, session) {
           col.name = mt.key,
           assay = app.env$default.assay
         )
+        mito.val <- range(app.env$object[[mt.key, drop = TRUE]])
+        updateNumericInput(
+          session = session,
+          inputId = 'num.mtmin',
+          label = paste("min", mt.key),
+          value = min(mito.val),
+          min = min(mito.val),
+          max = max(mito.val),
+          step = 1
+        )
+        enable(id = 'num.mtmin')
+        updateNumericInput(
+          session = session,
+          inputId = 'num.mtmax',
+          label = paste("max", mt.key),
+          value = max(mito.val),
+          min = min(mito.val),
+          max = max(mito.val),
+          step = 1
+        )
+        enable(id = 'num.mtmax')
+      }
+      output$menu1 <- renderMenu(expr = {
+        sidebarMenu(menuItem(
+        text = "Preprocessing",
+        tabName = "tab_preproc",
+        icon = icon("filter"),
+        selected = TRUE
+      ))})
+      ncellsupload <- length(colnames(app.env$object))
+      # output$message.upload <- renderText(expr = c(ncellsupload, " cells uploaded"))
+      app.env$messages <- paste(ncellsupload, "cells uploaded")
+      if (ncellsupload < getOption(x = "Azimuth.map.ncells")) {
+        output$valuebox.upload <- renderValueBox(expr = valueBox(
+          value = ncellsupload,
+          subtitle = "cells uploaded",
+          icon = icon("times"),
+          color = "red"
+        ))
+        # TODO what should happen when not enough cells are uploaded?
+        # stop(safeError(error = "Not enough cells in uploaded dataset to proceed"))
+      } else {
+        output$valuebox.upload <- renderValueBox(expr = valueBox(
+          value = ncellsupload,
+          subtitle = "cells uploaded",
+          icon = icon("check"),
+          color = "green"
+        ))
+        enable(id = 'proc1')
       }
     }
   )
-  observeEvent(eventExpr = input$file, handlerExpr = enable(id = 'proc1'))
   observeEvent( # Process the user data
     eventExpr = input$proc1,
     handlerExpr = {
+      disable(id = 'proc1')
+      disable(id = 'num.ncountmin')
+      disable(id = 'num.ncountmax')
+      disable(id = 'num.nfeaturemin')
+      disable(id = 'num.nfeaturemax')
+      disable(id = 'num.mtmax')
+      disable(id = 'num.mtmin')
       # Run SCTransform and enable mapping
       withProgress(
         message = "Normalizing with SCTransform",
         expr = {
-          output$sct <- renderText(expr = NULL)
+          # output$sct <- renderText(expr = NULL)
           setProgress(
             value = 0,
             message = "Filtering based on nCount and nFeature"
           )
           ncount <- paste0('nCount_', DefaultAssay(object = app.env$object))
           nfeature <- paste0('nFeature_', DefaultAssay(object = app.env$object))
-          cells.use <- app.env$object[[ncount, drop = TRUE]] >= min(input$ncount) &
-            app.env$object[[ncount, drop = TRUE]] <= max(input$ncount) &
-            app.env$object[[nfeature, drop = TRUE]] >= min(input$nfeature) &
-            app.env$object[[nfeature, drop = TRUE]] <= max(input$nfeature)
-          app.env$object <- app.env$object[, cells.use]
-          disable(id = 'ncount')
-          disable(id = 'nfeature')
-          setProgress(value = 0.2, message = "Normalizing with SCTransform")
-          app.env$object <- suppressWarnings(expr = SCTransform(
-            object = app.env$object,
-            residual.features = rownames(x = refs$map),
-            ncells = getOption(x = 'Azimuth.sct.ncells'),
-            n_genes = getOption(x = 'Azimuth.sct.nfeats'),
-            do.correct.umi = FALSE,
-            do.scale = FALSE,
-            do.center = TRUE
-          ))
-          setProgress(value = 1)
-          output$sct <- renderText(expr = "SCTransform complete")
+          cells.use <- app.env$object[[ncount, drop = TRUE]] >= input$num.ncountmin &
+            app.env$object[[ncount, drop = TRUE]] <= input$num.ncountmax &
+            app.env$object[[nfeature, drop = TRUE]] >= input$num.nfeaturemin &
+            app.env$object[[nfeature, drop = TRUE]] <= input$num.nfeaturemax
+          if (any(grepl(pattern = mito.pattern, x = rownames(x = app.env$object)))) {
+            cells.use <- cells.use &
+              app.env$object[[mt.key, drop = TRUE]] >= input$num.mtmin &
+              app.env$object[[mt.key, drop = TRUE]] <= input$num.mtmax
+          }
+          ncellspreproc <- sum(cells.use)
+          if (ncellspreproc < getOption(x = "Azimuth.map.ncells")) {
+            output$valuebox.preproc <- renderValueBox(expr = valueBox(
+              value = ncellspreproc,
+              subtitle = "cells after filtering",
+              icon = icon("times"),
+              color = "red"
+            ))
+            # TODO what should happen when not enough cells are available after filtering?
+            # stop(safeError(error = "Not enough cells after filtering to proceed"))
+            # reset values and re-enable all filters; don't enable the mapping button; re-enable preproc button
+            ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
+            updateNumericInput(
+              session = session,
+              inputId = 'num.ncountmin',
+              label = paste("min", ncount),
+              value = min(ncount.val),
+              min = min(ncount.val),
+              max = max(ncount.val),
+              step = 1
+            )
+            enable(id = 'num.ncountmin')
+            updateNumericInput(
+              session = session,
+              inputId = 'num.ncountmax',
+              label = paste("max", ncount),
+              value = max(ncount.val),
+              min = min(ncount.val),
+              max = max(ncount.val),
+              step = 1
+            )
+            enable(id = 'num.ncountmax')
+            nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
+            updateNumericInput(
+              session = session,
+              inputId = 'num.nfeaturemin',
+              label = paste("min", nfeature),
+              value = min(nfeature.val),
+              min = min(nfeature.val),
+              max = max(nfeature.val),
+              step = 1
+            )
+            enable(id = 'num.nfeaturemin')
+            updateNumericInput(
+              session = session,
+              inputId = 'num.nfeaturemax',
+              label = paste("max", nfeature),
+              value = max(nfeature.val),
+              min = min(nfeature.val),
+              max = max(nfeature.val),
+              step = 1
+            )
+            enable(id = 'num.nfeaturemax')
+            if (any(grepl(pattern = mito.pattern, x = rownames(x = app.env$object)))) {
+              app.env$object <- PercentageFeatureSet(
+                object = app.env$object,
+                pattern = mito.pattern,
+                col.name = mt.key,
+                assay = app.env$default.assay
+              )
+              mito.val <- range(app.env$object[[mt.key, drop = TRUE]])
+              updateNumericInput(
+                session = session,
+                inputId = 'num.mtmin',
+                label = paste("min", mt.key),
+                value = min(mito.val),
+                min = min(mito.val),
+                max = max(mito.val),
+                step = 1
+              )
+              enable(id = 'num.mtmin')
+              updateNumericInput(
+                session = session,
+                inputId = 'num.mtmax',
+                label = paste("max", mt.key),
+                value = max(mito.val),
+                min = min(mito.val),
+                max = max(mito.val),
+                step = 1
+              )
+              enable(id = 'num.mtmax')
+              enable(id = 'proc1')
+            }
+          } else {
+            output$valuebox.preproc <- renderValueBox(expr = valueBox(
+              value = ncellspreproc,
+              subtitle = "cells after filtering",
+              icon = icon("check"),
+              color = "green"
+            ))
+            app.env$object <- app.env$object[, cells.use]
+            setProgress(value = 0.2, message = "Normalizing with SCTransform")
+            app.env$object <- suppressWarnings(expr = SCTransform(
+              object = app.env$object,
+              residual.features = rownames(x = refs$map),
+              ncells = getOption(x = 'Azimuth.sct.ncells'),
+              n_genes = getOption(x = 'Azimuth.sct.nfeats'),
+              do.correct.umi = FALSE,
+              do.scale = FALSE,
+              do.center = TRUE
+            ))
+            setProgress(value = 1)
+            # output$message.preproc <- renderText(expr = c(ncellspreproc, " cells preprocessed"))
+            app.env$messages <- c(app.env$messages, paste(ncellspreproc, "cells preprocessed"))
+          }
         }
       )
       enable(id = "map")
-      disable(id = 'proc1')
     }
   )
   observeEvent( # Map data
     eventExpr = input$map,
     handlerExpr = {
+      disable(id = 'map')
       withProgress(
         message = 'Mapping data',
         expr = {
@@ -312,6 +623,7 @@ server <- function(input, output, session) {
             features = rownames(x = refs$map),
             dims = 1:50
           )
+          # TODO fail if not enough anchors (Azimuth.map.nanchors)
           setProgress(value = 0.6, message = 'Integrating data')
           # TODO: export IngestNewData_Fast
           ingested <- Seurat:::IngestNewData_Fast(
@@ -356,7 +668,8 @@ server <- function(input, output, session) {
           dsqr <- QueryReference(
             reference = refs$map,
             query = app.env$object,
-            assay.query = app.env$default.assay
+            assay.query = app.env$default.assay,
+            seed = 4
           )
           app.env$object <- AddMetaData(
             object = app.env$object,
@@ -373,129 +686,235 @@ server <- function(input, output, session) {
           setProgress(value = 1)
         }
       )
-      if (sum(app.env$object$mapped) * 100 < getOption(x = "Azimuth.map.pcthresh")) {
-        stop(safeError(error = "Query dataset could not be mapped to the reference"))
+      mappingtext <- paste(sum(app.env$object$mapped)," cells mapped")
+      mappingpct <- round(
+        x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
+        digits = 0
+      )
+      # output$message.mapped <- renderText(expr = mappingtext)
+      app.env$messages <- c(app.env$messages, mappingtext)
+      if (mappingpct < getOption(x = "Azimuth.map.pcthresh")) {
+        output$valuebox.mapped <- renderValueBox(expr = valueBox(
+          value = paste0(mappingpct, "%"),
+          subtitle = "cells mapped",
+          icon = icon("times"),
+          color = "red"
+        ))
+        # TODO what should happen when not enough cells map?
+        # enable script download and download tab
+        output$menu2 <- renderMenu(expr = {
+          sidebarMenu(
+            menuItem(
+              text = "Download Results",
+              tabName = "tab_download",
+              icon = icon("file-download")
+            ))}
+        )
+        # stop(safeError(error = "Query dataset could not be mapped to the reference"))
+      } else {
+        output$valuebox.mapped <- renderValueBox(expr = valueBox(
+          value = paste0(mappingpct, "%"),
+          subtitle = "cells mapped",
+          icon = icon("check"),
+          color = "green"
+        ))
+        app.env$object <- app.env$object[, app.env$object$mapped]
+        # Enable the feature explorer
+        enable(id = 'feature')
+        app.env$default.feature <- ifelse(
+          test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
+          yes = getOption(x = 'Azimuth.app.default.gene'),
+          no = VariableFeatures(object = app.env$object)[1]
+        )
+        updateSelectInput(
+          session = session,
+          inputId = 'feature',
+          label = 'Feature',
+          choices = FilterFeatures(features = rownames(x = app.env$object)),
+          selected = app.env$default.feature
+        )
+        # Add the predicted ID and score to the plots
+        enable(id = 'adtfeature')
+        updateSelectInput(
+          session = session,
+          inputId = 'feature',
+          label = 'Feature',
+          choices = c(
+            'predicted.id.score',
+            FilterFeatures(features = rownames(x = app.env$object))
+          ),
+          selected = app.env$default.feature
+        )
+        adt.features <- sort(x = FilterFeatures(features = rownames(
+          x = app.env$object[[adt.key]]
+        )))
+        app.env$default.adt <- ifelse(
+          test = getOption(x = 'Azimuth.app.default.adt') %in% adt.features,
+          yes = getOption(x = 'Azimuth.app.default.adt'),
+          no = adt.features[1]
+        )
+        updateSelectInput(
+          session = session,
+          inputId = 'adtfeature',
+          choices = adt.features,
+          selected = app.env$default.adt
+        )
+        metadata.choices <- sort(x = c("predicted.id", PlottableMetadataNames(object = app.env$object)))
+        updateSelectInput(
+          session = session,
+          inputId = 'select.metadata',
+          choices = metadata.choices,
+          selected = 'predicted.id'
+        )
+        updateSelectInput(
+          session = session,
+          inputId = 'select.metadata1',
+          choices = metadata.choices,
+          selected = 'predicted.id'
+        )
+        updateSelectInput(
+          session = session,
+          inputId = 'select.metadata2',
+          choices = metadata.choices,
+          selected = 'predicted.id'
+        )
+        enable(id = 'select.metadata')
+        enable(id = 'select.metadata1')
+        enable(id = 'select.metadata2')
+        enable(id = 'radio.pct')
+        # Compute biomarkers
+        withProgress(
+          message = "Running differential expression",
+          expr = {
+            setProgress(value = 0)
+            app.env$diff.expr[[app.env$default.assay]] <- wilcoxauc(
+              X = app.env$object,
+              group_by = 'predicted.id',
+              assay = 'data',
+              seurat_assay = app.env$default.assay
+            )
+            setProgress(value = 0.6)
+            app.env$diff.expr[[adt.key]] <- wilcoxauc(
+              X = app.env$object,
+              group_by = 'predicted.id',
+              assay = 'data',
+              seurat_assay = adt.key
+            )
+            setProgress(value = 1)
+          }
+        )
+        allowed.clusters <- names(x = which(
+          x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells'),
+        ))
+        allowed.clusters <- factor(
+          x = allowed.clusters,
+          levels = levels(x = app.env$object)
+        )
+        allowed.clusters <- levels(x = droplevels(x = allowed.clusters))
+        enable(id = 'select.prediction')
+        updateSelectInput(
+          session = session,
+          inputId = 'select.prediction',
+          choices = allowed.clusters,
+          selected = allowed.clusters[1]
+        )
+        enable(id = 'select.biomarkers')
+        updateSelectInput(
+          session = session,
+          inputId = 'select.biomarkers',
+          choices = allowed.clusters,
+          selected = allowed.clusters[1]
+        )
+        # Enable downloads
+        enable(id = 'dlumap')
+        enable(id = 'dladt')
+        enable(id = 'dlpred')
+        output$text.dladt <- renderText(expr = {
+          c("imputed.assay <- readRDS('azimuth_impADT.Rds')",
+          "object <- object[, Cells(imputed.assay)]",
+          "object[['impADT']] <- imputed.assay")
+          },
+          sep = "\n"
+        )
+        output$text.dlumap <- renderText(expr = {
+          c("projected.umap <- readRDS('azimuth_umap.Rds')",
+            "object <- object[, Cells(projected.umap)]",
+            "object[['umap.proj']] <- projected.umap")
+          },
+          sep = "\n"
+        )
+        output$text.dlpred <- renderText(expr = {
+          c("predictions <- read.delim('azimuth_pred.tsv', row.names = 1)",
+            "object <- AddMetaData(",
+            "\tobject = object,",
+            "\tmetadata = predictions)")
+          },
+          sep = "\n"
+        )
+        output$menu2 <- renderMenu(expr = {
+          sidebarMenu(
+          menuItem(
+            text = "Cell Plots",
+            tabName = "tab_cell",
+            icon = icon("chart-area")
+          ),
+          menuItem(
+            text = "Feature Plots",
+            tabName = "tab_feature",
+            icon = icon("chart-area")
+          ),
+          menuItem(
+            text = "Download Results",
+            tabName = "tab_download",
+            icon = icon("file-download")
+          ))}
+        )
       }
-      mappingtext <- paste0(
-        sum(app.env$object$mapped),
-        " cells mapped to reference (",
-        round(
-          x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
-          digits = 2
-        ),
-        "%)"
-      )
-      output$mapping <- renderText(expr = mappingtext)
-      app.env$object <- app.env$object[, app.env$object$mapped]
-      # Enable the feature explorer
-      enable(id = 'feature')
-      app.env$default.feature <- ifelse(
-        test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
-        yes = getOption(x = 'Azimuth.app.default.gene'),
-        no = VariableFeatures(object = app.env$object)[1]
-      )
-      updateSelectInput(
-        session = session,
-        inputId = 'feature',
-        label = 'Feature',
-        choices = FilterFeatures(features = rownames(x = app.env$object)),
-        selected = app.env$default.feature
-      )
-      shinyjs::show(selector = TabJSKey(id = 'tabs', values = 'fexplorer'))
-      # Add the predicted ID and score to the plots
-      enable(id = 'adtfeature')
-      updateSelectInput(
-        session = session,
-        inputId = 'feature',
-        label = 'Feature',
-        choices = c(
-          'predicted.id.score',
-          FilterFeatures(features = rownames(x = app.env$object))
-        ),
-        selected = app.env$default.feature
-      )
-      adt.features <- sort(x = FilterFeatures(features = rownames(
-        x = app.env$object[[adt.key]]
-      )))
-      app.env$default.adt <- ifelse(
-        test = getOption(x = 'Azimuth.app.default.adt') %in% adt.features,
-        yes = getOption(x = 'Azimuth.app.default.adt'),
-        no = adt.features[1]
-      )
-      updateSelectInput(
-        session = session,
-        inputId = 'adtfeature',
-        choices = adt.features,
-        selected = app.env$default.adt
-      )
-      # Compute biomarkers
-      withProgress(
-        message = "Running differential expression",
-        expr = {
-          setProgress(value = 0)
-          app.env$diff.expr[[app.env$default.assay]] <- wilcoxauc(
-            X = app.env$object,
-            group_by = 'predicted.id',
-            assay = 'data',
-            seurat_assay = app.env$default.assay
-          )
-          setProgress(value = 0.6)
-          app.env$diff.expr[[adt.key]] <- wilcoxauc(
-            X = app.env$object,
-            group_by = 'predicted.id',
-            assay = 'data',
-            seurat_assay = adt.key
-          )
-          setProgress(value = 1)
-        }
-      )
-      allowed.clusters <- names(x = which(
-        x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells'),
-      ))
-      allowed.clusters <- factor(
-        x = allowed.clusters,
-        levels = levels(x = app.env$object)
-      )
-      allowed.clusters <- levels(x = droplevels(x = allowed.clusters))
-      enable(id = 'declusters')
-      updateSelectInput(
-        session = session,
-        inputId = 'declusters',
-        label = 'Cell Type',
-        choices = allowed.clusters,
-        selected = allowed.clusters[1]
-      )
-      shinyjs::show(selector = TabJSKey(id = 'tabs', 'diffexp'))
-      # Enable downloads and downstream analyses
-      updateTabsetPanel(
-        session = session,
-        inputId = 'tabs',
-        selected = 'mapped'
-      )
-      enable(id = 'dlumap')
-      enable(id = 'dlpred')
-      disable(id = 'map')
     }
   )
   # Plots
-  output$qcvln <- renderPlot(expr = {
+  output$plot.qc <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
       if (mt.key %in% colnames(x = app.env$object[[]])) {
         qc <- c(qc, mt.key)
       }
-      VlnPlot(object = app.env$object, features = qc, group.by = 'query')
+      vlnlist <- VlnPlot(object = app.env$object, features = qc, group.by = 'query', combine = FALSE)
+      # nCount
+      vlnlist[[1]] <- vlnlist[[1]] +
+        geom_hline(yintercept = input$num.ncountmin) +
+        geom_hline(yintercept = input$num.ncountmax) +
+        NoLegend() + xlab("")
+      # nFeature
+      vlnlist[[2]] <- vlnlist[[2]] +
+        geom_hline(yintercept = input$num.nfeaturemin) +
+        geom_hline(yintercept = input$num.nfeaturemax) +
+        NoLegend() + xlab("")
+      if (mt.key %in% colnames(x = app.env$object[[]])) {
+        vlnlist[[3]] <- vlnlist[[3]] +
+          geom_hline(yintercept = input$num.mtmin) +
+          geom_hline(yintercept = input$num.mtmax) +
+          NoLegend() + xlab("")
+        wrap_plots(vlnlist, ncol = 3)
+      } else {
+        wrap_plots(vlnlist, ncol = 2)
+      }
     }
   })
   output$refdim <- renderPlot(expr = {
-    DimPlot(object = refs$plot) + ggtitle(label = 'Reference')
+    DimPlot(object = refs$plot)
   })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
-        DimPlot(object = app.env$object) +
-          scale_colour_hue(limits = levels(refs$plot$id), drop = FALSE) +
-          ggtitle(label = 'Query')
+        if (input$select.metadata == "predicted.id") {
+          plotlevels <- levels(refs$plot$id)[levels(refs$plot$id) != "Doublet"]
+          DimPlot(object = app.env$object) +
+            scale_colour_hue(limits = plotlevels, drop = FALSE)
+        } else {
+          DimPlot(object = app.env$object,
+                  group.by = input$select.metadata)
+        }
       }
     }
   })
@@ -524,8 +943,7 @@ server <- function(input, output, session) {
             Key(object = app.env$object[[adt.key]]),
             input$adtfeature
           )
-        ) +
-          NoLegend()
+        ) + NoLegend()
       }
     }
   })
@@ -538,15 +956,22 @@ server <- function(input, output, session) {
             Key(object = app.env$object[[adt.key]]),
             input$adtfeature
           ),
-          cols = c('lightgrey', 'darkred'),
+          cols = c('lightgrey', 'darkgreen'),
           min.cutoff = 'q10',
           max.cutoff = 'q99'
         )
       }
     }
   })
+  # Messages
+  # output$message <- renderText(expr = paste(app.env$messages, collapse = '\n'))
+  output$message <- shiny::renderUI(expr = {
+    htmltools::p(
+      htmltools::HTML(text = paste(app.env$messages, collapse = "<br />"))
+    )
+  })
   # Tables
-  output$qctbl <- renderTable(
+  output$table.qc <- renderTable(
     expr = {
       if (!is.null(x = app.env$object)) {
         qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
@@ -567,7 +992,7 @@ server <- function(input, output, session) {
       if (!is.null(x = app.env$diff.expr[[app.env$default.assay]])) {
         RenderDiffExp(
           diff.exp = app.env$diff.expr[[app.env$default.assay]],
-          groups.use = input$declusters
+          groups.use = input$select.biomarkers
         )
       }
     },
@@ -578,7 +1003,21 @@ server <- function(input, output, session) {
       if (!is.null(x = app.env$diff.expr[[adt.key]])) {
         RenderDiffExp(
           diff.exp = app.env$diff.expr[[adt.key]],
-          groups.use = input$declusters
+          groups.use = input$select.biomarkers
+        )
+      }
+    },
+    rownames = TRUE
+  )
+  output$table.metadata <- renderTable(
+    expr = {
+      if (!is.null(x = app.env$object)) {
+        # TODO allow user to toggle between frequency and percentage
+        CategoryTable(
+          object = app.env$object,
+          category.1 = input$select.metadata1,
+          category.2 = input$select.metadata2,
+          percentage = (input$radio.pct == "Percentage")
         )
       }
     },
@@ -591,6 +1030,16 @@ server <- function(input, output, session) {
       if (!is.null(x = app.env$object)) {
         if ('umap.proj' %in% Reductions(object = app.env$object)) {
           saveRDS(object = app.env$object[['umap.proj']], file = file)
+        }
+      }
+    }
+  )
+  output$dladt <- downloadHandler(
+    filename = paste0(tolower(x = app.title), '_impADT.Rds'),
+    content = function(file) {
+      if (!is.null(x = app.env$object)) {
+        if ('impADT' %in% Assays(object = app.env$object)) {
+          saveRDS(object = app.env$object[['impADT']], file = file)
         }
       }
     }
