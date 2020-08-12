@@ -829,6 +829,7 @@ server <- function(input, output, session) {
         enable(id = 'dlumap')
         enable(id = 'dladt')
         enable(id = 'dlpred')
+        enable(id = 'dlscript')
         output$text.dladt <- renderText(expr = {
           c("imputed.assay <- readRDS('azimuth_impADT.Rds')",
           "object <- object[, Cells(imputed.assay)]",
