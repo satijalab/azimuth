@@ -31,6 +31,7 @@
 default.options <- list(
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,
+  Azimuth.map.ngenes = 1000L,
   Azimuth.map.nanchors = 50L,
   Azimuth.map.pcthresh = 60L,
   Azimuth.sct.ncells = 1000L,
