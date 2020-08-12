@@ -112,4 +112,4 @@ object <- AddMetaData(
   object = object,
   metadata = SeuratMapper:::CalcMappingMetric(object = dsqr)
 )
-app.env$object <- app.env$object[, app.env$object$mapped]
+object <- object[, object$mapped]
