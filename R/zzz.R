@@ -148,8 +148,12 @@ LoadFileInput <- function(path) {
       object <- readRDS(file = path)
       if (inherits(x = object, what = c('Matrix', 'matrix', 'data.frame'))) {
         object <- CreateSeuratObject(counts = as.sparse(x = object))
-      }
-      if (!inherits(x = object, what = 'Seurat')) {
+      } else if (inherits(x = object, what = 'Seurat')) {
+        object <- DietSeurat(
+          object = object,
+          assays = DefaultAssay(object = object)
+        )
+      } else {
         stop("The RDS file must be a Seurat object", call. = FALSE)
       }
       object
