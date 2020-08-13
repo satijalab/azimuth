@@ -50,6 +50,27 @@ default.options <- list(
   Azimuth.sct.nfeats = 1000L
 )
 
+#' Attach dependent packages
+#'
+#' Attaches the following packages
+#' \itemize{
+#'  \item shinyBS
+#' }
+#'
+#' @return Attaches the required packages and returns invisible \code{NULL}
+#'
+#' @keywords internal
+#'
+AttachDeps <- function() {
+  deps <- c(
+    'shinyBS'
+  )
+  for (d in deps) {
+    packageStartupMessage("Attaching ", d)
+    attachNamespace(ns = d)
+  }
+}
+
 #' Returns a dataframe of the frequency or percentage of levels of category.2
 #' (column) for object split by each level of category.1 (row)
 #'
@@ -683,6 +704,8 @@ TabJSKey <- function(id, values) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 .onLoad <- function(libname, pkgname) {
+  # Attach deps
+  AttachDeps()
   op <- options()
   # TODO: replace this
   options(shiny.maxRequestSize = 100 * (1024 ^ 2))
