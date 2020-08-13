@@ -67,9 +67,16 @@ ui <- tagList(
       tabName = "tab_preproc",
       fluidRow(
         box(
-          title = p("QC Filters",
-                     tags$style(type = "text/css", "#q2 {display: inline-block; vertical-align: middle;}"),
-                     bsButton("q2", label = "", icon = icon("question"), style = "info", size = "extra-small")
+          title = p(
+            "QC Filters",
+            tags$style(type = "text/css", "#q2 {display: inline-block; vertical-align: middle;}"),
+            bsButton(
+              inputId = "q2",
+              label = "",
+              icon = icon("question"),
+              style = "info",
+              size = "extra-small"
+            )
           ),
           disabled(numericInput(inputId = "num.ncountmax", label = NULL, value = 0)),
           disabled(numericInput(inputId = "num.ncountmin", label = NULL, value = 0)),
@@ -164,9 +171,16 @@ ui <- tagList(
         width = 12
       ),
       box(
-        title = p("Predicted cell type cluster biomarkers",
-                  tags$style(type = "text/css", "#q3 {display: inline-block; vertical-align: middle;}"),
-                  bsButton("q3", label = "", icon = icon("question"), style = "info", size = "extra-small")
+        title = p(
+          "Predicted cell type cluster biomarkers",
+          tags$style(type = "text/css", "#q3 {display: inline-block; vertical-align: middle;}"),
+          bsButton(
+            inputId = "q3",
+            label = "",
+            icon = icon("question"),
+            style = "info",
+            size = "extra-small"
+          )
         ),
         bsPopover(
           id = "q3",
@@ -333,7 +347,11 @@ server <- function(input, output, session) {
       )
       if (!is.null(app.env$object)) {
         # Validate that there are genes in common with the reference
-        if (length(intersect(rownames(refs$map),rownames(app.env$object))) < getOption(x = "Azimuth.map.ngenes")) {
+        genes.common <- intersect(
+          y = rownames(x = refs$map),
+          x = rownames(x = app.env$object)
+      )
+        if (length(x = genes.common) < getOption(x = "Azimuth.map.ngenes")) {
           app.env$messages <- "Not enough genes in common with reference. Try another dataset."
         } else {
           app.env$default.assay <- DefaultAssay(object = app.env$object)
@@ -437,8 +455,9 @@ server <- function(input, output, session) {
               tabName = "tab_preproc",
               icon = icon("filter"),
               selected = TRUE
-            ))})
-          ncellsupload <- length(colnames(app.env$object))
+            ))
+          })
+          ncellsupload <- length(x = colnames(x = app.env$object))
           app.env$messages <- paste(ncellsupload, "cells uploaded")
           if (ncellsupload < getOption(x = "Azimuth.map.ncells")) {
             output$valuebox.upload <- renderValueBox(expr = valueBox(
@@ -594,7 +613,10 @@ server <- function(input, output, session) {
               do.center = TRUE
             ))
             setProgress(value = 1)
-            app.env$messages <- c(app.env$messages, paste(ncellspreproc, "cells preprocessed"))
+            app.env$messages <- c(
+              app.env$messages,
+              paste(ncellspreproc, "cells preprocessed")
+            )
           }
         }
       )
@@ -760,7 +782,10 @@ server <- function(input, output, session) {
           choices = adt.features,
           selected = app.env$default.adt
         )
-        metadata.choices <- sort(x = c("predicted.id", PlottableMetadataNames(object = app.env$object)))
+        metadata.choices <- sort(x = c(
+          "predicted.id",
+          PlottableMetadataNames(object = app.env$object)
+        ))
         updateSelectInput(
           session = session,
           inputId = 'select.metadata',
@@ -805,7 +830,7 @@ server <- function(input, output, session) {
           }
         )
         allowed.clusters <- names(x = which(
-          x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells'),
+          x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells')
         ))
         allowed.clusters <- factor(
           x = allowed.clusters,
@@ -880,7 +905,12 @@ server <- function(input, output, session) {
       if (mt.key %in% colnames(x = app.env$object[[]])) {
         qc <- c(qc, mt.key)
       }
-      vlnlist <- VlnPlot(object = app.env$object, features = qc, group.by = 'query', combine = FALSE)
+      vlnlist <- VlnPlot(
+        object = app.env$object,
+        features = qc,
+        group.by = 'query',
+        combine = FALSE
+      )
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
         geom_hline(yintercept = input$num.ncountmin) +
@@ -906,15 +936,17 @@ server <- function(input, output, session) {
     DimPlot(object = refs$plot)
   })
   output$objdim <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
+  if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
         if (input$select.metadata == "predicted.id") {
           plotlevels <- levels(refs$plot$id)[levels(refs$plot$id) != "Doublet"]
           DimPlot(object = app.env$object) +
             scale_colour_hue(limits = plotlevels, drop = FALSE)
         } else {
-          DimPlot(object = app.env$object,
-                  group.by = input$select.metadata)
+          DimPlot(
+            object = app.env$object,
+            group.by = input$select.metadata
+          )
         }
       }
     }
