@@ -44,7 +44,8 @@ Imports:
   stringr (>= 1.4.0),
   tools,
   utils,
-  V8 (>= 3.2.0)
+  V8 (>= 3.2.0),
+  withr (>= 2.2.0)
 Suggests:
   flexdashboard,
   rmarkdown

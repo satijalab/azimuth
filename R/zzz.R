@@ -6,6 +6,18 @@
 #' users can configure these with \code{\link[base]{options}}:
 #'
 #' \describe{
+#' \item{\code{Azimuth.map.ncells}}{
+#'   Minimum number of cells required to accept uploaded file.
+#'   Defaults to \code{100}
+#'  }
+#'  \item{\code{Azimuth.map.ngenes}}{
+#'   Minimum number of genes in common with reference to accept uploaded file.
+#'   Defaults to \code{1000}
+#'  }
+#'  \item{\code{Azimuth.map.ngenes}}{
+#'   Minimum number of anchors that must be found to complete mapping.
+#'   Defaults to \code{50}
+#'  }
 #'  \item{\code{Azimuth.de.mincells}}{
 #'   Minimum number of cells per cluster for differential expression; defaults
 #'   to \code{15}
@@ -31,6 +43,7 @@
 default.options <- list(
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,
+  Azimuth.map.ngenes = 1000L,
   Azimuth.map.nanchors = 50L,
   Azimuth.map.pcthresh = 60L,
   Azimuth.sct.ncells = 1000L,
@@ -182,8 +195,12 @@ LoadFileInput <- function(path) {
       object <- readRDS(file = path)
       if (inherits(x = object, what = c('Matrix', 'matrix', 'data.frame'))) {
         object <- CreateSeuratObject(counts = as.sparse(x = object))
-      }
-      if (!inherits(x = object, what = 'Seurat')) {
+      } else if (inherits(x = object, what = 'Seurat')) {
+        object <- DietSeurat(
+          object = object,
+          assays = DefaultAssay(object = object)
+        )
+      } else {
         stop("The RDS file must be a Seurat object", call. = FALSE)
       }
       object

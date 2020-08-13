@@ -6,7 +6,7 @@
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow
-#' updateNumericInput radioButtons textOutput
+#' updateNumericInput radioButtons textOutput htmlOutput
 #' @importFrom shinydashboard dashboardPage dashboardHeader dashboardSidebar
 #' dashboardBody menuItem tabItems tabItem sidebarMenu box valueBoxOutput
 #' sidebarMenuOutput
@@ -40,11 +40,7 @@ ui <- tagList(
       trigger = "focus",
       options = list(container = "body")
     ),
-    # textOutput(outputId = 'message'),
-    shiny::htmlOutput(outputId = "message", inline = FALSE),
-    # textOutput(outputId = "message.upload"),
-    # textOutput(outputId = "message.preproc"),
-    # textOutput(outputId = "message.mapped"),
+    htmlOutput(outputId = "message", inline = FALSE),
     sidebarMenu(
       menuItem(
         text = "Welcome",
@@ -283,7 +279,7 @@ ui <- tagList(
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<-
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
-#' updateTabsetPanel renderPlot renderTable downloadHandler
+#' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
 #' @importFrom stats quantile
 #' @importFrom utils write.table
@@ -314,9 +310,6 @@ server <- function(input, output, session) {
         )
       )
       setProgress(value = 1)
-      # output$message.upload <- renderText(
-      #   expr = "Upload a file"
-      # )
     }
   )
   # React to events
@@ -328,134 +321,145 @@ server <- function(input, output, session) {
         message = "Reading input",
         expr = {
           setProgress(value = 0)
-          app.env$object <- LoadFileInput(path = input$file$datapath)
-          app.env$object$query <- 'query'
-          Idents(app.env$object) <- 'query'
+          tryCatch(
+            expr = {
+              app.env$object <- LoadFileInput(path = input$file$datapath)
+              app.env$object$query <- 'query'
+              Idents(app.env$object) <- 'query'
+            },
+            error = function(e) { app.env$messages <- e$message }
+          )
           setProgress(value = 1)
         }
       )
-      app.env$default.assay <- DefaultAssay(object = app.env$object)
-      ncount <- paste0('nCount_', app.env$default.assay)
-      nfeature <- paste0('nFeature_', app.env$default.assay)
-      if (!all(c(ncount, nfeature) %in% c(colnames(x = app.env$object[[]])))) {
-        withProgress(
-          message = "Calculating nCount and nFeature",
-          expr = {
-            setProgress(value = 0)
-            calcn <- as.data.frame(x = Seurat:::CalcN(object = app.env$object))
-            colnames(x = calcn) <- paste(
-              colnames(x = calcn),
-              app.env$default.assay,
-              sep = '_'
+      if (!is.null(app.env$object)) {
+        # Validate that there are genes in common with the reference
+        if (length(intersect(rownames(refs$map),rownames(app.env$object))) < getOption(x = "Azimuth.map.ngenes")) {
+          app.env$messages <- "Not enough genes in common with reference. Try another dataset."
+        } else {
+          app.env$default.assay <- DefaultAssay(object = app.env$object)
+          ncount <- paste0('nCount_', app.env$default.assay)
+          nfeature <- paste0('nFeature_', app.env$default.assay)
+          if (!all(c(ncount, nfeature) %in% c(colnames(x = app.env$object[[]])))) {
+            withProgress(
+              message = "Calculating nCount and nFeature",
+              expr = {
+                setProgress(value = 0)
+                calcn <- as.data.frame(x = Seurat:::CalcN(object = app.env$object))
+                colnames(x = calcn) <- paste(
+                  colnames(x = calcn),
+                  app.env$default.assay,
+                  sep = '_'
+                )
+                app.env$object <- AddMetaData(
+                  object = app.env$object,
+                  metadata = calcn
+                )
+                rm(calcn)
+                gc(verbose = FALSE)
+                setProgress(value = 1)
+              }
             )
-            app.env$object <- AddMetaData(
-              object = app.env$object,
-              metadata = calcn
-            )
-            rm(calcn)
-            gc(verbose = FALSE)
-            setProgress(value = 1)
           }
-        )
-      }
-      ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
-      updateNumericInput(
-        session = session,
-        inputId = 'num.ncountmin',
-        label = paste("min", ncount),
-        value = min(ncount.val),
-        min = min(ncount.val),
-        max = max(ncount.val),
-        step = 1
-      )
-      enable(id = 'num.ncountmin')
-      updateNumericInput(
-        session = session,
-        inputId = 'num.ncountmax',
-        label = paste("max", ncount),
-        value = max(ncount.val),
-        min = min(ncount.val),
-        max = max(ncount.val),
-        step = 1
-      )
-      enable(id = 'num.ncountmax')
-      nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
-      updateNumericInput(
-        session = session,
-        inputId = 'num.nfeaturemin',
-        label = paste("min", nfeature),
-        value = min(nfeature.val),
-        min = min(nfeature.val),
-        max = max(nfeature.val),
-        step = 1
-      )
-      enable(id = 'num.nfeaturemin')
-      updateNumericInput(
-        session = session,
-        inputId = 'num.nfeaturemax',
-        label = paste("max", nfeature),
-        value = max(nfeature.val),
-        min = min(nfeature.val),
-        max = max(nfeature.val),
-        step = 1
-      )
-      enable(id = 'num.nfeaturemax')
-      if (any(grepl(pattern = mito.pattern, x = rownames(x = app.env$object)))) {
-        app.env$object <- PercentageFeatureSet(
-          object = app.env$object,
-          pattern = mito.pattern,
-          col.name = mt.key,
-          assay = app.env$default.assay
-        )
-        mito.val <- range(app.env$object[[mt.key, drop = TRUE]])
-        updateNumericInput(
-          session = session,
-          inputId = 'num.mtmin',
-          label = paste("min", mt.key),
-          value = min(mito.val),
-          min = min(mito.val),
-          max = max(mito.val),
-          step = 1
-        )
-        enable(id = 'num.mtmin')
-        updateNumericInput(
-          session = session,
-          inputId = 'num.mtmax',
-          label = paste("max", mt.key),
-          value = max(mito.val),
-          min = min(mito.val),
-          max = max(mito.val),
-          step = 1
-        )
-        enable(id = 'num.mtmax')
-      }
-      output$menu1 <- renderMenu(expr = {
-        sidebarMenu(menuItem(
-        text = "Preprocessing",
-        tabName = "tab_preproc",
-        icon = icon("filter"),
-        selected = TRUE
-      ))})
-      ncellsupload <- length(colnames(app.env$object))
-      # output$message.upload <- renderText(expr = c(ncellsupload, " cells uploaded"))
-      app.env$messages <- paste(ncellsupload, "cells uploaded")
-      if (ncellsupload < getOption(x = "Azimuth.map.ncells")) {
-        output$valuebox.upload <- renderValueBox(expr = valueBox(
-          value = ncellsupload,
-          subtitle = "cells uploaded",
-          icon = icon("times"),
-          color = "red"
-        ))
-        # TODO what should happen when not enough cells are uploaded?
-        # stop(safeError(error = "Not enough cells in uploaded dataset to proceed"))
-      } else {
-        output$valuebox.upload <- renderValueBox(expr = valueBox(
-          value = ncellsupload,
-          subtitle = "cells uploaded",
-          icon = icon("check"),
-          color = "green"
-        ))
-        enable(id = 'proc1')
+          ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
+          updateNumericInput(
+            session = session,
+            inputId = 'num.ncountmin',
+            label = paste("min", ncount),
+            value = min(ncount.val),
+            min = min(ncount.val),
+            max = max(ncount.val),
+            step = 1
+          )
+          enable(id = 'num.ncountmin')
+          updateNumericInput(
+            session = session,
+            inputId = 'num.ncountmax',
+            label = paste("max", ncount),
+            value = max(ncount.val),
+            min = min(ncount.val),
+            max = max(ncount.val),
+            step = 1
+          )
+          enable(id = 'num.ncountmax')
+          nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
+          updateNumericInput(
+            session = session,
+            inputId = 'num.nfeaturemin',
+            label = paste("min", nfeature),
+            value = min(nfeature.val),
+            min = min(nfeature.val),
+            max = max(nfeature.val),
+            step = 1
+          )
+          enable(id = 'num.nfeaturemin')
+          updateNumericInput(
+            session = session,
+            inputId = 'num.nfeaturemax',
+            label = paste("max", nfeature),
+            value = max(nfeature.val),
+            min = min(nfeature.val),
+            max = max(nfeature.val),
+            step = 1
+          )
+          enable(id = 'num.nfeaturemax')
+          if (any(grepl(pattern = mito.pattern, x = rownames(x = app.env$object)))) {
+            app.env$object <- PercentageFeatureSet(
+              object = app.env$object,
+              pattern = mito.pattern,
+              col.name = mt.key,
+              assay = app.env$default.assay
+            )
+            mito.val <- range(app.env$object[[mt.key, drop = TRUE]])
+            updateNumericInput(
+              session = session,
+              inputId = 'num.mtmin',
+              label = paste("min", mt.key),
+              value = min(mito.val),
+              min = min(mito.val),
+              max = max(mito.val),
+              step = 1
+            )
+            enable(id = 'num.mtmin')
+            updateNumericInput(
+              session = session,
+              inputId = 'num.mtmax',
+              label = paste("max", mt.key),
+              value = max(mito.val),
+              min = min(mito.val),
+              max = max(mito.val),
+              step = 1
+            )
+            enable(id = 'num.mtmax')
+          }
+          output$menu1 <- renderMenu(expr = {
+            sidebarMenu(menuItem(
+              text = "Preprocessing",
+              tabName = "tab_preproc",
+              icon = icon("filter"),
+              selected = TRUE
+            ))})
+          ncellsupload <- length(colnames(app.env$object))
+          app.env$messages <- paste(ncellsupload, "cells uploaded")
+          if (ncellsupload < getOption(x = "Azimuth.map.ncells")) {
+            output$valuebox.upload <- renderValueBox(expr = valueBox(
+              value = ncellsupload,
+              subtitle = "cells uploaded",
+              icon = icon("times"),
+              color = "red"
+            ))
+            # TODO what should happen when not enough cells are uploaded?
+            # stop(safeError(error = "Not enough cells in uploaded dataset to proceed"))
+          } else {
+            output$valuebox.upload <- renderValueBox(expr = valueBox(
+              value = ncellsupload,
+              subtitle = "cells uploaded",
+              icon = icon("check"),
+              color = "green"
+            ))
+            enable(id = 'proc1')
+          }
+        }
       }
     }
   )
@@ -591,7 +595,6 @@ server <- function(input, output, session) {
               do.center = TRUE
             ))
             setProgress(value = 1)
-            # output$message.preproc <- renderText(expr = c(ncellspreproc, " cells preprocessed"))
             app.env$messages <- c(app.env$messages, paste(ncellspreproc, "cells preprocessed"))
           }
         }
@@ -691,7 +694,6 @@ server <- function(input, output, session) {
         x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
         digits = 0
       )
-      # output$message.mapped <- renderText(expr = mappingtext)
       app.env$messages <- c(app.env$messages, mappingtext)
       if (mappingpct < getOption(x = "Azimuth.map.pcthresh")) {
         output$valuebox.mapped <- renderValueBox(expr = valueBox(
@@ -965,11 +967,8 @@ server <- function(input, output, session) {
     }
   })
   # Messages
-  # output$message <- renderText(expr = paste(app.env$messages, collapse = '\n'))
-  output$message <- shiny::renderUI(expr = {
-    htmltools::p(
-      htmltools::HTML(text = paste(app.env$messages, collapse = "<br />"))
-    )
+  output$message <- renderUI(expr = {
+    p(HTML(text = paste(app.env$messages, collapse = "<br />")))
   })
   # Tables
   output$table.qc <- renderTable(
@@ -1094,7 +1093,7 @@ server <- function(input, output, session) {
 
 #' Launch the mapping app
 #'
-#' @param reference,mito,max.upload.mb See \strong{App options} for more details
+#' @param reference,mito,max.upload.mb,default.gene,default,adt See \strong{App options} for more details
 #'
 #' @section App options:
 #'
@@ -1114,16 +1113,17 @@ server <- function(input, output, session) {
 #'   Maximum file size (in MB) allowed to upload
 #'  }
 #'  \item{\code{Azimuth.app.default.gene}}{
-#'   Gene to select by default in Feature Explorer
+#'   Gene to select by default in feature/violin plot
 #'  }
 #'  \item{\code{Azimuth.app.default.adt}}{
-#'   ADT to select by default in Feature Explorer
+#'   ADT to select by default in feature/violin plot
 #'  }
 #' }
 #'
 #' @return None, launches the mapping Shiny app
 #'
 #' @importFrom shiny runApp shinyApp
+#' @importFrom withr with_options
 #'
 #' @export
 #'
@@ -1156,7 +1156,7 @@ AzimuthApp <- function(
     Azimuth.app.default.gene = default.gene,
     Azimuth.app.default.adt = default.adt
   )
-  withr::with_options(
+  with_options(
     new = opts,
     code = runApp(appDir = shinyApp(ui = ui, server = server))
   )
