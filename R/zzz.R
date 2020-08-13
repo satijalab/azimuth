@@ -6,6 +6,18 @@
 #' users can configure these with \code{\link[base]{options}}:
 #'
 #' \describe{
+#' \item{\code{Azimuth.map.ncells}}{
+#'   Minimum number of cells required to accept uploaded file.
+#'   Defaults to \code{100}
+#'  }
+#'  \item{\code{Azimuth.map.ngenes}}{
+#'   Minimum number of genes in common with reference to accept uploaded file.
+#'   Defaults to \code{1000}
+#'  }
+#'  \item{\code{Azimuth.map.ngenes}}{
+#'   Minimum number of anchors that must be found to complete mapping.
+#'   Defaults to \code{50}
+#'  }
 #'  \item{\code{Azimuth.de.mincells}}{
 #'   Minimum number of cells per cluster for differential expression; defaults
 #'   to \code{15}

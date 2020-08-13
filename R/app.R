@@ -6,7 +6,7 @@
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow
-#' updateNumericInput radioButtons textOutput
+#' updateNumericInput radioButtons textOutput htmlOutput
 #' @importFrom shinydashboard dashboardPage dashboardHeader dashboardSidebar
 #' dashboardBody menuItem tabItems tabItem sidebarMenu box valueBoxOutput
 #' sidebarMenuOutput
@@ -40,11 +40,7 @@ ui <- tagList(
       trigger = "focus",
       options = list(container = "body")
     ),
-    # textOutput(outputId = 'message'),
-    shiny::htmlOutput(outputId = "message", inline = FALSE),
-    # textOutput(outputId = "message.upload"),
-    # textOutput(outputId = "message.preproc"),
-    # textOutput(outputId = "message.mapped"),
+    htmlOutput(outputId = "message", inline = FALSE),
     sidebarMenu(
       menuItem(
         text = "Welcome",
@@ -282,7 +278,7 @@ ui <- tagList(
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<-
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
-#' updateTabsetPanel renderPlot renderTable downloadHandler
+#' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
 #' @importFrom stats quantile
 #' @importFrom utils write.table
@@ -313,9 +309,6 @@ server <- function(input, output, session) {
         )
       )
       setProgress(value = 1)
-      # output$message.upload <- renderText(
-      #   expr = "Upload a file"
-      # )
     }
   )
   # React to events
@@ -446,7 +439,6 @@ server <- function(input, output, session) {
               selected = TRUE
             ))})
           ncellsupload <- length(colnames(app.env$object))
-          # output$message.upload <- renderText(expr = c(ncellsupload, " cells uploaded"))
           app.env$messages <- paste(ncellsupload, "cells uploaded")
           if (ncellsupload < getOption(x = "Azimuth.map.ncells")) {
             output$valuebox.upload <- renderValueBox(expr = valueBox(
@@ -602,7 +594,6 @@ server <- function(input, output, session) {
               do.center = TRUE
             ))
             setProgress(value = 1)
-            # output$message.preproc <- renderText(expr = c(ncellspreproc, " cells preprocessed"))
             app.env$messages <- c(app.env$messages, paste(ncellspreproc, "cells preprocessed"))
           }
         }
@@ -702,7 +693,6 @@ server <- function(input, output, session) {
         x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
         digits = 0
       )
-      # output$message.mapped <- renderText(expr = mappingtext)
       app.env$messages <- c(app.env$messages, mappingtext)
       if (mappingpct < getOption(x = "Azimuth.map.pcthresh")) {
         output$valuebox.mapped <- renderValueBox(expr = valueBox(
@@ -975,11 +965,8 @@ server <- function(input, output, session) {
     }
   })
   # Messages
-  # output$message <- renderText(expr = paste(app.env$messages, collapse = '\n'))
-  output$message <- shiny::renderUI(expr = {
-    htmltools::p(
-      htmltools::HTML(text = paste(app.env$messages, collapse = "<br />"))
-    )
+  output$message <- renderUI(expr = {
+    p(HTML(text = paste(app.env$messages, collapse = "<br />")))
   })
   # Tables
   output$table.qc <- renderTable(
@@ -1081,7 +1068,7 @@ server <- function(input, output, session) {
 
 #' Launch the mapping app
 #'
-#' @param reference,mito,max.upload.mb See \strong{App options} for more details
+#' @param reference,mito,max.upload.mb,default.gene,default,adt See \strong{App options} for more details
 #'
 #' @section App options:
 #'
@@ -1101,16 +1088,17 @@ server <- function(input, output, session) {
 #'   Maximum file size (in MB) allowed to upload
 #'  }
 #'  \item{\code{Azimuth.app.default.gene}}{
-#'   Gene to select by default in Feature Explorer
+#'   Gene to select by default in feature/violin plot
 #'  }
 #'  \item{\code{Azimuth.app.default.adt}}{
-#'   ADT to select by default in Feature Explorer
+#'   ADT to select by default in feature/violin plot
 #'  }
 #' }
 #'
 #' @return None, launches the mapping Shiny app
 #'
 #' @importFrom shiny runApp shinyApp
+#' @importFrom withr with_options
 #'
 #' @export
 #'
@@ -1143,7 +1131,7 @@ AzimuthApp <- function(
     Azimuth.app.default.gene = default.gene,
     Azimuth.app.default.adt = default.adt
   )
-  withr::with_options(
+  with_options(
     new = opts,
     code = runApp(appDir = shinyApp(ui = ui, server = server))
   )
