@@ -203,20 +203,14 @@ ui <- tagList(
         width = 6
       ),
       box(
-        title = "RNA feature plots",
+        title = "Feature Plots",
         disabled(selectInput(
-          inputId = 'feature',
-          label = 'Feature',
+          inputId = "feature",
+          label = "Feature",
           choices = '',
           selectize = FALSE,
           width = "25%"
         )),
-        plotOutput(outputId = 'fdim'),
-        plotOutput(outputId = 'fvln'),
-        width = 12
-      ),
-      box(
-        title = "Imputed protein plots",
         disabled(selectInput(
           inputId = 'adtfeature',
           label = 'Imputed protein',
@@ -224,9 +218,8 @@ ui <- tagList(
           selectize = FALSE,
           width = "25%"
         )),
-        plotOutput(outputId = 'idim'),
-        plotOutput(outputId = 'ivln'),
-        width = 12
+        plotOutput(outputId = 'edim'),
+        plotOutput(outputId = 'evln')
       )
     ),
     # Downloads tab
@@ -308,6 +301,7 @@ server <- function(input, output, session) {
     default.assay = NULL,
     default.feature = NULL,
     default.adt = NULL,
+    feature = '',
     diff.exp = list(),
     messages = 'Upload a file'
   )
@@ -349,7 +343,7 @@ server <- function(input, output, session) {
         genes.common <- intersect(
           y = rownames(x = refs$map),
           x = rownames(x = app.env$object)
-      )
+        )
         if (length(x = genes.common) < getOption(x = "Azimuth.map.ngenes")) {
           app.env$messages <- "Not enough genes in common with reference. Try another dataset."
         } else {
@@ -779,7 +773,8 @@ server <- function(input, output, session) {
           session = session,
           inputId = 'adtfeature',
           choices = adt.features,
-          selected = app.env$default.adt
+          # selected = app.env$default.adt
+          selected = ''
         )
         metadata.choices <- sort(x = c(
           "predicted.id",
@@ -897,6 +892,34 @@ server <- function(input, output, session) {
       }
     }
   )
+  observeEvent( # RNA feature
+    eventExpr = input$feature,
+    handlerExpr = {
+      if (nchar(x = input$feature)) {
+        app.env$feature <- ifelse(
+          test = input$feature %in% rownames(x = app.env$object),
+          yes = paste0(
+            Key(object = app.env$object[[app.env$default.assay]]),
+            input$feature
+          ),
+          no = input$feature
+        )
+        updateSelectInput(session = session, inputId = 'adtfeature', selected = '')
+      }
+    }
+  )
+  observeEvent( # Protein feature
+    eventExpr = input$adtfeature,
+    handlerExpr = {
+      if (nchar(x = input$adtfeature)) {
+        app.env$feature <- paste0(
+          Key(object = app.env$object[[adt.key]]),
+          input$adtfeature
+        )
+        updateSelectInput(session = session, inputId = 'feature', selected = '')
+      }
+    }
+  )
   # Plots
   output$plot.qc <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
@@ -951,47 +974,50 @@ server <- function(input, output, session) {
       }
     }
   })
-  output$fvln <- renderPlot(expr = {
+  output$evln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
-      avail <- c(rownames(x = app.env$object), colnames(x = app.env$object[[]]))
-      if (input$feature %in% avail) {
-        VlnPlot(object = app.env$object, features = input$feature) +
+      avail <- c(
+        paste0(
+          Key(object = app.env$object[[app.env$default.assay]]),
+          rownames(x = app.env$object)
+        ),
+        paste0(
+          Key(object = app.env$object[[adt.key]]),
+          rownames(x = app.env$object[[adt.key]])
+        ),
+        colnames(x = app.env$object[[]])
+      )
+      if (app.env$feature %in% avail) {
+        VlnPlot(object = app.env$object, features = app.env$feature) +
           NoLegend()
       }
     }
   })
-  output$fdim <- renderPlot(expr = {
+  output$edim <- renderPlot({
     if (!is.null(x = app.env$object)) {
-      if (length(x = Reductions(object = app.env$object))) {
-        FeaturePlot(object = app.env$object, features = input$feature)
+      palettes <- list(
+        c("lightgrey", "blue"),
+        c('lightgrey', 'darkgreen'),
+        c('lightgrey', 'blue')
+      )
+      names(x = palettes) <- c(
+        Key(object = app.env$object[[app.env$default.assay]]),
+        Key(object = app.env$object[[adt.key]]),
+        'md_'
+      )
+      feature.key <- paste0(
+        unlist(x = strsplit(x = app.env$feature, split = '_'))[1],
+        '_'
+      )
+      if (feature.key == paste0(app.env$feature, '_')) {
+        feature.key <- 'md_'
       }
-    }
-  })
-  output$ivln <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
-      if (adt.key %in% Assays(object = app.env$object)) {
-        VlnPlot(
-          object = app.env$object,
-          features = paste0(
-            Key(object = app.env$object[[adt.key]]),
-            input$adtfeature
-          )
-        ) + NoLegend()
-      }
-    }
-  })
-  output$idim <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
-      if (adt.key %in% Assays(object = app.env$object)) {
+      pal.use <- palettes[[feature.key]]
+      if (!is.null(x = pal.use)) {
         FeaturePlot(
           object = app.env$object,
-          features = paste0(
-            Key(object = app.env$object[[adt.key]]),
-            input$adtfeature
-          ),
-          cols = c('lightgrey', 'darkgreen'),
-          min.cutoff = 'q10',
-          max.cutoff = 'q99'
+          features = app.env$feature,
+          cols = pal.use
         )
       }
     }
