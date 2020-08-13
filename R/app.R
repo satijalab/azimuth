@@ -909,7 +909,8 @@ server <- function(input, output, session) {
         object = app.env$object,
         features = qc,
         group.by = 'query',
-        combine = FALSE
+        combine = FALSE,
+        pt.size = Seurat:::AutoPointSize(data = app.env$object)
       )
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
