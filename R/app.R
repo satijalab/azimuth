@@ -28,7 +28,6 @@ ui <- tagList(
         "File Upload",
         tags$style(type = "text/css", "#q1 {display: inline-block; vertical-align: middle;}"),
         bsButton("q1", label = "", icon = icon("question"), style = "info", size = "extra-small")
-
       ),
       accept = c('.h5', '.h5ad', '.h5seurat', '.rds')
     ),
