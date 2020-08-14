@@ -66,8 +66,10 @@ AttachDeps <- function() {
     'shinyBS'
   )
   for (d in deps) {
-    packageStartupMessage("Attaching ", d)
-    attachNamespace(ns = d)
+    if (!paste0('package:', d) %in% search()) {
+      packageStartupMessage("Attaching ", d)
+      attachNamespace(ns = d)
+    }
   }
 }
 
