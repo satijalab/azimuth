@@ -218,6 +218,13 @@ ui <- tagList(
           selectize = FALSE,
           width = "25%"
         )),
+        disabled(selectInput(
+          inputId = 'scorefeature',
+          label = 'Prediction Scores',
+          choices = '',
+          selectize = FALSE,
+          width = "25%"
+        )),
         plotOutput(outputId = 'edim'),
         plotOutput(outputId = 'evln')
       )
@@ -296,6 +303,7 @@ server <- function(input, output, session) {
   mt.key <- 'percent.mt'
   mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
   adt.key <- 'impADT'
+  scores.key <- "scores"
   app.env <- reactiveValues(
     object = NULL,
     default.assay = NULL,
@@ -904,7 +912,9 @@ server <- function(input, output, session) {
           ),
           no = input$feature
         )
-        updateSelectInput(session = session, inputId = 'adtfeature', selected = '')
+        for (f in c('adtfeature', 'scorefeature')) {
+          updateSelectInput(session = session, inputId = f, selected = '')
+        }
       }
     }
   )
@@ -916,7 +926,23 @@ server <- function(input, output, session) {
           Key(object = app.env$object[[adt.key]]),
           input$adtfeature
         )
-        updateSelectInput(session = session, inputId = 'feature', selected = '')
+        for (f in c('feature', 'scorefeature')) {
+          updateSelectInput(session = session, inputId = f, selected = '')
+        }
+      }
+    }
+  )
+  observeEvent( # Prediction score
+    eventExpr = input$scorefeature,
+    handlerExpr = {
+      if (nchar(x = input$scorefeature)) {
+        app.env$feature <- paste0(
+          Key(object = app.env$object[[scores.key]]),
+          input$scorefeature
+        )
+        for (f in c('feature', 'adtfeature')) {
+          updateSelectInput(session = session, inputId = f, selected = '')
+        }
       }
     }
   )
