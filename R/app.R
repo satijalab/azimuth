@@ -164,15 +164,30 @@ ui <- tagList(
     tabItem(
       tabName = "tab_feature",
       box(
-        title = "Query cell type prediction scores",
+        title = "Feature Plots",
+        div(style="display: inline-block;vertical-align:top;width: 33%",
         disabled(selectInput(
-          inputId = 'select.prediction',
-          label = 'Predicted cell type',
+          inputId = "feature",
+          label = "Feature",
           choices = '',
-          selectize = FALSE,
-          width = "25%"
-        )),
-        # TODO FeaturePlot colored by prediction score of the cluster
+          selectize = FALSE
+        ))),
+        div(style="display: inline-block;vertical-align:top;width: 33%",
+        disabled(selectInput(
+          inputId = 'adtfeature',
+          label = 'Imputed protein',
+          choices = '',
+          selectize = FALSE
+        ))),
+        div(style="display: inline-block;vertical-align:top;width: 33%",
+        disabled(selectInput(
+          inputId = 'scorefeature',
+          label = 'Prediction Scores',
+          choices = '',
+          selectize = FALSE
+        ))),
+        plotOutput(outputId = 'edim'),
+        plotOutput(outputId = 'evln'),
         width = 12
       ),
       box(
@@ -190,7 +205,7 @@ ui <- tagList(
         bsPopover(
           id = "q3",
           title = "Biomarkers Table",
-          content = "TODO: explain column abbreviations",
+          content = "avgExpr: mean value of feature for cells in cluster; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
           placement = "right",
           trigger = "focus",
           options = list(container = "body")
@@ -202,37 +217,17 @@ ui <- tagList(
           selectize = FALSE,
           width = "25%"
         )),
-        h3("RNA biomarkers"),
-        tableOutput(outputId = 'biomarkers'),
-        h3("Imputed protein biomarkers"),
-        tableOutput(outputId = 'adtbio'),
-        width = 6
-      ),
-      box(
-        title = "Feature Plots",
-        disabled(selectInput(
-          inputId = "feature",
-          label = "Feature",
-          choices = '',
-          selectize = FALSE,
-          width = "25%"
-        )),
-        disabled(selectInput(
-          inputId = 'adtfeature',
-          label = 'Imputed protein',
-          choices = '',
-          selectize = FALSE,
-          width = "25%"
-        )),
-        disabled(selectInput(
-          inputId = 'scorefeature',
-          label = 'Prediction Scores',
-          choices = '',
-          selectize = FALSE,
-          width = "25%"
-        )),
-        plotOutput(outputId = 'edim'),
-        plotOutput(outputId = 'evln')
+        column(
+          h3("RNA biomarkers"),
+          tableOutput(outputId = 'biomarkers'),
+          width = 6
+        ),
+        column(
+          h3("Imputed protein biomarkers"),
+          tableOutput(outputId = 'adtbio'),
+          width = 6
+        ),
+        width = 12
       )
     ),
     # Downloads tab
