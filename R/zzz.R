@@ -92,15 +92,23 @@ CategoryTable <- function(
   data <- FetchData(object, c(category.1, category.2))
   data[, category.1] <- droplevels(factor(x = data[, category.1]))
   data[, category.2] <- droplevels(factor(x = data[, category.2]))
-  tbl <- table(data[, category.1], data[, category.2])
+  tbl <- table(
+    data[, category.1],
+    data[, category.2],
+    useNA = "ifany"
+  )
   if (percentage) {
     tbl <- t(apply(
       X = tbl,
       MARGIN = 1,
       FUN = function(x) round(100 * (x/sum(x)), digits = 1))
     )
+    if (length(levels(data[, category.2])) == 1) {
+      tbl <- t(tbl)
+      colnames(tbl) <- levels(data[, category.2])
+    }
   }
-  return(as.data.frame.matrix(tbl))
+  return(as.data.frame.matrix(x = tbl))
 }
 
 #' Create an annoy index

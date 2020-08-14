@@ -77,15 +77,21 @@ ui <- tagList(
               size = "extra-small"
             )
           ),
-          disabled(numericInput(inputId = "num.ncountmax", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.ncountmin", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.nfeaturemax", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.nfeaturemin", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.mtmax", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.mtmin", label = NULL, value = 0)),
-          disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
-          disabled(actionButton(inputId = "map", label = "Map cells to reference")),
-          width = 3
+          column(
+            disabled(numericInput(inputId = "num.ncountmin", label = NULL, value = 0)),
+            disabled(numericInput(inputId = "num.nfeaturemin", label = NULL, value = 0)),
+            disabled(numericInput(inputId = "num.mtmin", label = NULL, value = 0)),
+            disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
+            disabled(actionButton(inputId = "map", label = "Map cells to reference")),
+            width = 6
+          ),
+          column(
+            disabled(numericInput(inputId = "num.ncountmax", label = NULL, value = 0)),
+            disabled(numericInput(inputId = "num.nfeaturemax", label = NULL, value = 0)),
+            disabled(numericInput(inputId = "num.mtmax", label = NULL, value = 0)),
+            width = 6
+          ),
+          width = 4
         ),
         bsPopover(
           id = "q2",
@@ -98,7 +104,7 @@ ui <- tagList(
         box(
           plotOutput(outputId = "plot.qc"),
           tableOutput(outputId = 'table.qc'),
-          width = 9
+          width = 8
         )
       ),
       fluidRow(
@@ -282,7 +288,7 @@ ui <- tagList(
 #' @rdname AzimuthServer
 #'
 #' @importFrom methods slot<- slot
-#' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline
+#' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
 #' @importFrom presto wilcoxauc
 #' @importFrom shinyjs show enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
@@ -292,6 +298,7 @@ ui <- tagList(
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
+#' isolate
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
 #' @importFrom stats quantile
 #' @importFrom utils write.table
@@ -616,10 +623,10 @@ server <- function(input, output, session) {
               app.env$messages,
               paste(ncellspreproc, "cells preprocessed")
             )
+            enable(id = "map")
           }
         }
       )
-      enable(id = "map")
     }
   )
   observeEvent( # Map data
@@ -740,7 +747,8 @@ server <- function(input, output, session) {
           icon = icon("check"),
           color = "green"
         ))
-        app.env$object <- app.env$object[, app.env$object$mapped]
+        # set unmapped cells predicted.id to NA
+        app.env$object[["predicted.id"]][!app.env$object[["mapped"]]] <- NA
         # Enable the feature explorer
         enable(id = 'feature')
         app.env$default.feature <- ifelse(
@@ -783,7 +791,10 @@ server <- function(input, output, session) {
         )
         metadata.choices <- sort(x = c(
           "predicted.id",
-          PlottableMetadataNames(object = app.env$object)
+          PlottableMetadataNames(
+            object = app.env$object,
+            min.levels = 1
+          )
         ))
         updateSelectInput(
           session = session,
@@ -899,32 +910,44 @@ server <- function(input, output, session) {
   )
   # Plots
   output$plot.qc <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
+  if (!is.null(x = isolate(app.env$object))) {
       qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
-      if (mt.key %in% colnames(x = app.env$object[[]])) {
+      if (mt.key %in% colnames(x = isolate(app.env$object[[]]))) {
         qc <- c(qc, mt.key)
       }
       vlnlist <- VlnPlot(
-        object = app.env$object,
+        object = isolate(app.env$object),
         features = qc,
         group.by = 'query',
         combine = FALSE,
-        pt.size = Seurat:::AutoPointSize(data = app.env$object)
+        pt.size = Seurat:::AutoPointSize(data = isolate(app.env$object))
       )
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
         geom_hline(yintercept = input$num.ncountmin) +
         geom_hline(yintercept = input$num.ncountmax) +
+        annotate(geom = "rect", alpha = 0.2, fill = "red",
+                 ymin = input$num.ncountmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
+        annotate(geom = "rect", alpha = 0.2, fill = "red",
+                 ymin = -Inf, ymax = input$num.ncountmin, xmin = 0.5, xmax = 1.5) +
         NoLegend() + xlab("")
       # nFeature
       vlnlist[[2]] <- vlnlist[[2]] +
         geom_hline(yintercept = input$num.nfeaturemin) +
         geom_hline(yintercept = input$num.nfeaturemax) +
+        annotate(geom = "rect", alpha = 0.2, fill = "red",
+                 ymin = input$num.nfeaturemax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
+        annotate(geom = "rect", alpha = 0.2, fill = "red",
+                 ymin = -Inf, ymax = input$num.nfeaturemin, xmin = 0.5, xmax = 1.5) +
         NoLegend() + xlab("")
-      if (mt.key %in% colnames(x = app.env$object[[]])) {
+      if (mt.key %in% colnames(x = isolate(app.env$object[[]]))) {
         vlnlist[[3]] <- vlnlist[[3]] +
           geom_hline(yintercept = input$num.mtmin) +
           geom_hline(yintercept = input$num.mtmax) +
+          annotate(geom = "rect", alpha = 0.2, fill = "red",
+                   ymin = input$num.mtmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
+          annotate(geom = "rect", alpha = 0.2, fill = "red",
+                   ymin = -Inf, ymax = input$num.mtmin, xmin = 0.5, xmax = 1.5) +
           NoLegend() + xlab("")
         wrap_plots(vlnlist, ncol = 3)
       } else {
@@ -939,8 +962,10 @@ server <- function(input, output, session) {
   if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
         if (input$select.metadata == "predicted.id") {
-          plotlevels <- levels(refs$plot$id)[levels(refs$plot$id) != "Doublet"]
-          DimPlot(object = app.env$object) +
+          plotlevels <- c(levels(refs$plot$id)[levels(refs$plot$id) != "Doublet"], NA)
+          DimPlot(
+            object = app.env$object,
+            group.by = "predicted.id") +
             scale_colour_hue(limits = plotlevels, drop = FALSE)
         } else {
           DimPlot(
@@ -1003,13 +1028,13 @@ server <- function(input, output, session) {
   # Tables
   output$table.qc <- renderTable(
     expr = {
-      if (!is.null(x = app.env$object)) {
+      if (!is.null(x = isolate(app.env$object))) {
         qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
-        tbl <- apply(X = app.env$object[[qc]], MARGIN = 2, FUN = quantile)
+        tbl <- apply(X = isolate(app.env$object)[[qc]], MARGIN = 2, FUN = quantile)
         tbl <- as.data.frame(x = tbl)
         colnames(x = tbl) <- c('nUMI per cell', 'Genes detected per cell')
-        if (mt.key %in% colnames(x = app.env$object[[]])) {
-          tbl[, 3] <- quantile(x = app.env$object[[mt.key, drop = TRUE]])
+        if (mt.key %in% colnames(x = isolate(app.env$object)[[]])) {
+          tbl[, 3] <- quantile(x = isolate(app.env$object)[[mt.key, drop = TRUE]])
           colnames(x = tbl)[3] <- 'Mitochondrial percentage per cell'
         }
         t(x = tbl)
