@@ -182,7 +182,7 @@ ui <- tagList(
         div(style="display: inline-block;vertical-align:top;width: 33%",
         disabled(selectInput(
           inputId = 'scorefeature',
-          label = 'Prediction Scores',
+          label = "", #'Prediction Scores',
           choices = '',
           selectize = FALSE
         ))),
@@ -913,7 +913,7 @@ server <- function(input, output, session) {
         app.env$feature <- ifelse(
           test = input$feature %in% rownames(x = app.env$object),
           yes = paste0(
-            Key(object = app.env$object[[app.env$default.assay]]),
+            Key(object = app.env$object[["SCT"]]),
             input$feature
           ),
           no = input$feature
@@ -1024,7 +1024,7 @@ server <- function(input, output, session) {
     if (!is.null(x = app.env$object)) {
       avail <- c(
         paste0(
-          Key(object = app.env$object[[app.env$default.assay]]),
+          Key(object = app.env$object[["SCT"]]),
           rownames(x = app.env$object)
         ),
         paste0(
@@ -1047,7 +1047,7 @@ server <- function(input, output, session) {
         c('lightgrey', 'blue')
       )
       names(x = palettes) <- c(
-        Key(object = app.env$object[[app.env$default.assay]]),
+        Key(object = app.env$object[["SCT"]]),
         Key(object = app.env$object[[adt.key]]),
         'md_'
       )
