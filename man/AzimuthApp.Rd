@@ -14,7 +14,7 @@ AzimuthApp(
 )
 }
 \arguments{
-\item{reference, mito, max.upload.mb}{See \strong{App options} for more details}
+\item{reference, mito, max.upload.mb, default.gene, default, adt}{See \strong{App options} for more details}
 }
 \value{
 None, launches the mapping Shiny app
@@ -41,10 +41,10 @@ can configure these either \link[base:options]{globally} or via arguments to
   Maximum file size (in MB) allowed to upload
  }
  \item{\code{Azimuth.app.default.gene}}{
-  Gene to select by default in Feature Explorer
+  Gene to select by default in feature/violin plot
  }
  \item{\code{Azimuth.app.default.adt}}{
-  ADT to select by default in Feature Explorer
+  ADT to select by default in feature/violin plot
  }
 }
 }

@@ -16,6 +16,18 @@ SeuratMapper uses the following options to control the behaviour of the app,
 users can configure these with \code{\link[base]{options}}:
 
 \describe{
+\item{\code{Azimuth.map.ncells}}{
+  Minimum number of cells required to accept uploaded file.
+  Defaults to \code{100}
+ }
+ \item{\code{Azimuth.map.ngenes}}{
+  Minimum number of genes in common with reference to accept uploaded file.
+  Defaults to \code{1000}
+ }
+ \item{\code{Azimuth.map.ngenes}}{
+  Minimum number of anchors that must be found to complete mapping.
+  Defaults to \code{50}
+ }
  \item{\code{Azimuth.de.mincells}}{
   Minimum number of cells per cluster for differential expression; defaults
   to \code{15}
@@ -51,10 +63,10 @@ can configure these either \link[base:options]{globally} or via arguments to
   Maximum file size (in MB) allowed to upload
  }
  \item{\code{Azimuth.app.default.gene}}{
-  Gene to select by default in Feature Explorer
+  Gene to select by default in feature/violin plot
  }
  \item{\code{Azimuth.app.default.adt}}{
-  ADT to select by default in Feature Explorer
+  ADT to select by default in feature/violin plot
  }
 }
 }

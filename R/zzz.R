@@ -6,6 +6,18 @@
 #' users can configure these with \code{\link[base]{options}}:
 #'
 #' \describe{
+#' \item{\code{Azimuth.map.ncells}}{
+#'   Minimum number of cells required to accept uploaded file.
+#'   Defaults to \code{100}
+#'  }
+#'  \item{\code{Azimuth.map.ngenes}}{
+#'   Minimum number of genes in common with reference to accept uploaded file.
+#'   Defaults to \code{1000}
+#'  }
+#'  \item{\code{Azimuth.map.ngenes}}{
+#'   Minimum number of anchors that must be found to complete mapping.
+#'   Defaults to \code{50}
+#'  }
 #'  \item{\code{Azimuth.de.mincells}}{
 #'   Minimum number of cells per cluster for differential expression; defaults
 #'   to \code{15}
@@ -30,10 +42,76 @@
 
 default.options <- list(
   Azimuth.de.mincells = 15L,
+  Azimuth.map.ncells = 100L,
+  Azimuth.map.ngenes = 1000L,
+  Azimuth.map.nanchors = 50L,
   Azimuth.map.pcthresh = 60L,
   Azimuth.sct.ncells = 1000L,
   Azimuth.sct.nfeats = 1000L
 )
+
+#' Attach dependent packages
+#'
+#' Attaches the following packages
+#' \itemize{
+#'  \item shinyBS
+#' }
+#'
+#' @return Attaches the required packages and returns invisible \code{NULL}
+#'
+#' @keywords internal
+#'
+AttachDeps <- function() {
+  deps <- c(
+    'shinyBS'
+  )
+  for (d in deps) {
+    if (!paste0('package:', d) %in% search()) {
+      packageStartupMessage("Attaching ", d)
+      attachNamespace(ns = d)
+    }
+  }
+}
+
+#' Returns a dataframe of the frequency or percentage of levels of category.2
+#' (column) for object split by each level of category.1 (row)
+#'
+#' @param object a Seurat object
+#' @param category.1 a metadata field in the object
+#' @param category.2 another metadata field in the object
+#' @param percentage if TRUE, returns percentages; otherwise, counts
+#'
+#' @importFrom Seurat FetchData
+#'
+#' @keywords internal
+#'
+CategoryTable <- function(
+  object,
+  category.1,
+  category.2,
+  percentage = FALSE
+) {
+  data <- FetchData(object, c(category.1, category.2))
+  data[, category.1] <- droplevels(factor(x = data[, category.1]))
+  data[, category.2] <- droplevels(factor(x = data[, category.2]))
+  tbl <- table(
+    data[, category.1],
+    data[, category.2],
+    useNA = "ifany"
+  )
+  if (percentage) {
+    tbl <- t(apply(
+      X = tbl,
+      MARGIN = 1,
+      FUN = function(x) round(100 * (x/sum(x)), digits = 1))
+    )
+    if (length(levels(data[, category.2])) == 1) {
+      tbl <- t(tbl)
+      colnames(tbl) <- levels(data[, category.2])
+    }
+  }
+  return(as.data.frame.matrix(x = tbl))
+}
 
 #' Create an annoy index
 #'
@@ -340,6 +418,7 @@ LoadH5AD <- function(path) {
 #'
 #' @importFrom Seurat Idents<-
 #' @importFrom httr build_url parse_url status_code GET timeout
+#' @importFrom utils download.file
 #'
 #' @keywords internal
 #'
@@ -494,6 +573,30 @@ Oxford <- function(..., join = c('and', 'or')) {
   ))
 }
 
+#' Return names of metadata columns in a Seurat object that have an
+#' appropriate number of levels for plotting when converted to a factor
+#'
+#' @param object a Seurat object
+#' @param min.levels minimum number of levels in a metadata factor to include
+#' @param max.levels maximum number of levels in a metadata factor to include
+#'
+#' @keywords internal
+#'
+PlottableMetadataNames <- function(
+  object,
+  min.levels = 2,
+  max.levels = 20
+) {
+  column.status <- sapply(
+    object[[]],
+    FUN = function(column) {
+      length(levels(droplevels(as.factor(column)))) >= min.levels &&
+        length(levels(droplevels(as.factor(column)))) <= max.levels
+    }
+  ) & (colnames(object[[]]) != "mapping.score") & (colnames(object[[]]) != "predicted.id")
+  return(colnames(object[[]])[column.status])
+}
+
 #' Prepare differential expression results for rendering
 #'
 #' @param diff.exp A dataframe with differential expression results from
@@ -611,6 +714,8 @@ TabJSKey <- function(id, values) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 .onLoad <- function(libname, pkgname) {
+  # Attach deps
+  AttachDeps()
   op <- options()
   # TODO: replace this
   options(shiny.maxRequestSize = 100 * (1024 ^ 2))
