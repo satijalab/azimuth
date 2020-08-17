@@ -220,18 +220,17 @@ ui <- tagList(
           selectize = FALSE,
           width = "25%"
         )),
-        # column(
-        #   h3("RNA biomarkers"),
-        #   DTOutput(outputId = 'biomarkers'),
-        #   width = 6
-        # ),
-        DTOutput(outputId = 'biomarkers'),
-        DTOutput(outputId = 'adtbio')
-        # column(
-        #   h3("Imputed protein biomarkers"),
-        #   DTOutput(outputId = 'adtbio'),
-        #   width = 6
-        # ),
+        column(
+          h3("RNA biomarkers"),
+          DTOutput(outputId = 'biomarkers'),
+          width = 6
+        ),
+        column(
+          h3("Imputed protein biomarkers"),
+          DTOutput(outputId = 'adtbio'),
+          width = 6
+        ),
+        width = 12
       )
     ),
     # Downloads tab
