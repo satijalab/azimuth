@@ -50,6 +50,29 @@ default.options <- list(
   Azimuth.sct.nfeats = 1000L
 )
 
+#' Attach dependent packages
+#'
+#' Attaches the following packages
+#' \itemize{
+#'  \item shinyBS
+#' }
+#'
+#' @return Attaches the required packages and returns invisible \code{NULL}
+#'
+#' @keywords internal
+#'
+AttachDeps <- function() {
+  deps <- c(
+    'shinyBS'
+  )
+  for (d in deps) {
+    if (!paste0('package:', d) %in% search()) {
+      packageStartupMessage("Attaching ", d)
+      attachNamespace(ns = d)
+    }
+  }
+}
+
 #' Returns a dataframe of the frequency or percentage of levels of category.2
 #' (column) for object split by each level of category.1 (row)
 #'
@@ -71,15 +94,23 @@ CategoryTable <- function(
   data <- FetchData(object, c(category.1, category.2))
   data[, category.1] <- droplevels(factor(x = data[, category.1]))
   data[, category.2] <- droplevels(factor(x = data[, category.2]))
-  tbl <- table(data[, category.1], data[, category.2])
+  tbl <- table(
+    data[, category.1],
+    data[, category.2],
+    useNA = "ifany"
+  )
   if (percentage) {
     tbl <- t(apply(
       X = tbl,
       MARGIN = 1,
       FUN = function(x) round(100 * (x/sum(x)), digits = 1))
     )
+    if (length(levels(data[, category.2])) == 1) {
+      tbl <- t(tbl)
+      colnames(tbl) <- levels(data[, category.2])
+    }
   }
-  return(as.data.frame.matrix(tbl))
+  return(as.data.frame.matrix(x = tbl))
 }
 
 #' Create an annoy index
@@ -683,6 +714,8 @@ TabJSKey <- function(id, values) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 .onLoad <- function(libname, pkgname) {
+  # Attach deps
+  AttachDeps()
   op <- options()
   # TODO: replace this
   options(shiny.maxRequestSize = 100 * (1024 ^ 2))

@@ -6,7 +6,7 @@
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow
-#' updateNumericInput radioButtons textOutput htmlOutput
+#' updateNumericInput radioButtons textOutput htmlOutput column
 #' @importFrom shinydashboard dashboardPage dashboardHeader dashboardSidebar
 #' dashboardBody menuItem tabItems tabItem sidebarMenu box valueBoxOutput
 #' sidebarMenuOutput
@@ -28,7 +28,6 @@ ui <- tagList(
         "File Upload",
         tags$style(type = "text/css", "#q1 {display: inline-block; vertical-align: middle;}"),
         bsButton("q1", label = "", icon = icon("question"), style = "info", size = "extra-small")
-
       ),
       accept = c('.h5', '.h5ad', '.h5seurat', '.rds')
     ),
@@ -67,19 +66,32 @@ ui <- tagList(
       tabName = "tab_preproc",
       fluidRow(
         box(
-          title = p("QC Filters",
-                     tags$style(type = "text/css", "#q2 {display: inline-block; vertical-align: middle;}"),
-                     bsButton("q2", label = "", icon = icon("question"), style = "info", size = "extra-small")
+          title = p(
+            "QC Filters",
+            tags$style(type = "text/css", "#q2 {display: inline-block; vertical-align: middle;}"),
+            bsButton(
+              inputId = "q2",
+              label = "",
+              icon = icon("question"),
+              style = "info",
+              size = "extra-small"
+            )
           ),
-          disabled(numericInput(inputId = "num.ncountmax", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.ncountmin", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.nfeaturemax", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.nfeaturemin", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.mtmax", label = NULL, value = 0)),
-          disabled(numericInput(inputId = "num.mtmin", label = NULL, value = 0)),
-          disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
-          disabled(actionButton(inputId = "map", label = "Map cells to reference")),
-          width = 3
+          column(
+            disabled(numericInput(inputId = "num.ncountmin", label = NULL, value = 0)),
+            disabled(numericInput(inputId = "num.nfeaturemin", label = NULL, value = 0)),
+            disabled(numericInput(inputId = "num.mtmin", label = NULL, value = 0)),
+            disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
+            disabled(actionButton(inputId = "map", label = "Map cells to reference")),
+            width = 6
+          ),
+          column(
+            disabled(numericInput(inputId = "num.ncountmax", label = NULL, value = 0)),
+            disabled(numericInput(inputId = "num.nfeaturemax", label = NULL, value = 0)),
+            disabled(numericInput(inputId = "num.mtmax", label = NULL, value = 0)),
+            width = 6
+          ),
+          width = 4
         ),
         bsPopover(
           id = "q2",
@@ -92,7 +104,7 @@ ui <- tagList(
         box(
           plotOutput(outputId = "plot.qc"),
           tableOutput(outputId = 'table.qc'),
-          width = 9
+          width = 8
         )
       ),
       fluidRow(
@@ -152,26 +164,48 @@ ui <- tagList(
     tabItem(
       tabName = "tab_feature",
       box(
-        title = "Query cell type prediction scores",
+        title = "Feature Plots",
+        div(style="display: inline-block;vertical-align:top;width: 33%",
         disabled(selectInput(
-          inputId = 'select.prediction',
-          label = 'Predicted cell type',
+          inputId = "feature",
+          label = "Feature",
           choices = '',
-          selectize = FALSE,
-          width = "25%"
-        )),
-        # TODO FeaturePlot colored by prediction score of the cluster
+          selectize = FALSE
+        ))),
+        div(style="display: inline-block;vertical-align:top;width: 33%",
+        disabled(selectInput(
+          inputId = 'adtfeature',
+          label = 'Imputed protein',
+          choices = '',
+          selectize = FALSE
+        ))),
+        div(style="display: inline-block;vertical-align:top;width: 33%",
+        disabled(selectInput(
+          inputId = 'scorefeature',
+          label = "", #'Prediction Scores',
+          choices = '',
+          selectize = FALSE
+        ))),
+        plotOutput(outputId = 'edim'),
+        plotOutput(outputId = 'evln'),
         width = 12
       ),
       box(
-        title = p("Predicted cell type cluster biomarkers",
-                  tags$style(type = "text/css", "#q3 {display: inline-block; vertical-align: middle;}"),
-                  bsButton("q3", label = "", icon = icon("question"), style = "info", size = "extra-small")
+        title = p(
+          "Predicted cell type cluster biomarkers",
+          tags$style(type = "text/css", "#q3 {display: inline-block; vertical-align: middle;}"),
+          bsButton(
+            inputId = "q3",
+            label = "",
+            icon = icon("question"),
+            style = "info",
+            size = "extra-small"
+          )
         ),
         bsPopover(
           id = "q3",
           title = "Biomarkers Table",
-          content = "TODO: explain column abbreviations",
+          content = "avgExpr: mean value of feature for cells in cluster; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
           placement = "right",
           trigger = "focus",
           options = list(container = "body")
@@ -183,36 +217,16 @@ ui <- tagList(
           selectize = FALSE,
           width = "25%"
         )),
-        h3("RNA biomarkers"),
-        tableOutput(outputId = 'biomarkers'),
-        h3("Imputed protein biomarkers"),
-        tableOutput(outputId = 'adtbio'),
-        width = 6
-      ),
-      box(
-        title = "RNA feature plots",
-        disabled(selectInput(
-          inputId = 'feature',
-          label = 'Feature',
-          choices = '',
-          selectize = FALSE,
-          width = "25%"
-        )),
-        plotOutput(outputId = 'fdim'),
-        plotOutput(outputId = 'fvln'),
-        width = 12
-      ),
-      box(
-        title = "Imputed protein plots",
-        disabled(selectInput(
-          inputId = 'adtfeature',
-          label = 'Imputed protein',
-          choices = '',
-          selectize = FALSE,
-          width = "25%"
-        )),
-        plotOutput(outputId = 'idim'),
-        plotOutput(outputId = 'ivln'),
+        column(
+          h3("RNA biomarkers"),
+          tableOutput(outputId = 'biomarkers'),
+          width = 6
+        ),
+        column(
+          h3("Imputed protein biomarkers"),
+          tableOutput(outputId = 'adtbio'),
+          width = 6
+        ),
         width = 12
       )
     ),
@@ -269,7 +283,7 @@ ui <- tagList(
 #' @rdname AzimuthServer
 #'
 #' @importFrom methods slot<- slot
-#' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline
+#' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
 #' @importFrom presto wilcoxauc
 #' @importFrom stringr str_interp
 #' @importFrom shinyjs show enable disable
@@ -280,6 +294,7 @@ ui <- tagList(
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
+#' isolate
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
 #' @importFrom stats quantile
 #' @importFrom utils write.table
@@ -291,11 +306,13 @@ server <- function(input, output, session) {
   mt.key <- 'percent.mt'
   mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
   adt.key <- 'impADT'
+  scores.key <- "scores"
   app.env <- reactiveValues(
     object = NULL,
     default.assay = NULL,
     default.feature = NULL,
     default.adt = NULL,
+    feature = '',
     diff.exp = list(),
     messages = 'Upload a file'
   )
@@ -334,7 +351,11 @@ server <- function(input, output, session) {
       )
       if (!is.null(app.env$object)) {
         # Validate that there are genes in common with the reference
-        if (length(intersect(rownames(refs$map),rownames(app.env$object))) < getOption(x = "Azimuth.map.ngenes")) {
+        genes.common <- intersect(
+          y = rownames(x = refs$map),
+          x = rownames(x = app.env$object)
+        )
+        if (length(x = genes.common) < getOption(x = "Azimuth.map.ngenes")) {
           app.env$messages <- "Not enough genes in common with reference. Try another dataset."
         } else {
           app.env$default.assay <- DefaultAssay(object = app.env$object)
@@ -438,8 +459,9 @@ server <- function(input, output, session) {
               tabName = "tab_preproc",
               icon = icon("filter"),
               selected = TRUE
-            ))})
-          ncellsupload <- length(colnames(app.env$object))
+            ))
+          })
+          ncellsupload <- length(x = colnames(x = app.env$object))
           app.env$messages <- paste(ncellsupload, "cells uploaded")
           if (ncellsupload < getOption(x = "Azimuth.map.ncells")) {
             output$valuebox.upload <- renderValueBox(expr = valueBox(
@@ -595,11 +617,14 @@ server <- function(input, output, session) {
               do.center = TRUE
             ))
             setProgress(value = 1)
-            app.env$messages <- c(app.env$messages, paste(ncellspreproc, "cells preprocessed"))
+            app.env$messages <- c(
+              app.env$messages,
+              paste(ncellspreproc, "cells preprocessed")
+            )
+            enable(id = "map")
           }
         }
       )
-      enable(id = "map")
     }
   )
   observeEvent( # Map data
@@ -720,7 +745,8 @@ server <- function(input, output, session) {
           icon = icon("check"),
           color = "green"
         ))
-        app.env$object <- app.env$object[, app.env$object$mapped]
+        # set unmapped cells predicted.id to NA
+        app.env$object[["predicted.id"]][!app.env$object[["mapped"]]] <- NA
         # Enable the feature explorer
         enable(id = 'feature')
         app.env$default.feature <- ifelse(
@@ -759,9 +785,16 @@ server <- function(input, output, session) {
           session = session,
           inputId = 'adtfeature',
           choices = adt.features,
-          selected = app.env$default.adt
+          # selected = app.env$default.adt
+          selected = ''
         )
-        metadata.choices <- sort(x = c("predicted.id", PlottableMetadataNames(object = app.env$object)))
+        metadata.choices <- sort(x = c(
+          "predicted.id",
+          PlottableMetadataNames(
+            object = app.env$object,
+            min.levels = 1
+          )
+        ))
         updateSelectInput(
           session = session,
           inputId = 'select.metadata',
@@ -806,7 +839,7 @@ server <- function(input, output, session) {
           }
         )
         allowed.clusters <- names(x = which(
-          x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells'),
+          x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells')
         ))
         allowed.clusters <- factor(
           x = allowed.clusters,
@@ -875,28 +908,92 @@ server <- function(input, output, session) {
       }
     }
   )
+  observeEvent( # RNA feature
+    eventExpr = input$feature,
+    handlerExpr = {
+      if (nchar(x = input$feature)) {
+        app.env$feature <- ifelse(
+          test = input$feature %in% rownames(x = app.env$object),
+          yes = paste0(
+            Key(object = app.env$object[["SCT"]]),
+            input$feature
+          ),
+          no = input$feature
+        )
+        for (f in c('adtfeature', 'scorefeature')) {
+          updateSelectInput(session = session, inputId = f, selected = '')
+        }
+      }
+    }
+  )
+  observeEvent( # Protein feature
+    eventExpr = input$adtfeature,
+    handlerExpr = {
+      if (nchar(x = input$adtfeature)) {
+        app.env$feature <- paste0(
+          Key(object = app.env$object[[adt.key]]),
+          input$adtfeature
+        )
+        for (f in c('feature', 'scorefeature')) {
+          updateSelectInput(session = session, inputId = f, selected = '')
+        }
+      }
+    }
+  )
+  observeEvent( # Prediction score
+    eventExpr = input$scorefeature,
+    handlerExpr = {
+      if (nchar(x = input$scorefeature)) {
+        app.env$feature <- paste0(
+          Key(object = app.env$object[[scores.key]]),
+          input$scorefeature
+        )
+        for (f in c('feature', 'adtfeature')) {
+          updateSelectInput(session = session, inputId = f, selected = '')
+        }
+      }
+    }
+  )
   # Plots
   output$plot.qc <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
+  if (!is.null(x = isolate(app.env$object))) {
       qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
-      if (mt.key %in% colnames(x = app.env$object[[]])) {
+      if (mt.key %in% colnames(x = isolate(app.env$object[[]]))) {
         qc <- c(qc, mt.key)
       }
-      vlnlist <- VlnPlot(object = app.env$object, features = qc, group.by = 'query', combine = FALSE)
+      vlnlist <- VlnPlot(
+        object = isolate(app.env$object),
+        features = qc,
+        group.by = 'query',
+        combine = FALSE,
+        pt.size = Seurat:::AutoPointSize(data = isolate(app.env$object))
+      )
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
         geom_hline(yintercept = input$num.ncountmin) +
         geom_hline(yintercept = input$num.ncountmax) +
+        annotate(geom = "rect", alpha = 0.2, fill = "red",
+                 ymin = input$num.ncountmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
+        annotate(geom = "rect", alpha = 0.2, fill = "red",
+                 ymin = -Inf, ymax = input$num.ncountmin, xmin = 0.5, xmax = 1.5) +
         NoLegend() + xlab("")
       # nFeature
       vlnlist[[2]] <- vlnlist[[2]] +
         geom_hline(yintercept = input$num.nfeaturemin) +
         geom_hline(yintercept = input$num.nfeaturemax) +
+        annotate(geom = "rect", alpha = 0.2, fill = "red",
+                 ymin = input$num.nfeaturemax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
+        annotate(geom = "rect", alpha = 0.2, fill = "red",
+                 ymin = -Inf, ymax = input$num.nfeaturemin, xmin = 0.5, xmax = 1.5) +
         NoLegend() + xlab("")
-      if (mt.key %in% colnames(x = app.env$object[[]])) {
+      if (mt.key %in% colnames(x = isolate(app.env$object[[]]))) {
         vlnlist[[3]] <- vlnlist[[3]] +
           geom_hline(yintercept = input$num.mtmin) +
           geom_hline(yintercept = input$num.mtmax) +
+          annotate(geom = "rect", alpha = 0.2, fill = "red",
+                   ymin = input$num.mtmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
+          annotate(geom = "rect", alpha = 0.2, fill = "red",
+                   ymin = -Inf, ymax = input$num.mtmin, xmin = 0.5, xmax = 1.5) +
           NoLegend() + xlab("")
         wrap_plots(vlnlist, ncol = 3)
       } else {
@@ -908,60 +1005,67 @@ server <- function(input, output, session) {
     DimPlot(object = refs$plot)
   })
   output$objdim <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
+  if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
         if (input$select.metadata == "predicted.id") {
-          plotlevels <- levels(refs$plot$id)[levels(refs$plot$id) != "Doublet"]
-          DimPlot(object = app.env$object) +
+          plotlevels <- c(levels(refs$plot$id)[levels(refs$plot$id) != "Doublet"], NA)
+          DimPlot(
+            object = app.env$object,
+            group.by = "predicted.id") +
             scale_colour_hue(limits = plotlevels, drop = FALSE)
         } else {
-          DimPlot(object = app.env$object,
-                  group.by = input$select.metadata)
+          DimPlot(
+            object = app.env$object,
+            group.by = input$select.metadata
+          )
         }
       }
     }
   })
-  output$fvln <- renderPlot(expr = {
+  output$evln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
-      avail <- c(rownames(x = app.env$object), colnames(x = app.env$object[[]]))
-      if (input$feature %in% avail) {
-        VlnPlot(object = app.env$object, features = input$feature) +
+      avail <- c(
+        paste0(
+          Key(object = app.env$object[["SCT"]]),
+          rownames(x = app.env$object)
+        ),
+        paste0(
+          Key(object = app.env$object[[adt.key]]),
+          rownames(x = app.env$object[[adt.key]])
+        ),
+        colnames(x = app.env$object[[]])
+      )
+      if (app.env$feature %in% avail) {
+        VlnPlot(object = app.env$object, features = app.env$feature) +
           NoLegend()
       }
     }
   })
-  output$fdim <- renderPlot(expr = {
+  output$edim <- renderPlot({
     if (!is.null(x = app.env$object)) {
-      if (length(x = Reductions(object = app.env$object))) {
-        FeaturePlot(object = app.env$object, features = input$feature)
+      palettes <- list(
+        c("lightgrey", "blue"),
+        c('lightgrey', 'darkgreen'),
+        c('lightgrey', 'blue')
+      )
+      names(x = palettes) <- c(
+        Key(object = app.env$object[["SCT"]]),
+        Key(object = app.env$object[[adt.key]]),
+        'md_'
+      )
+      feature.key <- paste0(
+        unlist(x = strsplit(x = app.env$feature, split = '_'))[1],
+        '_'
+      )
+      if (feature.key == paste0(app.env$feature, '_')) {
+        feature.key <- 'md_'
       }
-    }
-  })
-  output$ivln <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
-      if (adt.key %in% Assays(object = app.env$object)) {
-        VlnPlot(
-          object = app.env$object,
-          features = paste0(
-            Key(object = app.env$object[[adt.key]]),
-            input$adtfeature
-          )
-        ) + NoLegend()
-      }
-    }
-  })
-  output$idim <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
-      if (adt.key %in% Assays(object = app.env$object)) {
+      pal.use <- palettes[[feature.key]]
+      if (!is.null(x = pal.use)) {
         FeaturePlot(
           object = app.env$object,
-          features = paste0(
-            Key(object = app.env$object[[adt.key]]),
-            input$adtfeature
-          ),
-          cols = c('lightgrey', 'darkgreen'),
-          min.cutoff = 'q10',
-          max.cutoff = 'q99'
+          features = app.env$feature,
+          cols = pal.use
         )
       }
     }
@@ -973,13 +1077,13 @@ server <- function(input, output, session) {
   # Tables
   output$table.qc <- renderTable(
     expr = {
-      if (!is.null(x = app.env$object)) {
+      if (!is.null(x = isolate(app.env$object))) {
         qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
-        tbl <- apply(X = app.env$object[[qc]], MARGIN = 2, FUN = quantile)
+        tbl <- apply(X = isolate(app.env$object)[[qc]], MARGIN = 2, FUN = quantile)
         tbl <- as.data.frame(x = tbl)
         colnames(x = tbl) <- c('nUMI per cell', 'Genes detected per cell')
-        if (mt.key %in% colnames(x = app.env$object[[]])) {
-          tbl[, 3] <- quantile(x = app.env$object[[mt.key, drop = TRUE]])
+        if (mt.key %in% colnames(x = isolate(app.env$object)[[]])) {
+          tbl[, 3] <- quantile(x = isolate(app.env$object)[[mt.key, drop = TRUE]])
           colnames(x = tbl)[3] <- 'Mitochondrial percentage per cell'
         }
         t(x = tbl)
