@@ -32,6 +32,10 @@ users can configure these with \code{\link[base]{options}}:
   Minimum number of cells per cluster for differential expression; defaults
   to \code{15}
  }
+ \item{\code{Azimuth.de.digits}}{
+  Number of digits to round differential expression table to; defaults to
+  \code{3}
+ }
  \item{\code{Azimuth.map.pcthresh}}{
   Only show mapped plot if the percentage of cells mapped meets or
   exceeds this threshold; defaults to \code{60}
