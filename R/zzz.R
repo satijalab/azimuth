@@ -22,6 +22,10 @@
 #'   Minimum number of cells per cluster for differential expression; defaults
 #'   to \code{15}
 #'  }
+#'  \item{\code{Azimuth.de.digits}}{
+#'   Number of digits to round differential expression table to; defaults to
+#'   \code{3}
+#'  }
 #'  \item{\code{Azimuth.map.pcthresh}}{
 #'   Only show mapped plot if the percentage of cells mapped meets or
 #'   exceeds this threshold; defaults to \code{60}
@@ -41,6 +45,7 @@
 "_PACKAGE"
 
 default.options <- list(
+  Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,
   Azimuth.map.ngenes = 1000L,
@@ -622,7 +627,6 @@ RenderDiffExp <- function(
   n = 10L,
   logfc.thresh = 0L
 ) {
-  # cols.remove <- c('feature', 'logFC', 'auc')
   cols.keep <- c('avgExpr', 'auc', 'padj', 'pct_in', 'pct_out')
   groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
   diff.exp <- lapply(
@@ -636,8 +640,13 @@ RenderDiffExp <- function(
   )
   diff.exp <- do.call(what = 'rbind', diff.exp)
   rownames(x = diff.exp) <- make.unique(names = diff.exp$feature)
-  # diff.exp <- diff.exp[, !colnames(x = diff.exp) %in% cols.remove, drop = FALSE]
-  diff.exp <- diff.exp[, cols.keep, drop = FALSE]
+  diff.exp <- signif(
+    x = diff.exp[, cols.keep, drop = FALSE],
+    digits = getOption(
+      x = "Azimuth.de.digits",
+      default = default.options$Azimuth.de.digits
+    )
+  )
   return(diff.exp)
 }
 
