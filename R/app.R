@@ -19,6 +19,7 @@ app.title <- 'Azimuth'
 ui <- tagList(
   useShinyjs(),
   tags$style(type = "text/css", "#message {padding: 0px 10px;}"),
+  tags$style(type = "text/css", "#containerid {position:fixed;bottom:0;right:0;left:0;padding: 0px 10px;}"),
   dashboardPage(
   dashboardHeader(title = app.title),
   dashboardSidebar(
@@ -47,7 +48,8 @@ ui <- tagList(
       ),
       sidebarMenuOutput(outputId = "menu1"),
       sidebarMenuOutput(outputId = "menu2")
-    )
+    ),
+    htmlOutput(outputId = "containerid", inline = FALSE)
   ),
   dashboardBody(
     # fills background color to bottom of page when scrolling
@@ -315,6 +317,7 @@ server <- function(input, output, session) {
     diff.exp = list(),
     messages = 'Upload a file'
   )
+  output$containerid <- renderText(c("debug ID: ", Sys.info()[["nodename"]]))
   withProgress(
     message = "Loading reference",
     expr = {
