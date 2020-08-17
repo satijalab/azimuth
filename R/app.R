@@ -19,6 +19,7 @@ app.title <- 'Azimuth'
 ui <- tagList(
   useShinyjs(),
   tags$style(type = "text/css", "#message {padding: 0px 10px;}"),
+  tags$style(type = "text/css", "#containerid {position:fixed;bottom:0;right:0;left:0;padding: 0px 10px;}"),
   dashboardPage(
   dashboardHeader(title = app.title),
   dashboardSidebar(
@@ -47,7 +48,8 @@ ui <- tagList(
       ),
       sidebarMenuOutput(outputId = "menu1"),
       sidebarMenuOutput(outputId = "menu2")
-    )
+    ),
+    htmlOutput(outputId = "containerid", inline = FALSE)
   ),
   dashboardBody(
     # fills background color to bottom of page when scrolling
@@ -612,6 +614,7 @@ server <- function(input, output, session) {
             app.env$object <- suppressWarnings(expr = SCTransform(
               object = app.env$object,
               residual.features = rownames(x = refs$map),
+              method = "glmGamPoi",
               ncells = getOption(x = 'Azimuth.sct.ncells'),
               n_genes = getOption(x = 'Azimuth.sct.nfeats'),
               do.correct.umi = FALSE,
@@ -1121,6 +1124,7 @@ server <- function(input, output, session) {
   output$message <- renderUI(expr = {
     p(HTML(text = paste(app.env$messages, collapse = "<br />")))
   })
+  output$containerid <- renderText(c("debug ID: ", Sys.info()[["nodename"]]))
   # Tables
   output$table.qc <- renderTable(
     expr = {
