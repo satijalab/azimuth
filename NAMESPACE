@@ -2,6 +2,10 @@
 
 export(AzimuthApp)
 import(V8)
+importFrom(DT,DTOutput)
+importFrom(DT,dataTableProxy)
+importFrom(DT,renderDT)
+importFrom(DT,selectRows)
 importFrom(RcppAnnoy,AnnoyAngular)
 importFrom(RcppAnnoy,AnnoyEuclidean)
 importFrom(RcppAnnoy,AnnoyHamming)

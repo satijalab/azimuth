@@ -1,6 +1,7 @@
 #' @include zzz.R
 #' @include seurat.R
 #' @import V8
+#' @importFrom DT DTOutput
 #' @importFrom htmltools tagList h4 hr h3 tags HTML p div
 #' @importFrom shinyjs useShinyjs extendShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
@@ -221,14 +222,14 @@ ui <- tagList(
         )),
         # column(
         #   h3("RNA biomarkers"),
-        #   DT::DTOutput(outputId = 'biomarkers'),
+        #   DTOutput(outputId = 'biomarkers'),
         #   width = 6
         # ),
-        DT::DTOutput(outputId = 'biomarkers'),
-        DT::DTOutput(outputId = 'adtbio')
+        DTOutput(outputId = 'biomarkers'),
+        DTOutput(outputId = 'adtbio')
         # column(
         #   h3("Imputed protein biomarkers"),
-        #   DT::DTOutput(outputId = 'adtbio'),
+        #   DTOutput(outputId = 'adtbio'),
         #   width = 6
         # ),
       )
@@ -301,6 +302,7 @@ ui <- tagList(
 #' @importFrom stats quantile
 #' @importFrom utils write.table
 #' @importFrom patchwork wrap_plots
+#' @importFrom DT dataTableProxy selectRows renderDT
 #'
 #' @keywords internal
 #'
@@ -318,8 +320,8 @@ server <- function(input, output, session) {
     diff.exp = list(),
     messages = 'Upload a file'
   )
-  rna.proxy <- DT::dataTableProxy(outputId = "biomarkers")
-  adt.proxy <- DT::dataTableProxy(outputId = "adtbio")
+  rna.proxy <- dataTableProxy(outputId = "biomarkers")
+  adt.proxy <- dataTableProxy(outputId = "adtbio")
   withProgress(
     message = "Loading reference",
     expr = {
@@ -933,7 +935,7 @@ server <- function(input, output, session) {
         ))
         tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, !table.check)]
         for (tab in tables.clear) {
-          DT::selectRows(proxy = tab, selected = NULL)
+          selectRows(proxy = tab, selected = NULL)
         }
       }
     }
@@ -955,7 +957,7 @@ server <- function(input, output, session) {
         ))
         tables.clear <- list(rna.proxy, adt.proxy)[c(TRUE, !table.check)]
         for (tab in tables.clear) {
-          DT::selectRows(proxy = tab, selected = NULL)
+          selectRows(proxy = tab, selected = NULL)
         }
       }
     }
@@ -1142,7 +1144,7 @@ server <- function(input, output, session) {
     },
     rownames = TRUE
   )
-  output$biomarkers <- DT::renderDT(
+  output$biomarkers <- renderDT(
     expr = {
       if (!is.null(x = app.env$diff.expr[[app.env$default.assay]])) {
         RenderDiffExp(
@@ -1154,7 +1156,7 @@ server <- function(input, output, session) {
     selection = 'single',
     options = list(dom = 't', ordering = FALSE)
   )
-  output$adtbio <- DT::renderDT(
+  output$adtbio <- renderDT(
     expr = {
       if (!is.null(x = app.env$diff.expr[[adt.key]])) {
         RenderDiffExp(
