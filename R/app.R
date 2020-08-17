@@ -217,16 +217,18 @@ ui <- tagList(
           selectize = FALSE,
           width = "25%"
         )),
-        column(
-          h3("RNA biomarkers"),
-          DT::DTOutput(outputId = 'biomarkers'),
-          width = 6
-        ),
-        column(
-          h3("Imputed protein biomarkers"),
-          DT::DTOutput(outputId = 'adtbio'),
-          width = 6
-        ),
+        # column(
+        #   h3("RNA biomarkers"),
+        #   DT::DTOutput(outputId = 'biomarkers'),
+        #   width = 6
+        # ),
+        DT::DTOutput(outputId = 'biomarkers'),
+        DT::DTOutput(outputId = 'adtbio')
+        # column(
+        #   h3("Imputed protein biomarkers"),
+        #   DT::DTOutput(outputId = 'adtbio'),
+        #   width = 6
+        # ),
       )
     ),
     # Downloads tab
@@ -922,6 +924,14 @@ server <- function(input, output, session) {
         for (f in c('adtfeature', 'scorefeature')) {
           updateSelectInput(session = session, inputId = f, selected = '')
         }
+        table.check <- input$feature %in% rownames(x = RenderDiffExp(
+          diff.exp = app.env$diff.expr[[app.env$default.assay]],
+          groups.use = input$select.biomarkers
+        ))
+        tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, !table.check)]
+        for (tab in tables.clear) {
+          DT::selectRows(proxy = tab, selected = NULL)
+        }
       }
     }
   )
@@ -935,6 +945,14 @@ server <- function(input, output, session) {
         )
         for (f in c('feature', 'scorefeature')) {
           updateSelectInput(session = session, inputId = f, selected = '')
+        }
+        table.check <- input$adtfeature %in% rownames(x = RenderDiffExp(
+          diff.exp = app.env$diff.expr[[adt.key]],
+          groups.use = input$select.biomarkers
+        ))
+        tables.clear <- list(rna.proxy, adt.proxy)[c(TRUE, !table.check)]
+        for (tab in tables.clear) {
+          DT::selectRows(proxy = tab, selected = NULL)
         }
       }
     }
@@ -953,11 +971,33 @@ server <- function(input, output, session) {
       }
     }
   )
-  observeEvent(
+  observeEvent( # Select from biomarkers table
     eventExpr = input$biomarkers_rows_selected,
     handlerExpr = {
       if (length(x = input$biomarkers_rows_selected)) {
-        ''
+        updateSelectInput(
+          session = session,
+          inputId = 'feature',
+          selected = rownames(x = RenderDiffExp(
+            diff.exp = app.env$diff.expr[[app.env$default.assay]],
+            groups.use = input$select.biomarkers
+          ))[input$biomarkers_rows_selected]
+        )
+      }
+    }
+  )
+  observeEvent( # Select from adtbio table
+    eventExpr = input$adtbio_rows_selected,
+    handlerExpr = {
+      if (length(x = input$adtbio_rows_selected)) {
+        updateSelectInput(
+          session = session,
+          inputId = 'adtfeature',
+          selected = rownames(x = RenderDiffExp(
+            diff.exp = app.env$diff.expr[[adt.key]],
+            groups.use = input$select.biomarkers
+          ))[input$adtbio_rows_selected]
+        )
       }
     }
   )
@@ -1098,17 +1138,6 @@ server <- function(input, output, session) {
     },
     rownames = TRUE
   )
-  # output$biomarkers <- renderTable(
-  #   expr = {
-  #     if (!is.null(x = app.env$diff.expr[[app.env$default.assay]])) {
-  #       RenderDiffExp(
-  #         diff.exp = app.env$diff.expr[[app.env$default.assay]],
-  #         groups.use = input$select.biomarkers
-  #       )
-  #     }
-  #   },
-  #   rownames = TRUE
-  # )
   output$biomarkers <- DT::renderDT(
     expr = {
       if (!is.null(x = app.env$diff.expr[[app.env$default.assay]])) {
@@ -1119,20 +1148,8 @@ server <- function(input, output, session) {
       }
     },
     selection = 'single',
-    autoHideNavigation = TRUE,
     options = list(dom = 't', ordering = FALSE)
   )
-  # output$adtbio <- renderTable(
-  #   expr = {
-  #     if (!is.null(x = app.env$diff.expr[[adt.key]])) {
-  #       RenderDiffExp(
-  #         diff.exp = app.env$diff.expr[[adt.key]],
-  #         groups.use = input$select.biomarkers
-  #       )
-  #     }
-  #   },
-  #   rownames = TRUE
-  # )
   output$adtbio <- DT::renderDT(
     expr = {
       if (!is.null(x = app.env$diff.expr[[adt.key]])) {
@@ -1141,7 +1158,9 @@ server <- function(input, output, session) {
           groups.use = input$select.biomarkers
         )
       }
-    }
+    },
+    selection = 'single',
+    options = list(dom = 't', ordering = FALSE)
   )
   output$table.metadata <- renderTable(
     expr = {
