@@ -292,7 +292,7 @@ ui <- tagList(
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
-#' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<-
+#' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
@@ -361,7 +361,15 @@ server <- function(input, output, session) {
           x = rownames(x = app.env$object)
         )
         if (length(x = genes.common) < getOption(x = "Azimuth.map.ngenes")) {
+          app.env$object <- NULL
+          gc(verbose = FALSE)
           app.env$messages <- "Not enough genes in common with reference. Try another dataset."
+        }
+        # Validate that there aren't too many cells
+        else if (length(Cells(app.env$object)) > getOption(x = "Azimuth.app.max.cells")) {
+          app.env$object <- NULL
+          gc(verbose = FALSE)
+          app.env$messages <- "Too many cells. Try another dataset."
         } else {
           app.env$default.assay <- DefaultAssay(object = app.env$object)
           ncount <- paste0('nCount_', app.env$default.assay)
@@ -1228,7 +1236,7 @@ server <- function(input, output, session) {
 
 #' Launch the mapping app
 #'
-#' @param reference,mito,max.upload.mb,default.gene,default,adt See \strong{App options} for more details
+#' @param reference,mito,max.upload.mb,max.cells,default.gene,default.adt See \strong{App options} for more details
 #'
 #' @section App options:
 #'
@@ -1247,6 +1255,9 @@ server <- function(input, output, session) {
 #'  \item{\code{Azimuth.app.max.upload.mb}}{
 #'   Maximum file size (in MB) allowed to upload
 #'  }
+#'  \item{\code{Azimuth.app.max.cells}}{
+#'   Maximum number of cells allowed to upload
+#'  }
 #'  \item{\code{Azimuth.app.default.gene}}{
 #'   Gene to select by default in feature/violin plot
 #'  }
@@ -1262,7 +1273,7 @@ server <- function(input, output, session) {
 #'
 #' @export
 #'
-#' @seealso \code{\link{SeruatMapper-package}}
+#' @seealso \code{\link{SeuratMapper-package}}
 #'
 AzimuthApp <- function(
   mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
@@ -1273,6 +1284,10 @@ AzimuthApp <- function(
   max.upload.mb = getOption(
     x = 'Azimuth.app.max.upload.mb',
     default = 500
+  ),
+  max.cells = getOption(
+    x = 'Azimuth.app.max.cells',
+    default = 50000
   ),
   default.gene = getOption(
     x = 'Azimuth.app.default.gene',
@@ -1288,6 +1303,7 @@ AzimuthApp <- function(
     shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
     Azimuth.app.mito = mito,
     Azimuth.app.reference = reference,
+    Azimuth.app.max.cells = max.cells,
     Azimuth.app.default.gene = default.gene,
     Azimuth.app.default.adt = default.adt
   )
