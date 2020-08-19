@@ -7,7 +7,7 @@
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow
-#' updateNumericInput radioButtons textOutput htmlOutput column
+#' updateNumericInput radioButtons textOutput htmlOutput column checkboxInput
 #' @importFrom shinydashboard dashboardPage dashboardHeader dashboardSidebar
 #' dashboardBody menuItem tabItems tabItem sidebarMenu box valueBoxOutput
 #' sidebarMenuOutput
@@ -121,6 +121,7 @@ ui <- tagList(
       tabName = "tab_cell",
       box(
         title = "Reference",
+        checkboxInput(inputId = 'labels', label = 'Show labels'),
         plotOutput(outputId = 'refdim'),
         width = 12
       ),
@@ -1061,7 +1062,7 @@ server <- function(input, output, session) {
     }
   })
   output$refdim <- renderPlot(expr = {
-    DimPlot(object = refs$plot)
+    DimPlot(object = refs$plot, label = input$labels)
   })
   output$objdim <- renderPlot(expr = {
   if (!is.null(x = app.env$object)) {
@@ -1070,12 +1071,14 @@ server <- function(input, output, session) {
           plotlevels <- c(levels(refs$plot$id)[levels(refs$plot$id) != "Doublet"], NA)
           DimPlot(
             object = app.env$object,
-            group.by = "predicted.id") +
-            scale_colour_hue(limits = plotlevels, drop = FALSE)
+            group.by = "predicted.id",
+            label = input$labels
+          ) + scale_colour_hue(limits = plotlevels, drop = FALSE)
         } else {
           DimPlot(
             object = app.env$object,
-            group.by = input$select.metadata
+            group.by = input$select.metadata,
+            label = input$labels
           )
         }
       }
