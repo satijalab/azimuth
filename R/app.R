@@ -405,8 +405,7 @@ server <- function(input, output, session) {
             label = paste("min", ncount),
             value = min(ncount.val),
             min = min(ncount.val),
-            max = max(ncount.val),
-            step = 1
+            max = max(ncount.val)
           )
           enable(id = 'num.ncountmin')
           updateNumericInput(
@@ -415,8 +414,7 @@ server <- function(input, output, session) {
             label = paste("max", ncount),
             value = max(ncount.val),
             min = min(ncount.val),
-            max = max(ncount.val),
-            step = 1
+            max = max(ncount.val)
           )
           enable(id = 'num.ncountmax')
           nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
@@ -426,8 +424,7 @@ server <- function(input, output, session) {
             label = paste("min", nfeature),
             value = min(nfeature.val),
             min = min(nfeature.val),
-            max = max(nfeature.val),
-            step = 1
+            max = max(nfeature.val)
           )
           enable(id = 'num.nfeaturemin')
           updateNumericInput(
@@ -436,8 +433,7 @@ server <- function(input, output, session) {
             label = paste("max", nfeature),
             value = max(nfeature.val),
             min = min(nfeature.val),
-            max = max(nfeature.val),
-            step = 1
+            max = max(nfeature.val)
           )
           enable(id = 'num.nfeaturemax')
           if (any(grepl(pattern = mito.pattern, x = rownames(x = app.env$object)))) {
@@ -452,20 +448,18 @@ server <- function(input, output, session) {
               session = session,
               inputId = 'num.mtmin',
               label = paste("min", mt.key),
-              value = min(mito.val),
-              min = min(mito.val),
-              max = max(mito.val),
-              step = 1
+              value = floor(min(mito.val)),
+              min = floor(min(mito.val)),
+              max = max(mito.val)
             )
             enable(id = 'num.mtmin')
             updateNumericInput(
               session = session,
               inputId = 'num.mtmax',
               label = paste("max", mt.key),
-              value = max(mito.val),
+              value = ceiling(max(mito.val)),
               min = min(mito.val),
-              max = max(mito.val),
-              step = 1
+              max = ceiling(max(mito.val))
             )
             enable(id = 'num.mtmax')
           }
@@ -596,20 +590,18 @@ server <- function(input, output, session) {
                 session = session,
                 inputId = 'num.mtmin',
                 label = paste("min", mt.key),
-                value = min(mito.val),
-                min = min(mito.val),
-                max = max(mito.val),
-                step = 1
+                value = floor(min(mito.val)),
+                min = floor(min(mito.val)),
+                max = max(mito.val)
               )
               enable(id = 'num.mtmin')
               updateNumericInput(
                 session = session,
                 inputId = 'num.mtmax',
                 label = paste("max", mt.key),
-                value = max(mito.val),
+                value = ceiling(max(mito.val)),
                 min = min(mito.val),
-                max = max(mito.val),
-                step = 1
+                max = ceiling(max(mito.val))
               )
               enable(id = 'num.mtmax')
               enable(id = 'proc1')
