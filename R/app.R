@@ -60,7 +60,7 @@ ui <- tagList(
     tabItem(
       tabName = "tab_welcome",
       box(
-        h3("Welcome to our app"),
+        h3("Please upload a dataset to map to the Multimodal PBMC reference"),
         width = 12
       )
     ),
