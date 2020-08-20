@@ -350,7 +350,9 @@ server <- function(input, output, session) {
               app.env$object$query <- 'query'
               Idents(app.env$object) <- 'query'
             },
-            error = function(e) { app.env$messages <- e$message }
+            error = function(e) {
+              app.env$messages <- e$message
+            }
           )
           setProgress(value = 1)
         }

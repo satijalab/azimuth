@@ -183,9 +183,9 @@ FilterFeatures <- function(features) {
 #' @return A \code{\link[Seurat]{Seurat}} object
 #'
 #' @importFrom tools file_ext
-#' @importFrom SeuratDisk LoadH5Seurat
-#' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse DietSeurat
-#' DefaultAssay
+#' @importFrom SeuratDisk Connect
+#' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse Assays
+#' GetAssayData DefaultAssay<- DietSeurat as.Seurat
 #'
 #' @keywords internal
 #'
@@ -232,9 +232,15 @@ LoadFileInput <- function(path) {
       if (inherits(x = object, what = c('Matrix', 'matrix', 'data.frame'))) {
         object <- CreateSeuratObject(counts = as.sparse(x = object))
       } else if (inherits(x = object, what = 'Seurat')) {
+        if (!'RNA' %in% Assays(object = object)) {
+          stop("No RNA assay provided", call. = FALSE)
+        } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
+          stop("No RNA counts matrix present", call. = )
+        }
+        DefaultAssay(object = object) <- "RNA"
         object <- DietSeurat(
           object = object,
-          assays = DefaultAssay(object = object)
+          assays = "RNA"
         )
       } else {
         stop("The RDS file must be a Seurat object", call. = FALSE)
@@ -243,10 +249,19 @@ LoadFileInput <- function(path) {
     },
     'h5ad' = LoadH5AD(path = path),
     'h5seurat' = {
-      object <- LoadH5Seurat(file = path, assays = 'counts')
-      object <- DietSeurat(
-        object = object,
-        assays = DefaultAssay(object = object)
+      hfile <- suppressWarnings(expr = Connect(filename = path))
+      on.exit(expr = hfile$close_all())
+      if (!'RNA' %in% names(x = hfile[['assays']])) {
+        stop("Cannot find the RNA assay in this h5Seurat file", call. = FALSE)
+      } else if (!'counts' %in% names(x = hfile[['assays/RNA']])) {
+        stop("No RNA counts matrix provided", call. = FALSE)
+      }
+      object <- as.Seurat(
+        x = hfile,
+        assays = list('RNA' = 'counts'),
+        reductions = FALSE,
+        graphs = FALSE,
+        images = FALSE
       )
       object
     },
