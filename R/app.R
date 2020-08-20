@@ -1092,7 +1092,13 @@ server <- function(input, output, session) {
         colnames(x = app.env$object[[]])
       )
       if (app.env$feature %in% avail) {
+        title <- ifelse(
+          test = grepl(pattern = '^sct_', x = app.env$feature),
+          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+          no = app.env$feature
+        )
         VlnPlot(object = app.env$object, features = app.env$feature) +
+          ggtitle(label = title) +
           NoLegend()
       }
     }
@@ -1118,11 +1124,16 @@ server <- function(input, output, session) {
       }
       pal.use <- palettes[[feature.key]]
       if (!is.null(x = pal.use)) {
+        title <- ifelse(
+          test = grepl(pattern = '^sct_', x = app.env$feature),
+          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+          no = app.env$feature
+        )
         FeaturePlot(
           object = app.env$object,
           features = app.env$feature,
           cols = pal.use
-        )
+        ) + ggtitle(label = title)
       }
     }
   })
