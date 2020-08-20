@@ -615,16 +615,31 @@ server <- function(input, output, session) {
             ))
             app.env$object <- app.env$object[, cells.use]
             setProgress(value = 0.2, message = "Normalizing with SCTransform")
-            app.env$object <- suppressWarnings(expr = SCTransform(
-              object = app.env$object,
-              residual.features = rownames(x = refs$map),
-              method = "glmGamPoi",
-              ncells = getOption(x = 'Azimuth.sct.ncells'),
-              n_genes = getOption(x = 'Azimuth.sct.nfeats'),
-              do.correct.umi = FALSE,
-              do.scale = FALSE,
-              do.center = TRUE
-            ))
+            tryCatch(expr = {
+              app.env$object <- suppressWarnings(expr = SCTransform(
+                object = app.env$object,
+                residual.features = rownames(x = refs$map),
+                method = "glmGamPoi",
+                ncells = getOption(x = 'Azimuth.sct.ncells'),
+                n_genes = getOption(x = 'Azimuth.sct.nfeats'),
+                do.correct.umi = FALSE,
+                do.scale = FALSE,
+                do.center = TRUE
+              ))
+            },
+            error = function(e) {
+              app.env$object <- suppressWarnings(expr = SCTransform(
+                object = app.env$object,
+                residual.features = rownames(x = refs$map),
+                method = "poisson",
+                ncells = getOption(x = 'Azimuth.sct.ncells'),
+                n_genes = getOption(x = 'Azimuth.sct.nfeats'),
+                do.correct.umi = FALSE,
+                do.scale = FALSE,
+                do.center = TRUE
+              ))
+            }
+            )
             setProgress(value = 1)
             app.env$messages <- c(
               app.env$messages,
