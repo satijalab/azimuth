@@ -185,7 +185,7 @@ FilterFeatures <- function(features) {
 #' @importFrom tools file_ext
 #' @importFrom SeuratDisk Connect
 #' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse Assays
-#' GetAssayData DietSeurat as.Seurat
+#' GetAssayData DefaultAssay<- DietSeurat as.Seurat
 #'
 #' @keywords internal
 #'
@@ -237,6 +237,7 @@ LoadFileInput <- function(path) {
         } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
           stop("No RNA counts matrix present", call. = )
         }
+        DefaultAssay(object = object) <- "RNA"
         object <- DietSeurat(
           object = object,
           assays = "RNA"
