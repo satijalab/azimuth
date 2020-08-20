@@ -239,8 +239,7 @@ LoadFileInput <- function(path) {
         }
         object <- DietSeurat(
           object = object,
-          assays = "RNA",
-          data = FALSE
+          assays = "RNA"
         )
       } else {
         stop("The RDS file must be a Seurat object", call. = FALSE)
