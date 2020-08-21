@@ -842,11 +842,15 @@ server <- function(input, output, session) {
         enable(id = 'select.metadata2')
         enable(id = 'radio.pct')
         # Enable continuous metadata
+        metadata.cont <- sort(x = setdiff(
+          x = colnames(x = app.env$object),
+          y = metadata.choices
+        ))
         metadata.cont <- Filter(
           f = function(x) {
             return(is.numeric(x = app.env$object[[x, drop = TRUE]]))
           },
-          x = sort(x = colnames(x = app.env$object[[]]))
+          x = metadata.cont
         )
         updateSelectInput(
           session = session,
