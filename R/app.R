@@ -843,7 +843,7 @@ server <- function(input, output, session) {
         enable(id = 'radio.pct')
         # Enable continuous metadata
         metadata.cont <- sort(x = setdiff(
-          x = colnames(x = app.env$object),
+          x = colnames(x = app.env$object[[]]),
           y = metadata.choices
         ))
         metadata.cont <- Filter(
