@@ -791,10 +791,7 @@ server <- function(input, output, session) {
           session = session,
           inputId = 'feature',
           label = 'Feature',
-          choices = c(
-            'predicted.id.score',
-            FilterFeatures(features = rownames(x = app.env$object))
-          ),
+          choices = FilterFeatures(features = rownames(x = app.env$object)),
           selected = app.env$default.feature
         )
         adt.features <- sort(x = FilterFeatures(features = rownames(
