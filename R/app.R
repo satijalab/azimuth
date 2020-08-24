@@ -339,7 +339,14 @@ server <- function(input, output, session) {
   observeEvent( # Load the data
     eventExpr = input$file,
     handlerExpr = {
-      # TODO disable file?
+      # In case this is a re-upload, reset some elements
+      app.env$messages <- ""
+      output$valuebox.upload <- NULL
+      output$valuebox.preproc <- NULL
+      output$valuebox.mapped <- NULL
+      output$menu2 <- NULL
+      disable(id = "proc1")
+      disable(id = "map")
       withProgress(
         message = "Reading input",
         expr = {
