@@ -769,6 +769,12 @@ server <- function(input, output, session) {
           icon = icon("check"),
           color = "green"
         ))
+        # copy the original predicted.id so it can be downloaded
+        app.env$object <- AddMetaData(
+          object = app.env$object,
+          metadata = app.env$object[["predicted.id"]],
+          col.name = "predicted.id.orig"
+        )
         # set unmapped cells predicted.id to NA
         app.env$object[["predicted.id"]][!app.env$object[["mapped"]]] <- NA
         # Enable the feature explorer
@@ -1237,13 +1243,14 @@ server <- function(input, output, session) {
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
-      req <- c('predicted.id', 'predicted.id.score')
+      req <- c('predicted.id.orig', 'predicted.id.score', 'mapped')
       if (all(req %in% colnames(x = app.env$object[[]]))) {
         write.table(
           x = data.frame(
             cell = colnames(x = app.env$object),
-            predicted.id = app.env$object$predicted.id,
+            predicted.id = app.env$object$predicted.id.orig,
             predicted.score = app.env$object$predicted.id.score,
+            mapped = app.env$object$mapped,
             stringsAsFactors = FALSE
           ),
           file = file,
