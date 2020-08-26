@@ -106,7 +106,8 @@ ui <- tagList(
           options = list(container = "body")
         ),
         box(
-          checkboxInput(inputId = 'check.qc', label = 'Log-scale Y-axis'),
+          checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis'),
+          checkboxInput(inputId = 'check.qcpoints', label = 'Hide points'),
           plotOutput(outputId = "plot.qc"),
           tableOutput(outputId = 'table.qc'),
           width = 8
@@ -290,7 +291,6 @@ ui <- tagList(
 #'
 #' @importFrom methods slot<- slot
 #' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
-#' scale_y_log10
 #' @importFrom presto wilcoxauc
 #' @importFrom shinyjs show enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
@@ -472,7 +472,8 @@ server <- function(input, output, session) {
               max = ceiling(max(mito.val))
             )
             enable(id = 'num.mtmax')
-            enable(id = 'check.qc')
+            enable(id = 'check.qcscale')
+            enable(id = 'check.qcpoints')
           }
           output$menu1 <- renderMenu(expr = {
             sidebarMenu(menuItem(
@@ -516,7 +517,8 @@ server <- function(input, output, session) {
       disable(id = 'num.nfeaturemax')
       disable(id = 'num.mtmax')
       disable(id = 'num.mtmin')
-      disable(id = 'check.qc')
+      disable(id = 'check.qcscale')
+      disable(id = 'check.qcpoints')
       # Run SCTransform and enable mapping
       withProgress(
         message = "Normalizing with SCTransform",
@@ -616,7 +618,8 @@ server <- function(input, output, session) {
                 max = ceiling(max(mito.val))
               )
               enable(id = 'num.mtmax')
-              enable(id = 'check.qc')
+              enable(id = 'check.qcscale')
+              enable(id = 'check.qcpoints')
               enable(id = 'proc1')
             }
           } else {
@@ -1048,11 +1051,9 @@ server <- function(input, output, session) {
         features = qc,
         group.by = 'query',
         combine = FALSE,
-        pt.size = Seurat:::AutoPointSize(data = isolate(app.env$object))
+        pt.size = ifelse(input$check.qcpoints, 0, Seurat:::AutoPointSize(data = isolate(app.env$object))),
+        log = input$check.qcscale
       )
-      if (input$check.qc) {
-        vlnlist <- lapply(vlnlist, function(x) x + scale_y_log10())
-      }
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
         geom_hline(yintercept = input$num.ncountmin) +
@@ -1060,7 +1061,8 @@ server <- function(input, output, session) {
         annotate(geom = "rect", alpha = 0.2, fill = "red",
                  ymin = input$num.ncountmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
         annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = -Inf, ymax = input$num.ncountmin, xmin = 0.5, xmax = 1.5) +
+                 ymin = ifelse(input$check.qcscale, 0, -Inf),
+                 ymax = input$num.ncountmin, xmin = 0.5, xmax = 1.5) +
         NoLegend() + xlab("")
       # nFeature
       vlnlist[[2]] <- vlnlist[[2]] +
@@ -1069,7 +1071,8 @@ server <- function(input, output, session) {
         annotate(geom = "rect", alpha = 0.2, fill = "red",
                  ymin = input$num.nfeaturemax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
         annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = -Inf, ymax = input$num.nfeaturemin, xmin = 0.5, xmax = 1.5) +
+                 ymin = ifelse(input$check.qcscale, 0, -Inf),
+                 ymax = input$num.nfeaturemin, xmin = 0.5, xmax = 1.5) +
         NoLegend() + xlab("")
       if (mt.key %in% colnames(x = isolate(app.env$object[[]]))) {
         vlnlist[[3]] <- vlnlist[[3]] +
@@ -1078,7 +1081,8 @@ server <- function(input, output, session) {
           annotate(geom = "rect", alpha = 0.2, fill = "red",
                    ymin = input$num.mtmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
           annotate(geom = "rect", alpha = 0.2, fill = "red",
-                   ymin = -Inf, ymax = input$num.mtmin, xmin = 0.5, xmax = 1.5) +
+                   ymin = ifelse(input$check.qcscale, 0, -Inf),
+                   ymax = input$num.mtmin, xmin = 0.5, xmax = 1.5) +
           NoLegend() + xlab("")
         wrap_plots(vlnlist, ncol = 3)
       } else {
