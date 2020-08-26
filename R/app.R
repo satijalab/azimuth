@@ -84,6 +84,7 @@ ui <- tagList(
             disabled(numericInput(inputId = "num.ncountmin", label = NULL, value = 0)),
             disabled(numericInput(inputId = "num.nfeaturemin", label = NULL, value = 0)),
             disabled(numericInput(inputId = "num.mtmin", label = NULL, value = 0)),
+            textOutput(outputId = "text.cellsremain"),
             disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
             disabled(actionButton(inputId = "map", label = "Map cells to reference")),
             width = 6
@@ -105,6 +106,7 @@ ui <- tagList(
           options = list(container = "body")
         ),
         box(
+          checkboxInput(inputId = 'check.qc', label = 'Log-scale Y-axis'),
           plotOutput(outputId = "plot.qc"),
           tableOutput(outputId = 'table.qc'),
           width = 8
@@ -288,6 +290,7 @@ ui <- tagList(
 #'
 #' @importFrom methods slot<- slot
 #' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
+#' scale_y_log10
 #' @importFrom presto wilcoxauc
 #' @importFrom shinyjs show enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
@@ -469,6 +472,7 @@ server <- function(input, output, session) {
               max = ceiling(max(mito.val))
             )
             enable(id = 'num.mtmax')
+            enable(id = 'check.qc')
           }
           output$menu1 <- renderMenu(expr = {
             sidebarMenu(menuItem(
@@ -512,6 +516,7 @@ server <- function(input, output, session) {
       disable(id = 'num.nfeaturemax')
       disable(id = 'num.mtmax')
       disable(id = 'num.mtmin')
+      disable(id = 'check.qc')
       # Run SCTransform and enable mapping
       withProgress(
         message = "Normalizing with SCTransform",
@@ -611,6 +616,7 @@ server <- function(input, output, session) {
                 max = ceiling(max(mito.val))
               )
               enable(id = 'num.mtmax')
+              enable(id = 'check.qc')
               enable(id = 'proc1')
             }
           } else {
@@ -1044,6 +1050,9 @@ server <- function(input, output, session) {
         combine = FALSE,
         pt.size = Seurat:::AutoPointSize(data = isolate(app.env$object))
       )
+      if (input$check.qc) {
+        vlnlist <- lapply(vlnlist, function(x) x + scale_y_log10())
+      }
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
         geom_hline(yintercept = input$num.ncountmin) +
@@ -1164,6 +1173,22 @@ server <- function(input, output, session) {
     p(HTML(text = paste(app.env$messages, collapse = "<br />")))
   })
   output$containerid <- renderText(c("debug ID: ", Sys.info()[["nodename"]]))
+  output$text.cellsremain <- renderText(expr = {
+    if (!is.null(x = isolate(app.env$object))) {
+      ncount <- paste0('nCount_', DefaultAssay(object = isolate(app.env$object)))
+      nfeature <- paste0('nFeature_', DefaultAssay(object = isolate(app.env$object)))
+      cells.use <- isolate(app.env$object)[[ncount, drop = TRUE]] >= input$num.ncountmin &
+        isolate(app.env$object)[[ncount, drop = TRUE]] <= input$num.ncountmax &
+        isolate(app.env$object)[[nfeature, drop = TRUE]] >= input$num.nfeaturemin &
+        isolate(app.env$object)[[nfeature, drop = TRUE]] <= input$num.nfeaturemax
+      if (any(grepl(pattern = mito.pattern, x = rownames(x = isolate(app.env$object))))) {
+        cells.use <- cells.use &
+          isolate(app.env$object)[[mt.key, drop = TRUE]] >= input$num.mtmin &
+          isolate(app.env$object)[[mt.key, drop = TRUE]] <= input$num.mtmax
+      }
+      paste(sum(cells.use), "cells remain after current filters")
+    }
+  })
   # Tables
   output$table.qc <- renderTable(
     expr = {
