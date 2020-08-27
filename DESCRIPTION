@@ -1,8 +1,8 @@
 Package: SeuratMapper
 Type: Package
 Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9004
-Date: 2020-08-20
+Version: 0.0.0.9005
+Date: 2020-08-27
 Authors@R: c(
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "aut", comment = c(ORCID = "0000-0002-1810-0822")),
   person(given = "Paul", family = "Hoffman", email = "phoffman@nygenome.org", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7693-8957")),
