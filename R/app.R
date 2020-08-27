@@ -1077,43 +1077,87 @@ server <- function(input, output, session) {
         features = qc,
         group.by = 'query',
         combine = FALSE,
-        pt.size = ifelse(input$check.qcpoints, 0, Seurat:::AutoPointSize(data = isolate(app.env$object))),
+        pt.size = ifelse(
+          test = input$check.qcpoints,
+          yes = 0,
+          no = Seurat:::AutoPointSize(data = isolate(app.env$object))
+        ),
         log = input$check.qcscale
       )
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
         geom_hline(yintercept = input$num.ncountmin) +
         geom_hline(yintercept = input$num.ncountmax) +
-        annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = input$num.ncountmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
-        annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = ifelse(input$check.qcscale, 0, -Inf),
-                 ymax = input$num.ncountmin, xmin = 0.5, xmax = 1.5) +
-        NoLegend() + xlab("")
+        annotate(
+          geom = "rect",
+          alpha = 0.2,
+          fill = "red",
+          ymin = input$num.ncountmax,
+          ymax = Inf,
+          xmin = 0.5,
+          xmax = 1.5
+        ) +
+        annotate(
+          geom = "rect",
+          alpha = 0.2,
+          fill = "red",
+          ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+          ymax = input$num.ncountmin,
+          xmin = 0.5,
+          xmax = 1.5
+        ) +
+        NoLegend() +
+        xlab("")
       # nFeature
       vlnlist[[2]] <- vlnlist[[2]] +
         geom_hline(yintercept = input$num.nfeaturemin) +
         geom_hline(yintercept = input$num.nfeaturemax) +
-        annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = input$num.nfeaturemax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
-        annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = ifelse(input$check.qcscale, 0, -Inf),
-                 ymax = input$num.nfeaturemin, xmin = 0.5, xmax = 1.5) +
-        NoLegend() + xlab("")
+        annotate(
+          geom = "rect",
+          alpha = 0.2,
+          fill = "red",
+          ymin = input$num.nfeaturemax,
+          ymax = Inf,
+          xmin = 0.5,
+          xmax = 1.5
+        ) +
+        annotate(
+          geom = "rect",
+          alpha = 0.2,
+          fill = "red",
+          ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+          ymax = input$num.nfeaturemin,
+          xmin = 0.5,
+          xmax = 1.5
+        ) +
+        NoLegend() +
+        xlab("")
       if (mt.key %in% colnames(x = isolate(app.env$object[[]]))) {
         vlnlist[[3]] <- vlnlist[[3]] +
           geom_hline(yintercept = input$num.mtmin) +
           geom_hline(yintercept = input$num.mtmax) +
-          annotate(geom = "rect", alpha = 0.2, fill = "red",
-                   ymin = input$num.mtmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
-          annotate(geom = "rect", alpha = 0.2, fill = "red",
-                   ymin = ifelse(input$check.qcscale, 0, -Inf),
-                   ymax = input$num.mtmin, xmin = 0.5, xmax = 1.5) +
-          NoLegend() + xlab("")
-        wrap_plots(vlnlist, ncol = 3)
-      } else {
-        wrap_plots(vlnlist, ncol = 2)
+          annotate(
+            geom = "rect",
+            alpha = 0.2,
+            fill = "red",
+            ymin = input$num.mtmax,
+            ymax = Inf,
+            xmin = 0.5,
+            xmax = 1.5
+          ) +
+          annotate(
+            geom = "rect",
+            alpha = 0.2,
+            fill = "red",
+            ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+            ymax = input$num.mtmin,
+            xmin = 0.5,
+            xmax = 1.5
+          ) +
+          NoLegend() +
+          xlab("")
       }
+      wrap_plots(vlnlist, ncol = length(x = vlnlist))
     }
   })
   output$refdim <- renderPlot(expr = {
