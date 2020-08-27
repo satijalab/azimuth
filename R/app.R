@@ -189,7 +189,7 @@ ui <- tagList(
         div(style="display: inline-block;vertical-align:top;width: 33%",
         disabled(selectInput(
           inputId = 'scorefeature',
-          label = "", #'Prediction Scores',
+          label = "Prediction Scores and Continuous Metadata", #'Prediction Scores',
           choices = '',
           selectize = FALSE
         ))),
@@ -785,6 +785,12 @@ server <- function(input, output, session) {
           icon = icon("check"),
           color = "green"
         ))
+        # copy the original predicted.id so it can be downloaded
+        app.env$object <- AddMetaData(
+          object = app.env$object,
+          metadata = app.env$object[["predicted.id"]],
+          col.name = "predicted.id.orig"
+        )
         # set unmapped cells predicted.id to NA
         app.env$object[["predicted.id"]][!app.env$object[["mapped"]]] <- NA
         # Enable the feature explorer
@@ -807,10 +813,7 @@ server <- function(input, output, session) {
           session = session,
           inputId = 'feature',
           label = 'Feature',
-          choices = c(
-            'predicted.id.score',
-            FilterFeatures(features = rownames(x = app.env$object))
-          ),
+          choices = FilterFeatures(features = rownames(x = app.env$object)),
           selected = app.env$default.feature
         )
         adt.features <- sort(x = FilterFeatures(features = rownames(
@@ -857,6 +860,24 @@ server <- function(input, output, session) {
         enable(id = 'select.metadata1')
         enable(id = 'select.metadata2')
         enable(id = 'radio.pct')
+        # Enable continuous metadata
+        metadata.cont <- sort(x = setdiff(
+          x = colnames(x = app.env$object[[]]),
+          y = metadata.choices
+        ))
+        metadata.cont <- Filter(
+          f = function(x) {
+            return(is.numeric(x = app.env$object[[x, drop = TRUE]]))
+          },
+          x = metadata.cont
+        )
+        updateSelectInput(
+          session = session,
+          inputId = 'scorefeature',
+          choices = metadata.cont,
+          selected = ''
+        )
+        enable(id = 'scorefeature')
         # Compute biomarkers
         withProgress(
           message = "Running differential expression",
@@ -999,12 +1020,17 @@ server <- function(input, output, session) {
     eventExpr = input$scorefeature,
     handlerExpr = {
       if (nchar(x = input$scorefeature)) {
-        app.env$feature <- paste0(
-          Key(object = app.env$object[[scores.key]]),
-          input$scorefeature
-        )
+        # app.env$feature <- paste0(
+        #   Key(object = app.env$object[[scores.key]]),
+        #   input$scorefeature
+        # )
+        # app.env$feature <- paste0('md_', input$scorefeature)
+        app.env$feature <- input$scorefeature
         for (f in c('feature', 'adtfeature')) {
           updateSelectInput(session = session, inputId = f, selected = '')
+        }
+        for (tab in list(rna.proxy, adt.proxy)) {
+          selectRows(proxy = tab, selected = NULL)
         }
       }
     }
@@ -1150,12 +1176,13 @@ server <- function(input, output, session) {
         Key(object = app.env$object[[adt.key]]),
         'md_'
       )
-      feature.key <- paste0(
-        unlist(x = strsplit(x = app.env$feature, split = '_'))[1],
-        '_'
-      )
-      if (feature.key == paste0(app.env$feature, '_')) {
-        feature.key <- 'md_'
+      feature.key <- if (app.env$feature %in% colnames(x = app.env$object[[]])) {
+        'md_'
+      } else {
+        paste0(
+          unlist(x = strsplit(x = app.env$feature, split = '_'))[1],
+          '_'
+        )
       }
       pal.use <- palettes[[feature.key]]
       if (!is.null(x = pal.use)) {
@@ -1163,7 +1190,7 @@ server <- function(input, output, session) {
           test = grepl(pattern = '^sct_', x = app.env$feature),
           yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
           no = app.env$feature
-        )
+      )
         FeaturePlot(
           object = app.env$object,
           features = app.env$feature,
@@ -1273,13 +1300,14 @@ server <- function(input, output, session) {
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
-      req <- c('predicted.id', 'predicted.id.score')
+      req <- c('predicted.id.orig', 'predicted.id.score', 'mapped')
       if (all(req %in% colnames(x = app.env$object[[]]))) {
         write.table(
           x = data.frame(
             cell = colnames(x = app.env$object),
-            predicted.id = app.env$object$predicted.id,
+            predicted.id = app.env$object$predicted.id.orig,
             predicted.score = app.env$object$predicted.id.score,
+            mapped = app.env$object$mapped,
             stringsAsFactors = FALSE
           ),
           file = file,
