@@ -204,6 +204,34 @@ NNTransform <- function(neighbors, meta.data, key = 'ori.index') {
   return(neighbors)
 }
 
+#' Pseudobulk correlation test of query against reference
+#'
+#' Computes the correlation between a pseudobulk of the query object and the
+#' reference dataset. The feature set is the intersection of the reference
+#' variable features and all features present in the query. Correlation is
+#' computed on log normalized expression values using spearman correlation.
+#'
+#' @param object Query object
+#' @param ref Reference expression averages
+#' @param min.features If fewer than min.features exist in the intersection,
+#' return 0 as correlation.
+#'
+#' @importFrom Seurat AverageExpression Idents<-
+#'
+#' @return Returns correlation between query and reference
+
+PBCorTest <- function(object, ref, min.features = 250) {
+  Idents(object = object) <- "PBTest"
+  features <- intersect(rownames(x = object), rownames(x = ref))
+  features <- features[features %in% rownames(x = object) & features %in% rownames(x = ref)]
+  if(length(x = features) < 250) {
+    return(0)
+  }
+  avg <- AverageExpression(object = object, features = rownames(object), assays = "RNA", verbose = FALSE)[[1]]
+  cor.res <- cor(x = log1p(avg[features, ]), y = log1p(ref[features, ]), method = "spearman")
+  return(cor.res)
+}
+
 #' Merge reference and query objects together
 #'
 # @inheritParams base::set.seed

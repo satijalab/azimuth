@@ -18,6 +18,10 @@
 #'   Minimum number of anchors that must be found to complete mapping.
 #'   Defaults to \code{50}
 #'  }
+#'  \item{\code{Azimuth.map.pbcorthresh}}{
+#'   Only proceed to mapping if query dataset meets or exceeds this threshold in
+#'   pseudobulk correlation test.
+#'  }
 #'  \item{\code{Azimuth.de.mincells}}{
 #'   Minimum number of cells per cluster for differential expression; defaults
 #'   to \code{15}
@@ -51,6 +55,7 @@ default.options <- list(
   Azimuth.map.ngenes = 1000L,
   Azimuth.map.nanchors = 50L,
   Azimuth.map.pcthresh = 0L,
+  Azimuth.map.pbcorthresh = 0.75,
   Azimuth.sct.ncells = 1000L,
   Azimuth.sct.nfeats = 1000L
 )
@@ -457,7 +462,8 @@ LoadReference <- function(path, seconds = 10L) {
     ref = 'fullref.Rds',
     adt = 'adtref.Rds',
     idx = 'idx.Rds',
-    ann = 'idx.annoy'
+    ann = 'idx.annoy',
+    avg = 'vf_avg_rna.rds'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -473,7 +479,8 @@ LoadReference <- function(path, seconds = 10L) {
     adtref <- file.path(path, ref.names$adt)
     idxref <- file.path(path, ref.names$idx)
     annref <- file.path(path, ref.names$ann)
-    exists <- file.exists(c(mapref, pltref, fllref, adtref, idxref, annref))
+    avgref <- file.path(path, ref.names$avg)
+    exists <- file.exists(c(mapref, pltref, fllref, adtref, idxref, annref, avgref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -513,6 +520,7 @@ LoadReference <- function(path, seconds = 10L) {
     fllref <- url(description = ref.uris[['ref']])
     adtref <- url(description = ref.uris[['adt']])
     idxref <- url(description = ref.uris[['idx']])
+    avgref <- url(description = ref.uris[['avg']])
     # annref <- url(description = ref.uris[6])
     annref <- tempfile()
     download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
@@ -522,6 +530,7 @@ LoadReference <- function(path, seconds = 10L) {
       close(con = fllref)
       close(con = adtref)
       close(con = idxref)
+      close(con = avgref)
       unlink(x = annref)
     })
   }
@@ -536,6 +545,7 @@ LoadReference <- function(path, seconds = 10L) {
   # Load the other references
   plot <- readRDS(file = pltref)
   full <- readRDS(file = fllref)
+  avg <- readRDS(file = avgref)
   id.check <- vapply(
     X = c(map, plot, full),
     FUN = function(x) {
@@ -553,7 +563,8 @@ LoadReference <- function(path, seconds = 10L) {
     map = map,
     plot = plot,
     full = full,
-    index = nn
+    index = nn,
+    avgexp = avg
   ))
 }
 
