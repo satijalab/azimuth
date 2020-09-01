@@ -28,7 +28,7 @@
 #'  }
 #'  \item{\code{Azimuth.map.pcthresh}}{
 #'   Only show mapped plot if the percentage of cells mapped meets or
-#'   exceeds this threshold; defaults to \code{60}
+#'   exceeds this threshold; defaults to \code{0}
 #'  }
 #'  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
 #'   Number of cells and features to use for
@@ -50,7 +50,7 @@ default.options <- list(
   Azimuth.map.ncells = 100L,
   Azimuth.map.ngenes = 1000L,
   Azimuth.map.nanchors = 50L,
-  Azimuth.map.pcthresh = 60L,
+  Azimuth.map.pcthresh = 0L,
   Azimuth.sct.ncells = 1000L,
   Azimuth.sct.nfeats = 1000L
 )
