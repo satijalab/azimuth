@@ -678,15 +678,12 @@ server <- function(input, output, session) {
               )
           setProgress(value = 0.4, message = "Finding anchors")
           cells <- colnames(x = app.env$object)
-          # TODO: export FindTransferAnchors_Fast
-          anchors <- Seurat:::FindTransferAnchors_Fast(
+          anchors <- FindTransferAnchors(
             reference = refs$map,
             query = app.env$object,
-            reference.nn = refs$index,
-            reference.nnidx = refs$index$annoy_index,
-            reference.assay = DefaultAssay(object = refs$map),
-            npcs = NULL,
-            k.filter = NA,
+            mapping = TRUE,
+            reference.neighbors = "", #TODO what the Neighbor slot in the reference is named.
+            reference.assay = "RNA",
             query.assay = 'SCT',
             reference.reduction = 'spca',
             normalization.method = 'SCT',
@@ -695,13 +692,12 @@ server <- function(input, output, session) {
           )
           # TODO fail if not enough anchors (Azimuth.map.nanchors)
           setProgress(value = 0.6, message = 'Mapping cells')
-          # TODO: export IngestNewData_Fast
-          ingested <- Seurat:::IngestNewData_Fast(
+          ingested <- MapQueryData(
             reference = refs$map,
             query = app.env$object,
             dims = 1:50,
-            transfer.anchors = anchors,
-            reference.nnidx = refs$index$annoy_index,
+            anchorset = anchors,
+            reference.neighbors = "", #TODO what the Neighbor slot in the reference is named.
             transfer.labels = Idents(object = refs$map),
             transfer.expression = GetAssayData(
               object = refs$map[['ADT']],
@@ -717,8 +713,7 @@ server <- function(input, output, session) {
           )
           app.env$object <- AddPredictions(
             object = app.env$object,
-            preds = ingested$predicted.id,
-            scores = ingested$predicted.id.score,
+            predictions = Misc(object = mapped, slot = "predictions"),
             preds.levels = levels(x = refs$map),
             preds.drop = TRUE
           )
@@ -861,6 +856,8 @@ server <- function(input, output, session) {
           },
           x = metadata.cont
         )
+        # Add prediction scores for all classes to continuous metadata
+        metadata.cont <- c(metadata.cont, rownames(app.env$object[["predictions"]]))
         updateSelectInput(
           session = session,
           inputId = 'scorefeature',
@@ -1207,7 +1204,8 @@ server <- function(input, output, session) {
         Key(object = app.env$object[[adt.key]]),
         'md_'
       )
-      feature.key <- if (app.env$feature %in% colnames(x = app.env$object[[]])) {
+      feature.key <- if (app.env$feature %in% colnames(x = app.env$object[[]]) ||
+                         app.env$feature %in% rownames(x = app.env$object[["predictions"]])) {
         'md_'
       } else {
         paste0(
@@ -1222,11 +1220,11 @@ server <- function(input, output, session) {
           yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
           no = app.env$feature
       )
-        FeaturePlot(
+        suppressWarnings(FeaturePlot(
           object = app.env$object,
           features = app.env$feature,
           cols = pal.use
-        ) + ggtitle(label = title)
+        )) + ggtitle(label = title)
       }
     }
   })

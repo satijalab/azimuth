@@ -6,13 +6,14 @@ NULL
 #' Add Predictions
 #'
 #' @param object A \code{Seurat} object
-#' @param preds A named vector with the predicted IDs
-#' @param scores A named vector with the scores for \code{preds}
+#' @param preds dataframe: Rows are cells. Columns are predicted.id,
+#' predicted.id.score, and prediction.score.[CLASSNAME] for all reference classes.
 #' @param preds.levels Levels for predicted IDs, useful for
 #' ordering \code{preds}
-#' @param preds.drop Drop unused levels from \code{preds}
+#' @param preds.drop Drop unused levels from \code{preds} and "predictions" assay.
 #'
-#' @return \code{object} with transformations applied
+#' @return \code{object} with predicted.id and predicted.id.score added to
+#' metadata, and prediction.score.[CLASSNAME] added as an assay named "predictions"
 #'
 #' @importFrom Seurat Idents<-
 #'
@@ -21,24 +22,27 @@ NULL
 AddPredictions <- function(
   object,
   preds,
-  scores,
   preds.levels = unique(x = as.character(x = preds)),
   preds.drop = TRUE
 ) {
   on.exit(expr = gc(verbose = FALSE))
   cells <- colnames(x = object)
-  preds <- factor(x = preds[cells], levels = preds.levels)
+  # make sure order is the same as in the object
+  preds <- preds[cells,]
+  object$predicted.id.score <- preds$predicted.id.score
+  ids <- factor(x = preds$predicted.id, levels = preds.levels)
   if (isTRUE(x = preds.drop)) {
-    preds <- droplevels(x = preds)
+    ids <- droplevels(x = ids)
+    # Keep only prediction scores for levels not dropped;
+    # get rid of columns already added as metadata in the process
+    preds <- subset(x = preds, select = paste0("prediction.score.",levels(ids)))
+  } else {
+    # Keep all prediction scores, just get rid of columns already added as metadata
+    preds <- subset(x = preds, select = -c("predicted.id", "predicted.id.score"))
   }
-  object$predicted.id <- preds
-  object$predicted.id.score <- scores[cells]
+  object$predicted.id <- ids
   Idents(object = object) <- 'predicted.id'
-  # object[[reduction.name]] <- RunUMAP(
-  #   object = neighbors,
-  #   reduction.model = reduction.model,
-  #   reduction.key = reduction.key
-  # )
+  object[["predictions"]] <- CreateAssayObject(data = t(preds))
   return(object)
 }
 
