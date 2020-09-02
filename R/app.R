@@ -639,7 +639,7 @@ server <- function(input, output, session) {
             if (pbcor < getOption(x = 'Azimuth.map.pbcorthresh')) {
               output$valuebox.mapped <- renderValueBox(expr = valueBox(
                 value = "Failure",
-                subtitle = "Unable to map query",
+                subtitle = "Query is too dissimilar",
                 icon = icon("times"),
                 color = "red", width = 6
               ))
