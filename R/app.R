@@ -117,6 +117,13 @@ ui <- tagList(
         valueBoxOutput(outputId = "valuebox.upload", width = 3),
         valueBoxOutput(outputId = "valuebox.preproc", width = 3),
         valueBoxOutput(outputId = "valuebox.mapped", width = 3)
+      ),
+      fluidRow(
+        class = "rowhide",
+        box(
+          plotOutput(outputId = "plot.pbcor"),
+          width = 8
+        )
       )
     ),
     # Cell tab
@@ -292,7 +299,7 @@ ui <- tagList(
 #' @importFrom methods slot<- slot
 #' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
 #' @importFrom presto wilcoxauc
-#' @importFrom shinyjs show enable disable
+#' @importFrom shinyjs show hide enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
@@ -350,6 +357,7 @@ server <- function(input, output, session) {
       output$menu2 <- NULL
       disable(id = "proc1")
       disable(id = "map")
+      hide(selector = ".rowhide")
       withProgress(
         message = "Reading input",
         expr = {
@@ -630,38 +638,58 @@ server <- function(input, output, session) {
               color = "green"
             ))
             app.env$object <- app.env$object[, cells.use]
-            setProgress(value = 0.2, message = "Normalizing with SCTransform")
-            tryCatch(expr = {
-              app.env$object <- suppressWarnings(expr = SCTransform(
-                object = app.env$object,
-                residual.features = rownames(x = refs$map),
-                method = "glmGamPoi",
-                ncells = getOption(x = 'Azimuth.sct.ncells'),
-                n_genes = getOption(x = 'Azimuth.sct.nfeats'),
-                do.correct.umi = FALSE,
-                do.scale = FALSE,
-                do.center = TRUE
+            # Pseudobulk correlation test
+            pbcor <- PBCorTest(
+              object = app.env$object,
+              ref = refs$avg
+            )
+            # TODO fail if fewer cells than (Azimuth.map.pbcorthresh)
+            if (pbcor[["cor.res"]] < getOption(x = 'Azimuth.map.pbcorthresh')) {
+              output$valuebox.mapped <- renderValueBox(expr = valueBox(
+                value = "Failure",
+                subtitle = "Query is too dissimilar",
+                icon = icon("times"),
+                color = "red", width = 6
               ))
-            },
-            error = function(e) {
-              app.env$object <- suppressWarnings(expr = SCTransform(
-                object = app.env$object,
-                residual.features = rownames(x = refs$map),
-                method = "poisson",
-                ncells = getOption(x = 'Azimuth.sct.ncells'),
-                n_genes = getOption(x = 'Azimuth.sct.nfeats'),
-                do.correct.umi = FALSE,
-                do.scale = FALSE,
-                do.center = TRUE
-              ))
+              output$plot.pbcor <- renderPlot(pbcor[["plot"]])
+              show(selector = ".rowhide")
+              app.env$object <- NULL
+              gc(verbose = FALSE)
+              setProgress(value = 1)
+            } else {
+              setProgress(value = 0.2, message = "Normalizing with SCTransform")
+              tryCatch(expr = {
+                app.env$object <- suppressWarnings(expr = SCTransform(
+                  object = app.env$object,
+                  residual.features = rownames(x = refs$map),
+                  method = "glmGamPoi",
+                  ncells = getOption(x = 'Azimuth.sct.ncells'),
+                  n_genes = getOption(x = 'Azimuth.sct.nfeats'),
+                  do.correct.umi = FALSE,
+                  do.scale = FALSE,
+                  do.center = TRUE
+                ))
+              },
+              error = function(e) {
+                app.env$object <- suppressWarnings(expr = SCTransform(
+                  object = app.env$object,
+                  residual.features = rownames(x = refs$map),
+                  method = "poisson",
+                  ncells = getOption(x = 'Azimuth.sct.ncells'),
+                  n_genes = getOption(x = 'Azimuth.sct.nfeats'),
+                  do.correct.umi = FALSE,
+                  do.scale = FALSE,
+                  do.center = TRUE
+                ))
+              }
+              )
+              setProgress(value = 1)
+              app.env$messages <- c(
+                app.env$messages,
+                paste(ncellspreproc, "cells preprocessed")
+              )
+              enable(id = "map")
             }
-            )
-            setProgress(value = 1)
-            app.env$messages <- c(
-              app.env$messages,
-              paste(ncellspreproc, "cells preprocessed")
-            )
-            enable(id = "map")
           }
         }
       )

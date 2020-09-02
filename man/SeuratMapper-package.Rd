@@ -22,11 +22,15 @@ users can configure these with \code{\link[base]{options}}:
  }
  \item{\code{Azimuth.map.ngenes}}{
   Minimum number of genes in common with reference to accept uploaded file.
-  Defaults to \code{1000}
+  Defaults to \code{250}
  }
- \item{\code{Azimuth.map.ngenes}}{
+ \item{\code{Azimuth.map.nanchors}}{
   Minimum number of anchors that must be found to complete mapping.
   Defaults to \code{50}
+ }
+ \item{\code{Azimuth.map.pbcorthresh}}{
+  Only proceed to mapping if query dataset meets or exceeds this threshold in
+  pseudobulk correlation test.
  }
  \item{\code{Azimuth.de.mincells}}{
   Minimum number of cells per cluster for differential expression; defaults
@@ -38,7 +42,7 @@ users can configure these with \code{\link[base]{options}}:
  }
  \item{\code{Azimuth.map.pcthresh}}{
   Only show mapped plot if the percentage of cells mapped meets or
-  exceeds this threshold; defaults to \code{60}
+  exceeds this threshold; defaults to \code{0}
  }
  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
   Number of cells and features to use for
