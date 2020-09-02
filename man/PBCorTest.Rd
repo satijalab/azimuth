@@ -15,7 +15,8 @@ PBCorTest(object, ref, min.features = 250)
 return 0 as correlation.}
 }
 \value{
-Returns correlation between query and reference
+Returns a list: cor.res = correlation between query and reference;
+plot = scatterplot of average expression of query and reference common genes
 }
 \description{
 Computes the correlation between a pseudobulk of the query object and the

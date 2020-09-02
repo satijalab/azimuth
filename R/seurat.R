@@ -217,8 +217,10 @@ NNTransform <- function(neighbors, meta.data, key = 'ori.index') {
 #' return 0 as correlation.
 #'
 #' @importFrom Seurat AverageExpression Idents<-
+#' @importFrom ggplot2 ggplot aes geom_point xlab ylab ggtitle theme_bw
 #'
-#' @return Returns correlation between query and reference
+#' @return Returns a list: cor.res = correlation between query and reference;
+#' plot = scatterplot of average expression of query and reference common genes
 
 PBCorTest <- function(object, ref, min.features = 250) {
   Idents(object = object) <- "PBTest"
@@ -229,7 +231,16 @@ PBCorTest <- function(object, ref, min.features = 250) {
   }
   avg <- AverageExpression(object = object, features = rownames(object), assays = "RNA", verbose = FALSE)[[1]]
   cor.res <- cor(x = log1p(avg[features, ]), y = log1p(ref[features, ]), method = "spearman")
-  return(cor.res)
+  cor.data <- data.frame(log1p(avg[features, ]), log1p(ref[features, ]))
+  colnames(cor.data) <- c("q","r")
+  plot <- ggplot(cor.data, aes(q,r)) +
+    geom_point() +
+    xlab("Query average expression") +
+    ylab("Reference average expression") +
+    ggtitle(paste("Pseudo-bulk correlation of", length(features), "common genes:",
+                  round(cor.res, digits = 2))) +
+    theme_bw()
+  return(list(cor.res = cor.res, plot = plot))
 }
 
 #' Merge reference and query objects together

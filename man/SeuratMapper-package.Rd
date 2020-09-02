@@ -22,9 +22,9 @@ users can configure these with \code{\link[base]{options}}:
  }
  \item{\code{Azimuth.map.ngenes}}{
   Minimum number of genes in common with reference to accept uploaded file.
-  Defaults to \code{1000}
+  Defaults to \code{250}
  }
- \item{\code{Azimuth.map.ngenes}}{
+ \item{\code{Azimuth.map.nanchors}}{
   Minimum number of anchors that must be found to complete mapping.
   Defaults to \code{50}
  }

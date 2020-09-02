@@ -12,9 +12,9 @@
 #'  }
 #'  \item{\code{Azimuth.map.ngenes}}{
 #'   Minimum number of genes in common with reference to accept uploaded file.
-#'   Defaults to \code{1000}
+#'   Defaults to \code{250}
 #'  }
-#'  \item{\code{Azimuth.map.ngenes}}{
+#'  \item{\code{Azimuth.map.nanchors}}{
 #'   Minimum number of anchors that must be found to complete mapping.
 #'   Defaults to \code{50}
 #'  }
@@ -52,7 +52,7 @@ default.options <- list(
   Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,
-  Azimuth.map.ngenes = 1000L,
+  Azimuth.map.ngenes = 250L,
   Azimuth.map.nanchors = 50L,
   Azimuth.map.pcthresh = 0L,
   Azimuth.map.pbcorthresh = 0.75,
