@@ -85,7 +85,6 @@ ui <- tagList(
             disabled(numericInput(inputId = "num.nfeaturemin", label = NULL, value = 0)),
             disabled(numericInput(inputId = "num.mtmin", label = NULL, value = 0)),
             textOutput(outputId = "text.cellsremain"),
-            disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
             disabled(actionButton(inputId = "map", label = "Map cells to reference")),
             width = 6
           ),
@@ -355,7 +354,6 @@ server <- function(input, output, session) {
       output$valuebox.preproc <- NULL
       output$valuebox.mapped <- NULL
       output$menu2 <- NULL
-      disable(id = "proc1")
       disable(id = "map")
       hide(selector = ".rowhide")
       withProgress(
@@ -493,6 +491,7 @@ server <- function(input, output, session) {
           })
           ncellsupload <- length(x = colnames(x = app.env$object))
           app.env$messages <- paste(ncellsupload, "cells uploaded")
+          # Not enough cells are uploaded
           if (ncellsupload < getOption(x = "Azimuth.map.ncells")) {
             output$valuebox.upload <- renderValueBox(expr = valueBox(
               value = ncellsupload,
@@ -500,8 +499,6 @@ server <- function(input, output, session) {
               icon = icon("times"),
               color = "red"
             ))
-            # TODO what should happen when not enough cells are uploaded?
-            # stop(safeError(error = "Not enough cells in uploaded dataset to proceed"))
           } else {
             output$valuebox.upload <- renderValueBox(expr = valueBox(
               value = ncellsupload,
@@ -509,16 +506,16 @@ server <- function(input, output, session) {
               icon = icon("check"),
               color = "green"
             ))
-            enable(id = 'proc1')
+            enable(id = 'map')
           }
         }
       }
     }
   )
-  observeEvent( # Process the user data
-    eventExpr = input$proc1,
+  observeEvent( # Map data
+    eventExpr = input$map,
     handlerExpr = {
-      disable(id = 'proc1')
+      disable(id = 'map')
       disable(id = 'num.ncountmin')
       disable(id = 'num.ncountmax')
       disable(id = 'num.nfeaturemin')
@@ -531,11 +528,7 @@ server <- function(input, output, session) {
       withProgress(
         message = "Normalizing with SCTransform",
         expr = {
-          # output$sct <- renderText(expr = NULL)
-          setProgress(
-            value = 0,
-            message = "Filtering based on nCount and nFeature"
-          )
+          setProgress( value = 0, message = "Filtering based on nCount and nFeature")
           ncount <- paste0('nCount_', DefaultAssay(object = app.env$object))
           nfeature <- paste0('nFeature_', DefaultAssay(object = app.env$object))
           cells.use <- app.env$object[[ncount, drop = TRUE]] >= input$num.ncountmin &
@@ -548,6 +541,7 @@ server <- function(input, output, session) {
               app.env$object[[mt.key, drop = TRUE]] <= input$num.mtmax
           }
           ncellspreproc <- sum(cells.use)
+          # not enough cells available after filtering: reset filter elements
           if (ncellspreproc < getOption(x = "Azimuth.map.ncells")) {
             output$valuebox.preproc <- renderValueBox(expr = valueBox(
               value = ncellspreproc,
@@ -555,9 +549,6 @@ server <- function(input, output, session) {
               icon = icon("times"),
               color = "red"
             ))
-            # TODO what should happen when not enough cells are available after filtering?
-            # stop(safeError(error = "Not enough cells after filtering to proceed"))
-            # reset values and re-enable all filters; don't enable the mapping button; re-enable preproc button
             ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
             updateNumericInput(
               session = session,
@@ -628,7 +619,7 @@ server <- function(input, output, session) {
               enable(id = 'num.mtmax')
               enable(id = 'check.qcscale')
               enable(id = 'check.qcpoints')
-              enable(id = 'proc1')
+              enable(id = 'map')
             }
           } else {
             output$valuebox.preproc <- renderValueBox(expr = valueBox(
@@ -643,7 +634,6 @@ server <- function(input, output, session) {
               object = app.env$object,
               ref = refs$avg
             )
-            # TODO fail if fewer cells than (Azimuth.map.pbcorthresh)
             if (pbcor[["cor.res"]] < getOption(x = 'Azimuth.map.pbcorthresh')) {
               output$valuebox.mapped <- renderValueBox(expr = valueBox(
                 value = "Failure",
@@ -655,7 +645,6 @@ server <- function(input, output, session) {
               show(selector = ".rowhide")
               app.env$object <- NULL
               gc(verbose = FALSE)
-              setProgress(value = 1)
             } else {
               setProgress(value = 0.2, message = "Normalizing with SCTransform")
               tryCatch(expr = {
@@ -683,26 +672,11 @@ server <- function(input, output, session) {
                 ))
               }
               )
-              setProgress(value = 1)
               app.env$messages <- c(
                 app.env$messages,
                 paste(ncellspreproc, "cells preprocessed")
               )
-              enable(id = "map")
-            }
-          }
-        }
-      )
-    }
-  )
-  observeEvent( # Map data
-    eventExpr = input$map,
-    handlerExpr = {
-      disable(id = 'map')
-      withProgress(
-        message = 'Mapping data',
-        expr = {
-          setProgress(value = 0, message = "Finding anchors")
+          setProgress(value = 0.4, message = "Finding anchors")
           cells <- colnames(x = app.env$object)
           # TODO: export FindTransferAnchors_Fast
           anchors <- Seurat:::FindTransferAnchors_Fast(
@@ -720,7 +694,7 @@ server <- function(input, output, session) {
             dims = 1:50
           )
           # TODO fail if not enough anchors (Azimuth.map.nanchors)
-          setProgress(value = 0.6, message = 'Integrating data')
+          setProgress(value = 0.6, message = 'Mapping cells')
           # TODO: export IngestNewData_Fast
           ingested <- Seurat:::IngestNewData_Fast(
             reference = refs$map,
@@ -779,15 +753,14 @@ server <- function(input, output, session) {
             new.data = new(Class = 'matrix')
           )
           gc(verbose = FALSE)
-          setProgress(value = 1)
-        }
-      )
+
       mappingtext <- paste(sum(app.env$object$mapped)," cells mapped")
       mappingpct <- round(
         x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
         digits = 0
       )
       app.env$messages <- c(app.env$messages, mappingtext)
+      # Not enough cells map: enable script download and download tab only
       if (mappingpct < getOption(x = "Azimuth.map.pcthresh")) {
         output$valuebox.mapped <- renderValueBox(expr = valueBox(
           value = paste0(mappingpct, "%"),
@@ -795,8 +768,6 @@ server <- function(input, output, session) {
           icon = icon("times"),
           color = "red"
         ))
-        # TODO what should happen when not enough cells map?
-        # enable script download and download tab
         output$menu2 <- renderMenu(expr = {
           sidebarMenu(
             menuItem(
@@ -805,7 +776,6 @@ server <- function(input, output, session) {
               icon = icon("file-download")
             ))}
         )
-        # stop(safeError(error = "Query dataset could not be mapped to the reference"))
       } else {
         output$valuebox.mapped <- renderValueBox(expr = valueBox(
           value = paste0(mappingpct, "%"),
@@ -899,25 +869,18 @@ server <- function(input, output, session) {
         )
         enable(id = 'scorefeature')
         # Compute biomarkers
-        withProgress(
-          message = "Running differential expression",
-          expr = {
-            setProgress(value = 0)
-            app.env$diff.expr[[app.env$default.assay]] <- wilcoxauc(
-              X = app.env$object,
-              group_by = 'predicted.id',
-              assay = 'data',
-              seurat_assay = app.env$default.assay
-            )
-            setProgress(value = 0.6)
-            app.env$diff.expr[[adt.key]] <- wilcoxauc(
-              X = app.env$object,
-              group_by = 'predicted.id',
-              assay = 'data',
-              seurat_assay = adt.key
-            )
-            setProgress(value = 1)
-          }
+        setProgress(value = 0.95, message = "Running differential expression")
+        app.env$diff.expr[[app.env$default.assay]] <- wilcoxauc(
+          X = app.env$object,
+          group_by = 'predicted.id',
+          assay = 'data',
+          seurat_assay = app.env$default.assay
+        )
+        app.env$diff.expr[[adt.key]] <- wilcoxauc(
+          X = app.env$object,
+          group_by = 'predicted.id',
+          assay = 'data',
+          seurat_assay = adt.key
         )
         allowed.clusters <- names(x = which(
           x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells')
@@ -985,7 +948,11 @@ server <- function(input, output, session) {
             icon = icon("file-download")
           ))}
         )
-      }
+      }}
+          }
+        setProgress(value = 1)
+        }
+      )
     }
   )
   observeEvent( # RNA feature
@@ -1328,7 +1295,6 @@ server <- function(input, output, session) {
   output$table.metadata <- renderTable(
     expr = {
       if (!is.null(x = app.env$object)) {
-        # TODO allow user to toggle between frequency and percentage
         CategoryTable(
           object = app.env$object,
           category.1 = input$select.metadata1,
