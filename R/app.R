@@ -1201,7 +1201,7 @@ server <- function(input, output, session) {
       palettes <- list(
         c("lightgrey", "blue"),
         c('lightgrey', 'darkgreen'),
-        c('lightgrey', 'blue')
+        c('lightgrey', 'darkred')
       )
       names(x = palettes) <- c(
         Key(object = app.env$object[["SCT"]]),
