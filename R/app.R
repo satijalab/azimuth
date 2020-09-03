@@ -1181,7 +1181,8 @@ server <- function(input, output, session) {
           Key(object = app.env$object[[adt.key]]),
           rownames(x = app.env$object[[adt.key]])
         ),
-        colnames(x = app.env$object[[]])
+        colnames(x = app.env$object[[]]),
+        rownames(x = app.env$object[["predictions"]])
       )
       if (app.env$feature %in% avail) {
         title <- ifelse(
