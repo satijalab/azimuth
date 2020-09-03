@@ -35,7 +35,8 @@ AddPredictions <- function(
     ids <- droplevels(x = ids)
     # Keep only prediction scores for levels not dropped;
     # get rid of columns already added as metadata in the process
-    preds <- subset(x = preds, select = paste0("prediction.score.",levels(ids)))
+    # spaces in levels in predicted.id are replaced with dots in the column names
+    preds <- subset(x = preds, select = gsub(" ", ".", paste0("prediction.score.",levels(ids))))
   } else {
     # Keep all prediction scores, just get rid of columns already added as metadata
     preds <- subset(x = preds, select = -c("predicted.id", "predicted.id.score"))
@@ -187,25 +188,28 @@ MinimalMatchingCells <- function(reference, query, match = TRUE, seed = NULL) {
 
 #' Transform an NN index
 #'
-#' @param neighbors Neighbors
+#' @param object Seurat object
 #' @param meta.data Metadata
+#' @param neighbor.slot Name of Neighbor slot
 #' @param key Column of metadata to use
 #'
-#' @return \code{neighbors} transfomed
+#' @return \code{object} with transfomed neighbor.slot
+#'
+#' @importFrom Seurat Indices
 #'
 #' @keywords internal
 #'
-NNTransform <- function(neighbors, meta.data, key = 'ori.index') {
+NNTransform <- function(object, meta.data, neighbor.slot = "query_ref.nn", key = 'ori.index') {
   on.exit(expr = gc(verbose = FALSE))
   ori.index <- t(x = sapply(
-    X = 1:nrow(x = neighbors$nn.idx),
+    X = 1:nrow(x = Indices(object[[neighbor.slot]])),
     FUN = function(i) {
-      return(meta.data[neighbors$nn.idx[i, ], key])
+      return(meta.data[Indices(object[[neighbor.slot]])[i, ], key])
     }
   ))
-  rownames(x = ori.index) <- rownames(x = neighbors$nn.idx)
-  neighbors$nn.idx <- ori.index
-  return(neighbors)
+  rownames(x = ori.index) <- rownames(x = Indices(object[[neighbor.slot]]))
+  slot(object = object[[neighbor.slot]], name = "nn.idx") <- ori.index
+  return(object)
 }
 
 #' Pseudobulk correlation test of query against reference

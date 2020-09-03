@@ -4,17 +4,24 @@
 \alias{NNTransform}
 \title{Transform an NN index}
 \usage{
-NNTransform(neighbors, meta.data, key = "ori.index")
+NNTransform(
+  object,
+  meta.data,
+  neighbor.slot = "query_ref.nn",
+  key = "ori.index"
+)
 }
 \arguments{
-\item{neighbors}{Neighbors}
+\item{object}{Seurat object}
 
 \item{meta.data}{Metadata}
+
+\item{neighbor.slot}{Name of Neighbor slot}
 
 \item{key}{Column of metadata to use}
 }
 \value{
-\code{neighbors} transfomed
+\code{object} with transfomed neighbor.slot
 }
 \description{
 Transform an NN index

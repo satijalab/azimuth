@@ -303,6 +303,7 @@ ui <- tagList(
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
+#' FindTransferAnchors MapQueryData Misc
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
@@ -682,13 +683,15 @@ server <- function(input, output, session) {
             reference = refs$map,
             query = app.env$object,
             mapping = TRUE,
-            reference.neighbors = "", #TODO what the Neighbor slot in the reference is named.
+            reference.neighbors = "spca.annoy.neighbors",
             reference.assay = "RNA",
             query.assay = 'SCT',
             reference.reduction = 'spca',
             normalization.method = 'SCT',
             features = rownames(x = refs$map),
-            dims = 1:50
+            dims = 1:50,
+            nn.method = "annoy",
+            verbose = TRUE
           )
           # TODO fail if not enough anchors (Azimuth.map.nanchors)
           setProgress(value = 0.6, message = 'Mapping cells')
@@ -697,7 +700,7 @@ server <- function(input, output, session) {
             query = app.env$object,
             dims = 1:50,
             anchorset = anchors,
-            reference.neighbors = "", #TODO what the Neighbor slot in the reference is named.
+            reference.neighbors = "spca.annoy.neighbors",
             transfer.labels = Idents(object = refs$map),
             transfer.expression = GetAssayData(
               object = refs$map[['ADT']],
@@ -707,13 +710,13 @@ server <- function(input, output, session) {
           rm(anchors)
           gc(verbose = FALSE)
           setProgress(value = 0.8, message = "Running UMAP transform")
-          slot(object = ingested, name = 'neighbors')[['query_ref.nn']] <- NNTransform(
-            neighbors = ingested[['query_ref.nn']],
+          ingested <- NNTransform(
+            object = ingested,
             meta.data = refs$map[[]]
           )
           app.env$object <- AddPredictions(
             object = app.env$object,
-            predictions = Misc(object = mapped, slot = "predictions"),
+            preds = Misc(object = ingested, slot = "predictions"),
             preds.levels = levels(x = refs$map),
             preds.drop = TRUE
           )
@@ -1145,13 +1148,13 @@ server <- function(input, output, session) {
     }
   })
   output$refdim <- renderPlot(expr = {
-    DimPlot(object = refs$plot, label = input$labels)
+    DimPlot(object = refs$plot, label = input$labels, group.by = "id")
   })
   output$objdim <- renderPlot(expr = {
   if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
         if (input$select.metadata == "predicted.id") {
-          plotlevels <- levels(refs$plot$id)[levels(refs$plot$id) != "Doublet"]
+          plotlevels <- levels(as.factor(refs$plot$id))
           DimPlot(
             object = app.env$object,
             group.by = "predicted.id",

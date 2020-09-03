@@ -417,9 +417,9 @@ LoadH5AD <- function(path) {
 #'  object (for plotting)
 #'  \item \dQuote{fullref.Rds} for the full reference \code{Seurat}
 #'  object (for density estimation)
-#'  \item \dQuote{adtref.Rds} for the ADT data for the reference \code{Seurat}
-#'  object (for feature imputation)
-#'  \item \dQuote{idx.Rds} for the nearest-neighbor index object
+#'  \item \dQuote{idx.annoy} for the nearest-neighbor index object
+#'  \item \dQuote{vf_avg_rna.Rds} for the average expression of variable
+#'  features of the reference (for pseudobulk check)
 #' }
 #'
 #' @param path Path or URL to the two RDS files
@@ -441,7 +441,7 @@ LoadH5AD <- function(path) {
 #'  }
 #' }
 #'
-#' @importFrom Seurat Idents<-
+#' @importFrom Seurat Idents<- LoadAnnoyIndex
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #'
@@ -460,10 +460,8 @@ LoadReference <- function(path, seconds = 10L) {
     map = 'ref.Rds',
     plt = 'plotref.Rds',
     ref = 'fullref.Rds',
-    adt = 'adtref.Rds',
-    idx = 'idx.Rds',
     ann = 'idx.annoy',
-    avg = 'vf_avg_rna.rds'
+    avg = 'vf_avg_rna.Rds'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -476,11 +474,9 @@ LoadReference <- function(path, seconds = 10L) {
     mapref <- file.path(path, ref.names$map)
     pltref <- file.path(path, ref.names$plt)
     fllref <- file.path(path, ref.names$ref)
-    adtref <- file.path(path, ref.names$adt)
-    idxref <- file.path(path, ref.names$idx)
     annref <- file.path(path, ref.names$ann)
     avgref <- file.path(path, ref.names$avg)
-    exists <- file.exists(c(mapref, pltref, fllref, adtref, idxref, annref, avgref))
+    exists <- file.exists(c(mapref, pltref, fllref, annref, avgref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -518,30 +514,24 @@ LoadReference <- function(path, seconds = 10L) {
     mapref <- url(description = ref.uris[['map']])
     pltref <- url(description = ref.uris[['plt']])
     fllref <- url(description = ref.uris[['ref']])
-    adtref <- url(description = ref.uris[['adt']])
-    idxref <- url(description = ref.uris[['idx']])
     avgref <- url(description = ref.uris[['avg']])
-    # annref <- url(description = ref.uris[6])
     annref <- tempfile()
     download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
     on.exit(expr = {
       close(con = mapref)
       close(con = pltref)
       close(con = fllref)
-      close(con = adtref)
-      close(con = idxref)
       close(con = avgref)
       unlink(x = annref)
     })
   }
-  # Load the map reference and ADT values for imputation
+  # Load the map reference
   map <- readRDS(file = mapref)
-  map[['ADT']] <- readRDS(file = adtref)[['ADT']]
-  # Load the annoy index
-  nn <- readRDS(file = idxref)
-  annoy.index <- CreateAnn(name = nn$metric, ndim = nn$ndim)
-  annoy.index$load(file = annref)
-  nn$annoy_index <- annoy.index
+  # Load the annoy index into the Neighbor object in the neighbors slot
+  map[["spca.annoy.neighbors"]] <- LoadAnnoyIndex(
+    object = map[["spca.annoy.neighbors"]],
+    file = annref
+  )
   # Load the other references
   plot <- readRDS(file = pltref)
   full <- readRDS(file = fllref)
@@ -563,7 +553,6 @@ LoadReference <- function(path, seconds = 10L) {
     map = map,
     plot = plot,
     full = full,
-    index = nn,
     avgexp = avg
   ))
 }
