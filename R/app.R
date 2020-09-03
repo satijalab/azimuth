@@ -860,7 +860,7 @@ server <- function(input, output, session) {
           x = metadata.cont
         )
         # Add prediction scores for all classes to continuous metadata
-        metadata.cont <- c(metadata.cont, rownames(app.env$object[["predictions"]]))
+        metadata.cont <- sort(x = c(metadata.cont, rownames(app.env$object[["predictions"]])))
         updateSelectInput(
           session = session,
           inputId = 'scorefeature',
