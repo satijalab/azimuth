@@ -7,13 +7,16 @@ NULL
 #'
 #' @param object A \code{Seurat} object
 #' @param preds dataframe: Rows are cells. Columns are predicted.id,
-#' predicted.id.score, and prediction.score.[CLASSNAME] for all reference classes.
+#' predicted.id.score, and prediction.score. [CLASSNAME] for all reference
+#' classes
 #' @param preds.levels Levels for predicted IDs, useful for
 #' ordering \code{preds}
-#' @param preds.drop Drop unused levels from \code{preds} and "predictions" assay.
+#' @param preds.drop Drop unused levels from \code{preds} and
+#' \dQuote{predictions} assay.
 #'
 #' @return \code{object} with predicted.id and predicted.id.score added to
-#' metadata, and prediction.score.[CLASSNAME] added as an assay named "predictions"
+#' metadata, and prediction.score. [CLASSNAME] added as an assay named
+#' \dQuote{predictions}
 #'
 #' @importFrom Seurat Idents<-
 #'
@@ -28,7 +31,7 @@ AddPredictions <- function(
   on.exit(expr = gc(verbose = FALSE))
   cells <- colnames(x = object)
   # make sure order is the same as in the object
-  preds <- preds[cells,]
+  preds <- preds[cells, , drop = FALSE]
   object$predicted.id.score <- preds$predicted.id.score
   ids <- factor(x = preds$predicted.id, levels = preds.levels)
   if (isTRUE(x = preds.drop)) {
@@ -36,7 +39,14 @@ AddPredictions <- function(
     # Keep only prediction scores for levels not dropped;
     # get rid of columns already added as metadata in the process
     # spaces in levels in predicted.id are replaced with dots in the column names
-    preds <- subset(x = preds, select = gsub(" ", ".", paste0("prediction.score.",levels(ids))))
+    preds <- subset(
+      x = preds,
+      select = gsub(
+        pattern = " ",
+        replacement = ".",
+        x = paste0("prediction.score.", levels(x = ids))
+      )
+    )
   } else {
     # Keep all prediction scores, just get rid of columns already added as metadata
     preds <- subset(x = preds, select = -c("predicted.id", "predicted.id.score"))
@@ -199,7 +209,12 @@ MinimalMatchingCells <- function(reference, query, match = TRUE, seed = NULL) {
 #'
 #' @keywords internal
 #'
-NNTransform <- function(object, meta.data, neighbor.slot = "query_ref.nn", key = 'ori.index') {
+NNTransform <- function(
+  object,
+  meta.data,
+  neighbor.slot = "query_ref.nn",
+  key = 'ori.index'
+) {
   on.exit(expr = gc(verbose = FALSE))
   ind <- Indices(object[[neighbor.slot]])
   ori.index <- t(x = sapply(
@@ -225,29 +240,49 @@ NNTransform <- function(object, meta.data, neighbor.slot = "query_ref.nn", key =
 #' @param min.features If fewer than min.features exist in the intersection,
 #' return 0 as correlation.
 #'
+#' @return Returns a list with the following values
+#' \describe{
+#'  \item{\code{cor.res}}{correlation between query and reference}
+#'  \item{\code{plot}}{
+#'   scatterplot of average expression of query and reference common genes
+#'  }
+#' }
+#'
+#' @importFrom stats cor
 #' @importFrom Seurat AverageExpression Idents<-
 #' @importFrom ggplot2 ggplot aes geom_point xlab ylab ggtitle theme_bw
 #'
-#' @return Returns a list: cor.res = correlation between query and reference;
-#' plot = scatterplot of average expression of query and reference common genes
-
+#' @keywords internal
+#'
 PBCorTest <- function(object, ref, min.features = 250) {
   Idents(object = object) <- "PBTest"
   features <- intersect(rownames(x = object), rownames(x = ref))
   features <- features[features %in% rownames(x = object) & features %in% rownames(x = ref)]
-  if(length(x = features) < 250) {
+  if (length(x = features) < 250) {
     return(0)
   }
-  avg <- AverageExpression(object = object, features = rownames(object), assays = "RNA", verbose = FALSE)[[1]]
-  cor.res <- cor(x = log1p(avg[features, ]), y = log1p(ref[features, ]), method = "spearman")
-  cor.data <- data.frame(log1p(avg[features, ]), log1p(ref[features, ]))
-  colnames(cor.data) <- c("q","r")
-  plot <- ggplot(cor.data, aes(q,r)) +
+  avg <- AverageExpression(
+    object = object,
+    features = rownames(x = object),
+    assays = "RNA",
+    verbose = FALSE
+  )[[1]]
+  cor.res <- cor(
+    x = log1p(avg[features, ]), y = log1p(ref[features, ]),
+    method = "spearman"
+  )
+  cor.data <- data.frame(log1p(x = avg[features, ]), log1p(x = ref[features, ]))
+  colnames(cor.data) <- c("q", "r")
+  plot <- ggplot(cor.data, aes(q, r)) +
     geom_point() +
     xlab("Query average expression") +
     ylab("Reference average expression") +
-    ggtitle(paste("Pseudo-bulk correlation of", length(features), "common genes:",
-                  round(cor.res, digits = 2))) +
+    ggtitle(label = paste(
+      "Pseudo-bulk correlation of",
+      length(x = features),
+      "common genes:",
+      round(x = cor.res, digits = 2)
+    )) +
     theme_bw()
   return(list(cor.res = cor.res, plot = plot))
 }
