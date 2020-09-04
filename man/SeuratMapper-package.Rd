@@ -40,10 +40,6 @@ users can configure these with \code{\link[base]{options}}:
   Number of digits to round differential expression table to; defaults to
   \code{3}
  }
- \item{\code{Azimuth.map.pcthresh}}{
-  Only show mapped plot if the percentage of cells mapped meets or
-  exceeds this threshold; defaults to \code{0}
- }
  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
   Number of cells and features to use for
   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{1000}

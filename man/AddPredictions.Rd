@@ -7,7 +7,6 @@
 AddPredictions(
   object,
   preds,
-  scores,
   preds.levels = unique(x = as.character(x = preds)),
   preds.drop = TRUE
 )
@@ -15,17 +14,20 @@ AddPredictions(
 \arguments{
 \item{object}{A \code{Seurat} object}
 
-\item{preds}{A named vector with the predicted IDs}
-
-\item{scores}{A named vector with the scores for \code{preds}}
+\item{preds}{dataframe: Rows are cells. Columns are predicted.id,
+predicted.id.score, and prediction.score. [CLASSNAME] for all reference
+classes}
 
 \item{preds.levels}{Levels for predicted IDs, useful for
 ordering \code{preds}}
 
-\item{preds.drop}{Drop unused levels from \code{preds}}
+\item{preds.drop}{Drop unused levels from \code{preds} and
+\dQuote{predictions} assay.}
 }
 \value{
-\code{object} with transformations applied
+\code{object} with predicted.id and predicted.id.score added to
+metadata, and prediction.score. [CLASSNAME] added as an assay named
+\dQuote{predictions}
 }
 \description{
 Add Predictions

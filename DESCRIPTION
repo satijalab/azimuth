@@ -21,7 +21,7 @@ Remotes:
   jlmelville/uwot,
   mojaveazure/seurat-disk,
   yuhanH/sctransform@feat/select_gene,
-  url::http://satijalab04.nygenome.org/src/contrib/Seurat_3.1.5.9011.tar.gz
+  url::http://satijalab04.nygenome.org/src/contrib/Seurat_3.2.0.9020.tar.gz
 Depends:
   R (>= 3.6.0)
 Imports:
