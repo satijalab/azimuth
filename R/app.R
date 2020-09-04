@@ -218,7 +218,7 @@ ui <- tagList(
         bsPopover(
           id = "q3",
           title = "Biomarkers Table",
-          content = "avgExpr: mean value of feature for cells in cluster; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
+          content = "Only available for clusters with at least 15 cells. avgExpr: mean value of feature for cells in cluster; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
           placement = "right",
           trigger = "focus",
           options = list(container = "body")
@@ -374,6 +374,8 @@ server <- function(input, output, session) {
           setProgress(value = 1)
         }
       )
+      set.seed(0)
+      plotlevels <- sample(x = levels(as.factor(refs$plot$id)), size = length(levels(as.factor(refs$plot$id))))
       if (!is.null(app.env$object)) {
         # Validate that there are genes in common with the reference
         genes.common <- intersect(
@@ -729,22 +731,22 @@ server <- function(input, output, session) {
               suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
                 data = ingested[['transfer']][, cells]
               ))
-              setProgress(value = 0.9, message = 'Calculating mapping metrics')
-              app.env$object[['int']] <- CreateDimReducObject(
-                embeddings = Embeddings(object = ingested[['int']])[cells, ],
-                assay = app.env$default.assay
-              )
-              dsqr <- QueryReference(
-                reference = refs$map,
-                query = app.env$object,
-                assay.query = app.env$default.assay,
-                seed = 4
-              )
-              app.env$object <- AddMetaData(
-                object = app.env$object,
-                metadata = CalcMappingMetric(object = dsqr)
-              )
-              rm(dsqr, ingested)
+              # setProgress(value = 0.9, message = 'Calculating mapping metrics')
+              # app.env$object[['int']] <- CreateDimReducObject(
+              #   embeddings = Embeddings(object = ingested[['int']])[cells, ],
+              #   assay = app.env$default.assay
+              # )
+              # dsqr <- QueryReference(
+              #   reference = refs$map,
+              #   query = app.env$object,
+              #   assay.query = app.env$default.assay,
+              #   seed = 4
+              # )
+              # app.env$object <- AddMetaData(
+              #   object = app.env$object,
+              #   metadata = CalcMappingMetric(object = dsqr)
+              # )
+              # rm(dsqr, ingested)
               app.env$object <- SetAssayData(
                 object = app.env$object,
                 assay = 'SCT',
@@ -875,7 +877,7 @@ server <- function(input, output, session) {
                 x = allowed.clusters,
                 levels = levels(x = app.env$object)
               )
-              allowed.clusters <- levels(x = droplevels(x = allowed.clusters))
+              allowed.clusters <- sort(levels(x = droplevels(x = allowed.clusters)))
               enable(id = 'select.prediction')
               updateSelectInput(
                 session = session,
@@ -1113,13 +1115,13 @@ server <- function(input, output, session) {
     }
   })
   output$refdim <- renderPlot(expr = {
-    DimPlot(object = refs$plot, label = input$labels, group.by = "id")
+    DimPlot(object = refs$plot, label = input$labels, group.by = "id") +
+      scale_colour_hue(limits = plotlevels, drop = FALSE)
   })
   output$objdim <- renderPlot(expr = {
   if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
         if (input$select.metadata == "predicted.id") {
-          plotlevels <- levels(x = as.factor(refs$plot$id))
           DimPlot(
             object = app.env$object,
             group.by = "predicted.id",
