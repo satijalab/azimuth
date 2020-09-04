@@ -30,10 +30,6 @@
 #'   Number of digits to round differential expression table to; defaults to
 #'   \code{3}
 #'  }
-#'  \item{\code{Azimuth.map.pcthresh}}{
-#'   Only show mapped plot if the percentage of cells mapped meets or
-#'   exceeds this threshold; defaults to \code{0}
-#'  }
 #'  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
 #'   Number of cells and features to use for
 #'   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{1000}
@@ -54,7 +50,6 @@ default.options <- list(
   Azimuth.map.ncells = 100L,
   Azimuth.map.ngenes = 250L,
   Azimuth.map.nanchors = 50L,
-  Azimuth.map.pcthresh = 0L,
   Azimuth.map.pbcorthresh = 0.75,
   Azimuth.sct.ncells = 1000L,
   Azimuth.sct.nfeats = 1000L
@@ -615,7 +610,7 @@ PlottableMetadataNames <- function(
     }
   ) & (colnames(object[[]]) != "mapping.score") &
    (colnames(object[[]]) != "predicted.id") &
-   (colnames(object[[]]) != "predicted.id.orig")
+   (colnames(object[[]]) != "mapped")
   return(colnames(object[[]])[column.status])
 }
 

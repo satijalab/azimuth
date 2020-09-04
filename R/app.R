@@ -751,33 +751,13 @@ server <- function(input, output, session) {
             new.data = new(Class = 'matrix')
           )
           gc(verbose = FALSE)
-
-      mappingtext <- paste(sum(app.env$object$mapped)," cells mapped")
-      mappingpct <- round(
-        x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
-        digits = 0
-      )
-      app.env$messages <- c(app.env$messages, mappingtext)
-      # Not enough cells map: enable script download and download tab only
-      if (mappingpct < getOption(x = "Azimuth.map.pcthresh")) {
-        output$valuebox.mapped <- renderValueBox(expr = valueBox(
-          value = paste0(mappingpct, "%"),
-          subtitle = "cells mapped",
-          icon = icon("times"),
-          color = "red"
-        ))
-        output$menu2 <- renderMenu(expr = {
-          sidebarMenu(
-            menuItem(
-              text = "Download Results",
-              tabName = "tab_download",
-              icon = icon("file-download")
-            ))}
+        app.env$messages <- c(
+          app.env$messages,
+          paste(ncellspreproc, "cells mapped")
         )
-      } else {
         output$valuebox.mapped <- renderValueBox(expr = valueBox(
-          value = paste0(mappingpct, "%"),
-          subtitle = "cells mapped",
+          value = "Success",
+          subtitle = "Mapping complete",
           icon = icon("check"),
           color = "green"
         ))
@@ -948,7 +928,7 @@ server <- function(input, output, session) {
             icon = icon("file-download")
           ))}
         )
-      }}
+      }
           }
         setProgress(value = 1)
         }
@@ -1332,14 +1312,13 @@ server <- function(input, output, session) {
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
-      req <- c('predicted.id', 'predicted.id.score', 'mapped')
+      req <- c('predicted.id', 'predicted.id.score')
       if (all(req %in% colnames(x = app.env$object[[]]))) {
         write.table(
           x = data.frame(
             cell = colnames(x = app.env$object),
             predicted.id = app.env$object$predicted.id,
             predicted.score = app.env$object$predicted.id.score,
-            mapped = app.env$object$mapped,
             stringsAsFactors = FALSE
           ),
           file = file,
