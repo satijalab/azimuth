@@ -15,8 +15,13 @@ PBCorTest(object, ref, min.features = 250)
 return 0 as correlation.}
 }
 \value{
-Returns a list: cor.res = correlation between query and reference;
-plot = scatterplot of average expression of query and reference common genes
+Returns a list with the following values
+\describe{
+ \item{\code{cor.res}}{correlation between query and reference}
+ \item{\code{plot}}{
+  scatterplot of average expression of query and reference common genes
+ }
+}
 }
 \description{
 Computes the correlation between a pseudobulk of the query object and the
@@ -24,3 +29,4 @@ reference dataset. The feature set is the intersection of the reference
 variable features and all features present in the query. Correlation is
 computed on log normalized expression values using spearman correlation.
 }
+\keyword{internal}
