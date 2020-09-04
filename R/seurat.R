@@ -201,13 +201,14 @@ MinimalMatchingCells <- function(reference, query, match = TRUE, seed = NULL) {
 #'
 NNTransform <- function(object, meta.data, neighbor.slot = "query_ref.nn", key = 'ori.index') {
   on.exit(expr = gc(verbose = FALSE))
+  ind <- Indices(object[[neighbor.slot]])
   ori.index <- t(x = sapply(
-    X = 1:nrow(x = Indices(object[[neighbor.slot]])),
+    X = 1:nrow(x = ind),
     FUN = function(i) {
-      return(meta.data[Indices(object[[neighbor.slot]])[i, ], key])
+      return(meta.data[ind[i, ], key])
     }
   ))
-  rownames(x = ori.index) <- rownames(x = Indices(object[[neighbor.slot]]))
+  rownames(x = ori.index) <- rownames(x = ind)
   slot(object = object[[neighbor.slot]], name = "nn.idx") <- ori.index
   return(object)
 }
