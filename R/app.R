@@ -345,6 +345,8 @@ server <- function(input, output, session) {
       setProgress(value = 1)
     }
   )
+  set.seed(0)
+  plotlevels <- sample(x = levels(as.factor(refs$plot$id)), size = length(levels(as.factor(refs$plot$id))))
   # React to events
   observeEvent( # Load the data
     eventExpr = input$file,
@@ -374,8 +376,6 @@ server <- function(input, output, session) {
           setProgress(value = 1)
         }
       )
-      set.seed(0)
-      plotlevels <- sample(x = levels(as.factor(refs$plot$id)), size = length(levels(as.factor(refs$plot$id))))
       if (!is.null(app.env$object)) {
         # Validate that there are genes in common with the reference
         genes.common <- intersect(
