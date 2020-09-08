@@ -729,7 +729,7 @@ server <- function(input, output, session) {
               suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
                 data = ingested[['transfer']][, cells]
               ))
-              setProgress(value = 0.8, message = "Calculating mapping score")
+              setProgress(value = 0.9, message = "Calculating mapping score")
               spca <- subset(
                 x = anchors@object.list[[1]][["pcaproject"]], 
                 cells = paste0(Cells(x = app.env$object), "_query")

@@ -260,7 +260,7 @@ MappingScore <- function(
       ref.pca.orig[reference.cells, ]
     ),
   ))
-  combined.object <- FindWeights(
+  combined.object <- Seurat:::FindWeights(
     object = combined.object,
     integration.name = "IT1",
     reduction = dr.weights,
