@@ -1360,13 +1360,17 @@ server <- function(input, output, session) {
       e$path <- input$file$name
       e$mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
       e$mito.key <- mt.key
-      e$ncount.max <- max(input$ncount)
-      e$ncount.min <- min(input$ncount)
-      e$nfeature.max <- max(input$nfeature)
-      e$nfeature.min <- min(input$nfeature)
+      e$ncount.max <- input$num.ncountmax
+      e$ncount.min <- input$num.ncountmin
+      e$nfeature.max <- input$num.nfeaturemax
+      e$nfeature.min <- input$num.nfeaturemin
+      e$mito.max <- input$num.mtmax
+      e$mito.min <- input$num.mtmin
       e$sct.ncells <- getOption(x = 'Azimuth.sct.ncells')
       e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
       e$adt.key <- adt.key
+      e$plotgene <- getOption(x = 'Azimuth.app.default.gene')
+      e$plotadt <- getOption(x = 'Azimuth.app.default.adt')
       writeLines(text = str_interp(string = template, env = e), con = file)
     }
   )
