@@ -16,6 +16,8 @@ ENV HDF5_PLUGIN_PATH=/lzf
 
 RUN R -e "install.packages('remotes')"
 
+RUN wget https://raw.githubusercontent.com/pshved/timeout/master/timeout && chmod +x timeout
+
 COPY Rprofile.site /usr/lib/R/etc/
 COPY . /root/seurat-mapper
 

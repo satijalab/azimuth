@@ -1,12 +1,13 @@
 #' @include zzz.R
 #' @include seurat.R
 #' @import V8
+#' @importFrom DT DTOutput
 #' @importFrom htmltools tagList h4 hr h3 tags HTML p div
 #' @importFrom shinyjs useShinyjs extendShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow
-#' updateNumericInput radioButtons textOutput htmlOutput column
+#' updateNumericInput radioButtons textOutput htmlOutput column checkboxInput
 #' @importFrom shinydashboard dashboardPage dashboardHeader dashboardSidebar
 #' dashboardBody menuItem tabItems tabItem sidebarMenu box valueBoxOutput
 #' sidebarMenuOutput
@@ -19,6 +20,7 @@ app.title <- 'Azimuth'
 ui <- tagList(
   useShinyjs(),
   tags$style(type = "text/css", "#message {padding: 0px 10px;}"),
+  tags$style(type = "text/css", "#containerid {position:fixed;bottom:0;right:0;left:0;padding: 0px 10px;}"),
   dashboardPage(
   dashboardHeader(title = app.title),
   dashboardSidebar(
@@ -47,7 +49,8 @@ ui <- tagList(
       ),
       sidebarMenuOutput(outputId = "menu1"),
       sidebarMenuOutput(outputId = "menu2")
-    )
+    ),
+    htmlOutput(outputId = "containerid", inline = FALSE)
   ),
   dashboardBody(
     # fills background color to bottom of page when scrolling
@@ -57,7 +60,7 @@ ui <- tagList(
     tabItem(
       tabName = "tab_welcome",
       box(
-        h3("Welcome to our app"),
+        h3("Please upload a dataset to map to the Multimodal PBMC reference"),
         width = 12
       )
     ),
@@ -81,7 +84,7 @@ ui <- tagList(
             disabled(numericInput(inputId = "num.ncountmin", label = NULL, value = 0)),
             disabled(numericInput(inputId = "num.nfeaturemin", label = NULL, value = 0)),
             disabled(numericInput(inputId = "num.mtmin", label = NULL, value = 0)),
-            disabled(actionButton(inputId = "proc1", label = "Preprocess Input")),
+            textOutput(outputId = "text.cellsremain"),
             disabled(actionButton(inputId = "map", label = "Map cells to reference")),
             width = 6
           ),
@@ -102,6 +105,8 @@ ui <- tagList(
           options = list(container = "body")
         ),
         box(
+          checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis'),
+          checkboxInput(inputId = 'check.qcpoints', label = 'Hide points'),
           plotOutput(outputId = "plot.qc"),
           tableOutput(outputId = 'table.qc'),
           width = 8
@@ -111,6 +116,13 @@ ui <- tagList(
         valueBoxOutput(outputId = "valuebox.upload", width = 3),
         valueBoxOutput(outputId = "valuebox.preproc", width = 3),
         valueBoxOutput(outputId = "valuebox.mapped", width = 3)
+      ),
+      fluidRow(
+        class = "rowhide",
+        box(
+          plotOutput(outputId = "plot.pbcor"),
+          width = 8
+        )
       )
     ),
     # Cell tab
@@ -118,6 +130,7 @@ ui <- tagList(
       tabName = "tab_cell",
       box(
         title = "Reference",
+        checkboxInput(inputId = 'labels', label = 'Show labels'),
         plotOutput(outputId = 'refdim'),
         width = 12
       ),
@@ -182,7 +195,7 @@ ui <- tagList(
         div(style="display: inline-block;vertical-align:top;width: 33%",
         disabled(selectInput(
           inputId = 'scorefeature',
-          label = "", #'Prediction Scores',
+          label = "Prediction Scores and Continuous Metadata", #'Prediction Scores',
           choices = '',
           selectize = FALSE
         ))),
@@ -205,7 +218,7 @@ ui <- tagList(
         bsPopover(
           id = "q3",
           title = "Biomarkers Table",
-          content = "avgExpr: mean value of feature for cells in cluster; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
+          content = "Only available for clusters with at least 15 cells. avgExpr: mean value of feature for cells in cluster; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
           placement = "right",
           trigger = "focus",
           options = list(container = "body")
@@ -219,12 +232,12 @@ ui <- tagList(
         )),
         column(
           h3("RNA biomarkers"),
-          tableOutput(outputId = 'biomarkers'),
+          DTOutput(outputId = 'biomarkers'),
           width = 6
         ),
         column(
           h3("Imputed protein biomarkers"),
-          tableOutput(outputId = 'adtbio'),
+          DTOutput(outputId = 'adtbio'),
           width = 6
         ),
         width = 12
@@ -286,11 +299,12 @@ ui <- tagList(
 #' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
 #' @importFrom presto wilcoxauc
 #' @importFrom stringr str_interp
-#' @importFrom shinyjs show enable disable
+#' @importFrom shinyjs show hide enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
-#' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<-
+#' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
+#' FindTransferAnchors MapQueryData Misc
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
@@ -299,6 +313,7 @@ ui <- tagList(
 #' @importFrom stats quantile
 #' @importFrom utils write.table
 #' @importFrom patchwork wrap_plots
+#' @importFrom DT dataTableProxy selectRows renderDT
 #'
 #' @keywords internal
 #'
@@ -316,6 +331,8 @@ server <- function(input, output, session) {
     diff.exp = list(),
     messages = 'Upload a file'
   )
+  rna.proxy <- dataTableProxy(outputId = "biomarkers")
+  adt.proxy <- dataTableProxy(outputId = "adtbio")
   withProgress(
     message = "Loading reference",
     expr = {
@@ -329,11 +346,20 @@ server <- function(input, output, session) {
       setProgress(value = 1)
     }
   )
+  set.seed(0)
+  plotlevels <- sample(x = levels(as.factor(refs$plot$id)), size = length(levels(as.factor(refs$plot$id))))
   # React to events
   observeEvent( # Load the data
     eventExpr = input$file,
     handlerExpr = {
-      # TODO disable file?
+      # In case this is a re-upload, reset some elements
+      app.env$messages <- ""
+      output$valuebox.upload <- NULL
+      output$valuebox.preproc <- NULL
+      output$valuebox.mapped <- NULL
+      output$menu2 <- NULL
+      disable(id = "map")
+      hide(selector = ".rowhide")
       withProgress(
         message = "Reading input",
         expr = {
@@ -344,7 +370,9 @@ server <- function(input, output, session) {
               app.env$object$query <- 'query'
               Idents(app.env$object) <- 'query'
             },
-            error = function(e) { app.env$messages <- e$message }
+            error = function(e) {
+              app.env$messages <- e$message
+            }
           )
           setProgress(value = 1)
         }
@@ -356,7 +384,15 @@ server <- function(input, output, session) {
           x = rownames(x = app.env$object)
         )
         if (length(x = genes.common) < getOption(x = "Azimuth.map.ngenes")) {
+          app.env$object <- NULL
+          gc(verbose = FALSE)
           app.env$messages <- "Not enough genes in common with reference. Try another dataset."
+        }
+        # Validate that there aren't too many cells
+        else if (length(Cells(app.env$object)) > getOption(x = "Azimuth.app.max.cells")) {
+          app.env$object <- NULL
+          gc(verbose = FALSE)
+          app.env$messages <- "Too many cells. Try another dataset."
         } else {
           app.env$default.assay <- DefaultAssay(object = app.env$object)
           ncount <- paste0('nCount_', app.env$default.assay)
@@ -389,8 +425,7 @@ server <- function(input, output, session) {
             label = paste("min", ncount),
             value = min(ncount.val),
             min = min(ncount.val),
-            max = max(ncount.val),
-            step = 1
+            max = max(ncount.val)
           )
           enable(id = 'num.ncountmin')
           updateNumericInput(
@@ -399,8 +434,7 @@ server <- function(input, output, session) {
             label = paste("max", ncount),
             value = max(ncount.val),
             min = min(ncount.val),
-            max = max(ncount.val),
-            step = 1
+            max = max(ncount.val)
           )
           enable(id = 'num.ncountmax')
           nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
@@ -410,8 +444,7 @@ server <- function(input, output, session) {
             label = paste("min", nfeature),
             value = min(nfeature.val),
             min = min(nfeature.val),
-            max = max(nfeature.val),
-            step = 1
+            max = max(nfeature.val)
           )
           enable(id = 'num.nfeaturemin')
           updateNumericInput(
@@ -420,8 +453,7 @@ server <- function(input, output, session) {
             label = paste("max", nfeature),
             value = max(nfeature.val),
             min = min(nfeature.val),
-            max = max(nfeature.val),
-            step = 1
+            max = max(nfeature.val)
           )
           enable(id = 'num.nfeaturemax')
           if (any(grepl(pattern = mito.pattern, x = rownames(x = app.env$object)))) {
@@ -436,22 +468,22 @@ server <- function(input, output, session) {
               session = session,
               inputId = 'num.mtmin',
               label = paste("min", mt.key),
-              value = min(mito.val),
-              min = min(mito.val),
-              max = max(mito.val),
-              step = 1
+              value = floor(min(mito.val)),
+              min = floor(min(mito.val)),
+              max = max(mito.val)
             )
             enable(id = 'num.mtmin')
             updateNumericInput(
               session = session,
               inputId = 'num.mtmax',
               label = paste("max", mt.key),
-              value = max(mito.val),
+              value = ceiling(max(mito.val)),
               min = min(mito.val),
-              max = max(mito.val),
-              step = 1
+              max = ceiling(max(mito.val))
             )
             enable(id = 'num.mtmax')
+            enable(id = 'check.qcscale')
+            enable(id = 'check.qcpoints')
           }
           output$menu1 <- renderMenu(expr = {
             sidebarMenu(menuItem(
@@ -463,6 +495,7 @@ server <- function(input, output, session) {
           })
           ncellsupload <- length(x = colnames(x = app.env$object))
           app.env$messages <- paste(ncellsupload, "cells uploaded")
+          # Not enough cells are uploaded
           if (ncellsupload < getOption(x = "Azimuth.map.ncells")) {
             output$valuebox.upload <- renderValueBox(expr = valueBox(
               value = ncellsupload,
@@ -470,8 +503,6 @@ server <- function(input, output, session) {
               icon = icon("times"),
               color = "red"
             ))
-            # TODO what should happen when not enough cells are uploaded?
-            # stop(safeError(error = "Not enough cells in uploaded dataset to proceed"))
           } else {
             output$valuebox.upload <- renderValueBox(expr = valueBox(
               value = ncellsupload,
@@ -479,31 +510,29 @@ server <- function(input, output, session) {
               icon = icon("check"),
               color = "green"
             ))
-            enable(id = 'proc1')
+            enable(id = 'map')
           }
         }
       }
     }
   )
-  observeEvent( # Process the user data
-    eventExpr = input$proc1,
+  observeEvent( # Map data
+    eventExpr = input$map,
     handlerExpr = {
-      disable(id = 'proc1')
+      disable(id = 'map')
       disable(id = 'num.ncountmin')
       disable(id = 'num.ncountmax')
       disable(id = 'num.nfeaturemin')
       disable(id = 'num.nfeaturemax')
       disable(id = 'num.mtmax')
       disable(id = 'num.mtmin')
+      disable(id = 'check.qcscale')
+      disable(id = 'check.qcpoints')
       # Run SCTransform and enable mapping
       withProgress(
         message = "Normalizing with SCTransform",
         expr = {
-          # output$sct <- renderText(expr = NULL)
-          setProgress(
-            value = 0,
-            message = "Filtering based on nCount and nFeature"
-          )
+          setProgress( value = 0, message = "Filtering based on nCount and nFeature")
           ncount <- paste0('nCount_', DefaultAssay(object = app.env$object))
           nfeature <- paste0('nFeature_', DefaultAssay(object = app.env$object))
           cells.use <- app.env$object[[ncount, drop = TRUE]] >= input$num.ncountmin &
@@ -516,6 +545,7 @@ server <- function(input, output, session) {
               app.env$object[[mt.key, drop = TRUE]] <= input$num.mtmax
           }
           ncellspreproc <- sum(cells.use)
+          # not enough cells available after filtering: reset filter elements
           if (ncellspreproc < getOption(x = "Azimuth.map.ncells")) {
             output$valuebox.preproc <- renderValueBox(expr = valueBox(
               value = ncellspreproc,
@@ -523,9 +553,6 @@ server <- function(input, output, session) {
               icon = icon("times"),
               color = "red"
             ))
-            # TODO what should happen when not enough cells are available after filtering?
-            # stop(safeError(error = "Not enough cells after filtering to proceed"))
-            # reset values and re-enable all filters; don't enable the mapping button; re-enable preproc button
             ncount.val <- range(app.env$object[[ncount, drop = TRUE]])
             updateNumericInput(
               session = session,
@@ -580,23 +607,23 @@ server <- function(input, output, session) {
                 session = session,
                 inputId = 'num.mtmin',
                 label = paste("min", mt.key),
-                value = min(mito.val),
-                min = min(mito.val),
-                max = max(mito.val),
-                step = 1
+                value = floor(min(mito.val)),
+                min = floor(min(mito.val)),
+                max = max(mito.val)
               )
               enable(id = 'num.mtmin')
               updateNumericInput(
                 session = session,
                 inputId = 'num.mtmax',
                 label = paste("max", mt.key),
-                value = max(mito.val),
+                value = ceiling(max(mito.val)),
                 min = min(mito.val),
-                max = max(mito.val),
-                step = 1
+                max = ceiling(max(mito.val))
               )
               enable(id = 'num.mtmax')
-              enable(id = 'proc1')
+              enable(id = 'check.qcscale')
+              enable(id = 'check.qcpoints')
+              enable(id = 'map')
             }
           } else {
             output$valuebox.preproc <- renderValueBox(expr = valueBox(
@@ -606,306 +633,295 @@ server <- function(input, output, session) {
               color = "green"
             ))
             app.env$object <- app.env$object[, cells.use]
-            setProgress(value = 0.2, message = "Normalizing with SCTransform")
-            app.env$object <- suppressWarnings(expr = SCTransform(
+            # Pseudobulk correlation test
+            pbcor <- PBCorTest(
               object = app.env$object,
-              residual.features = rownames(x = refs$map),
-              ncells = getOption(x = 'Azimuth.sct.ncells'),
-              n_genes = getOption(x = 'Azimuth.sct.nfeats'),
-              do.correct.umi = FALSE,
-              do.scale = FALSE,
-              do.center = TRUE
-            ))
-            setProgress(value = 1)
-            app.env$messages <- c(
-              app.env$messages,
-              paste(ncellspreproc, "cells preprocessed")
+              ref = refs$avg
             )
-            enable(id = "map")
+            if (pbcor[["cor.res"]] < getOption(x = 'Azimuth.map.pbcorthresh')) {
+              output$valuebox.mapped <- renderValueBox(expr = valueBox(
+                value = "Failure",
+                subtitle = "Query is too dissimilar",
+                icon = icon("times"),
+                color = "red", width = 6
+              ))
+              output$plot.pbcor <- renderPlot(pbcor[["plot"]])
+              show(selector = ".rowhide")
+              app.env$object <- NULL
+              gc(verbose = FALSE)
+            } else {
+              setProgress(value = 0.2, message = "Normalizing with SCTransform")
+              tryCatch(
+                expr = {
+                  app.env$object <- suppressWarnings(expr = SCTransform(
+                    object = app.env$object,
+                    residual.features = rownames(x = refs$map),
+                    method = "glmGamPoi",
+                    ncells = getOption(x = 'Azimuth.sct.ncells'),
+                    n_genes = getOption(x = 'Azimuth.sct.nfeats'),
+                    do.correct.umi = FALSE,
+                    do.scale = FALSE,
+                    do.center = TRUE
+                  ))
+                },
+                error = function(e) {
+                  app.env$object <- suppressWarnings(expr = SCTransform(
+                    object = app.env$object,
+                    residual.features = rownames(x = refs$map),
+                    method = "poisson",
+                    ncells = getOption(x = 'Azimuth.sct.ncells'),
+                    n_genes = getOption(x = 'Azimuth.sct.nfeats'),
+                    do.correct.umi = FALSE,
+                    do.scale = FALSE,
+                    do.center = TRUE
+                  ))
+                }
+              )
+              app.env$messages <- c(
+                app.env$messages,
+                paste(ncellspreproc, "cells preprocessed")
+              )
+              setProgress(value = 0.4, message = "Finding anchors")
+              cells <- colnames(x = app.env$object)
+              anchors <- FindTransferAnchors(
+                reference = refs$map,
+                query = app.env$object,
+                mapping = TRUE,
+                reference.neighbors = "spca.annoy.neighbors",
+                reference.assay = "RNA",
+                query.assay = 'SCT',
+                reference.reduction = 'spca',
+                normalization.method = 'SCT',
+                features = rownames(x = refs$map),
+                dims = 1:50,
+                nn.method = "annoy",
+                verbose = TRUE
+              )
+              # TODO fail if not enough anchors (Azimuth.map.nanchors)
+              setProgress(value = 0.6, message = 'Mapping cells')
+              ingested <- MapQueryData(
+                reference = refs$map,
+                query = app.env$object,
+                dims = 1:50,
+                anchorset = anchors,
+                reference.neighbors = "spca.annoy.neighbors",
+                transfer.labels = Idents(object = refs$map),
+                transfer.expression = GetAssayData(
+                  object = refs$map[['ADT']],
+                  slot = 'data'
+                )
+              )
+              rm(anchors)
+              gc(verbose = FALSE)
+              setProgress(value = 0.8, message = "Running UMAP transform")
+              ingested <- NNTransform(
+                object = ingested,
+                meta.data = refs$map[[]]
+              )
+              app.env$object <- AddPredictions(
+                object = app.env$object,
+                preds = Misc(object = ingested, slot = "predictions"),
+                preds.levels = levels(x = refs$map),
+                preds.drop = TRUE
+              )
+              app.env$object[['umap.proj']] <- RunUMAP(
+                object = ingested[['query_ref.nn']],
+                reduction.model = refs$map[['jumap']],
+                reduction.key = 'UMAP_'
+              )
+              suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
+                data = ingested[['transfer']][, cells]
+              ))
+              # setProgress(value = 0.9, message = 'Calculating mapping metrics')
+              # app.env$object[['int']] <- CreateDimReducObject(
+              #   embeddings = Embeddings(object = ingested[['int']])[cells, ],
+              #   assay = app.env$default.assay
+              # )
+              # dsqr <- QueryReference(
+              #   reference = refs$map,
+              #   query = app.env$object,
+              #   assay.query = app.env$default.assay,
+              #   seed = 4
+              # )
+              # app.env$object <- AddMetaData(
+              #   object = app.env$object,
+              #   metadata = CalcMappingMetric(object = dsqr)
+              # )
+              # rm(dsqr, ingested)
+              app.env$object <- SetAssayData(
+                object = app.env$object,
+                assay = 'SCT',
+                slot = 'scale.data',
+                new.data = new(Class = 'matrix')
+              )
+              gc(verbose = FALSE)
+              app.env$messages <- c(
+                app.env$messages,
+                paste(ncellspreproc, "cells mapped")
+              )
+              output$valuebox.mapped <- renderValueBox(expr = valueBox(
+                value = "Success",
+                subtitle = "Mapping complete",
+                icon = icon("check"),
+                color = "green"
+              ))
+              # Enable the feature explorer
+              enable(id = 'feature')
+              app.env$default.feature <- ifelse(
+                test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
+                yes = getOption(x = 'Azimuth.app.default.gene'),
+                no = VariableFeatures(object = app.env$object)[1]
+              )
+              updateSelectInput(
+                session = session,
+                inputId = 'feature',
+                label = 'Feature',
+                choices = FilterFeatures(features = rownames(x = app.env$object)),
+                selected = app.env$default.feature
+              )
+              # Add the predicted ID and score to the plots
+              enable(id = 'adtfeature')
+              updateSelectInput(
+                session = session,
+                inputId = 'feature',
+                label = 'Feature',
+                choices = FilterFeatures(features = rownames(x = app.env$object)),
+                selected = app.env$default.feature
+              )
+              adt.features <- sort(x = FilterFeatures(features = rownames(
+                x = app.env$object[[adt.key]]
+              )))
+              app.env$default.adt <- ifelse(
+                test = getOption(x = 'Azimuth.app.default.adt') %in% adt.features,
+                yes = getOption(x = 'Azimuth.app.default.adt'),
+                no = adt.features[1]
+              )
+              updateSelectInput(
+                session = session,
+                inputId = 'adtfeature',
+                choices = adt.features,
+                selected = ''
+              )
+              metadata.choices <- sort(x = c(
+                "predicted.id",
+                PlottableMetadataNames(
+                  object = app.env$object,
+                  min.levels = 1
+                )
+              ))
+              updateSelectInput(
+                session = session,
+                inputId = 'select.metadata',
+                choices = metadata.choices,
+                selected = 'predicted.id'
+              )
+              updateSelectInput(
+                session = session,
+                inputId = 'select.metadata1',
+                choices = metadata.choices,
+                selected = 'predicted.id'
+              )
+              updateSelectInput(
+                session = session,
+                inputId = 'select.metadata2',
+                choices = metadata.choices,
+                selected = 'predicted.id'
+              )
+              enable(id = 'select.metadata')
+              enable(id = 'select.metadata1')
+              enable(id = 'select.metadata2')
+              enable(id = 'radio.pct')
+              # Enable continuous metadata
+              metadata.cont <- sort(x = setdiff(
+                x = colnames(x = app.env$object[[]]),
+                y = metadata.choices
+              ))
+              metadata.cont <- Filter(
+                f = function(x) {
+                  return(is.numeric(x = app.env$object[[x, drop = TRUE]]))
+                },
+                x = metadata.cont
+              )
+              # Add prediction scores for all classes to continuous metadata
+              metadata.cont <- sort(x = c(
+                metadata.cont,
+                rownames(x = app.env$object[["predictions"]])
+              ))
+              updateSelectInput(
+                session = session,
+                inputId = 'scorefeature',
+                choices = metadata.cont,
+                selected = ''
+              )
+              enable(id = 'scorefeature')
+              # Compute biomarkers
+              setProgress(
+                value = 0.95,
+              message = "Running differential expression"
+              )
+              app.env$diff.expr[[app.env$default.assay]] <- wilcoxauc(
+                X = app.env$object,
+                group_by = 'predicted.id',
+                assay = 'data',
+                seurat_assay = app.env$default.assay
+              )
+              app.env$diff.expr[[adt.key]] <- wilcoxauc(
+                X = app.env$object,
+                group_by = 'predicted.id',
+                assay = 'data',
+                seurat_assay = adt.key
+              )
+              allowed.clusters <- names(x = which(
+                x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells')
+              ))
+              allowed.clusters <- factor(
+                x = allowed.clusters,
+                levels = levels(x = app.env$object)
+              )
+              allowed.clusters <- sort(levels(x = droplevels(x = allowed.clusters)))
+              enable(id = 'select.prediction')
+              updateSelectInput(
+                session = session,
+                inputId = 'select.prediction',
+                choices = allowed.clusters,
+                selected = allowed.clusters[1]
+              )
+              enable(id = 'select.biomarkers')
+              updateSelectInput(
+                session = session,
+                inputId = 'select.biomarkers',
+                choices = allowed.clusters,
+                selected = allowed.clusters[1]
+              )
+              # Enable downloads
+              enable(id = 'dlumap')
+              enable(id = 'dladt')
+              enable(id = 'dlpred')
+              enable(id = 'dlscript')
+              output$menu2 <- renderMenu(expr = {
+                sidebarMenu(
+                  menuItem(
+                    text = "Cell Plots",
+                    tabName = "tab_cell",
+                    icon = icon("chart-area")
+                  ),
+                  menuItem(
+                    text = "Feature Plots",
+                    tabName = "tab_feature",
+                    icon = icon("chart-area")
+                  ),
+                  menuItem(
+                    text = "Download Results",
+                    tabName = "tab_download",
+                    icon = icon("file-download")
+                  )
+                )
+              })
+            }
           }
-        }
-      )
-    }
-  )
-  observeEvent( # Map data
-    eventExpr = input$map,
-    handlerExpr = {
-      disable(id = 'map')
-      withProgress(
-        message = 'Mapping data',
-        expr = {
-          setProgress(value = 0, message = "Finding anchors")
-          cells <- colnames(x = app.env$object)
-          # TODO: export FindTransferAnchors_Fast
-          anchors <- Seurat:::FindTransferAnchors_Fast(
-            reference = refs$map,
-            query = app.env$object,
-            reference.nn = refs$index,
-            reference.nnidx = refs$index$annoy_index,
-            reference.assay = DefaultAssay(object = refs$map),
-            npcs = NULL,
-            k.filter = NA,
-            query.assay = 'SCT',
-            reference.reduction = 'spca',
-            normalization.method = 'SCT',
-            features = rownames(x = refs$map),
-            dims = 1:50
-          )
-          # TODO fail if not enough anchors (Azimuth.map.nanchors)
-          setProgress(value = 0.6, message = 'Integrating data')
-          # TODO: export IngestNewData_Fast
-          ingested <- Seurat:::IngestNewData_Fast(
-            reference = refs$map,
-            query = app.env$object,
-            dims = 1:50,
-            transfer.anchors = anchors,
-            reference.nnidx = refs$index$annoy_index,
-            transfer.labels = Idents(object = refs$map),
-            transfer.expression = GetAssayData(
-              object = refs$map[['ADT']],
-              slot = 'data'
-            )
-          )
-          rm(anchors)
-          gc(verbose = FALSE)
-          setProgress(value = 0.8, message = "Running UMAP transform")
-          slot(object = ingested, name = 'neighbors')[['query_ref.nn']] <- NNTransform(
-            neighbors = ingested[['query_ref.nn']],
-            meta.data = refs$map[[]]
-          )
-          app.env$object <- AddPredictions(
-            object = app.env$object,
-            preds = ingested$predicted.id,
-            scores = ingested$predicted.id.score,
-            preds.levels = levels(x = refs$map),
-            preds.drop = TRUE
-          )
-          app.env$object[['umap.proj']] <- RunUMAP(
-            object = ingested[['query_ref.nn']],
-            reduction.model = refs$map[['jumap']],
-            reduction.key = 'UMAP_'
-          )
-          suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
-            data = ingested[['transfer']][, cells]
-          ))
-          setProgress(value = 0.9, message = 'Calculating mapping metrics')
-          app.env$object[['int']] <- CreateDimReducObject(
-            embeddings = Embeddings(object = ingested[['int']])[cells, ],
-            assay = app.env$default.assay
-          )
-          dsqr <- QueryReference(
-            reference = refs$map,
-            query = app.env$object,
-            assay.query = app.env$default.assay,
-            seed = 4
-          )
-          app.env$object <- AddMetaData(
-            object = app.env$object,
-            metadata = CalcMappingMetric(object = dsqr)
-          )
-          rm(dsqr, ingested)
-          app.env$object <- SetAssayData(
-            object = app.env$object,
-            assay = 'SCT',
-            slot = 'scale.data',
-            new.data = new(Class = 'matrix')
-          )
-          gc(verbose = FALSE)
           setProgress(value = 1)
         }
       )
-      mappingtext <- paste(sum(app.env$object$mapped)," cells mapped")
-      mappingpct <- round(
-        x = sum(app.env$object$mapped) / ncol(x = app.env$object) * 100,
-        digits = 0
-      )
-      app.env$messages <- c(app.env$messages, mappingtext)
-      if (mappingpct < getOption(x = "Azimuth.map.pcthresh")) {
-        output$valuebox.mapped <- renderValueBox(expr = valueBox(
-          value = paste0(mappingpct, "%"),
-          subtitle = "cells mapped",
-          icon = icon("times"),
-          color = "red"
-        ))
-        # TODO what should happen when not enough cells map?
-        # enable script download and download tab
-        output$menu2 <- renderMenu(expr = {
-          sidebarMenu(
-            menuItem(
-              text = "Download Results",
-              tabName = "tab_download",
-              icon = icon("file-download")
-            ))}
-        )
-        # stop(safeError(error = "Query dataset could not be mapped to the reference"))
-      } else {
-        output$valuebox.mapped <- renderValueBox(expr = valueBox(
-          value = paste0(mappingpct, "%"),
-          subtitle = "cells mapped",
-          icon = icon("check"),
-          color = "green"
-        ))
-        # set unmapped cells predicted.id to NA
-        app.env$object[["predicted.id"]][!app.env$object[["mapped"]]] <- NA
-        # Enable the feature explorer
-        enable(id = 'feature')
-        app.env$default.feature <- ifelse(
-          test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
-          yes = getOption(x = 'Azimuth.app.default.gene'),
-          no = VariableFeatures(object = app.env$object)[1]
-        )
-        updateSelectInput(
-          session = session,
-          inputId = 'feature',
-          label = 'Feature',
-          choices = FilterFeatures(features = rownames(x = app.env$object)),
-          selected = app.env$default.feature
-        )
-        # Add the predicted ID and score to the plots
-        enable(id = 'adtfeature')
-        updateSelectInput(
-          session = session,
-          inputId = 'feature',
-          label = 'Feature',
-          choices = c(
-            'predicted.id.score',
-            FilterFeatures(features = rownames(x = app.env$object))
-          ),
-          selected = app.env$default.feature
-        )
-        adt.features <- sort(x = FilterFeatures(features = rownames(
-          x = app.env$object[[adt.key]]
-        )))
-        app.env$default.adt <- ifelse(
-          test = getOption(x = 'Azimuth.app.default.adt') %in% adt.features,
-          yes = getOption(x = 'Azimuth.app.default.adt'),
-          no = adt.features[1]
-        )
-        updateSelectInput(
-          session = session,
-          inputId = 'adtfeature',
-          choices = adt.features,
-          # selected = app.env$default.adt
-          selected = ''
-        )
-        metadata.choices <- sort(x = c(
-          "predicted.id",
-          PlottableMetadataNames(
-            object = app.env$object,
-            min.levels = 1
-          )
-        ))
-        updateSelectInput(
-          session = session,
-          inputId = 'select.metadata',
-          choices = metadata.choices,
-          selected = 'predicted.id'
-        )
-        updateSelectInput(
-          session = session,
-          inputId = 'select.metadata1',
-          choices = metadata.choices,
-          selected = 'predicted.id'
-        )
-        updateSelectInput(
-          session = session,
-          inputId = 'select.metadata2',
-          choices = metadata.choices,
-          selected = 'predicted.id'
-        )
-        enable(id = 'select.metadata')
-        enable(id = 'select.metadata1')
-        enable(id = 'select.metadata2')
-        enable(id = 'radio.pct')
-        # Compute biomarkers
-        withProgress(
-          message = "Running differential expression",
-          expr = {
-            setProgress(value = 0)
-            app.env$diff.expr[[app.env$default.assay]] <- wilcoxauc(
-              X = app.env$object,
-              group_by = 'predicted.id',
-              assay = 'data',
-              seurat_assay = app.env$default.assay
-            )
-            setProgress(value = 0.6)
-            app.env$diff.expr[[adt.key]] <- wilcoxauc(
-              X = app.env$object,
-              group_by = 'predicted.id',
-              assay = 'data',
-              seurat_assay = adt.key
-            )
-            setProgress(value = 1)
-          }
-        )
-        allowed.clusters <- names(x = which(
-          x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells')
-        ))
-        allowed.clusters <- factor(
-          x = allowed.clusters,
-          levels = levels(x = app.env$object)
-        )
-        allowed.clusters <- levels(x = droplevels(x = allowed.clusters))
-        enable(id = 'select.prediction')
-        updateSelectInput(
-          session = session,
-          inputId = 'select.prediction',
-          choices = allowed.clusters,
-          selected = allowed.clusters[1]
-        )
-        enable(id = 'select.biomarkers')
-        updateSelectInput(
-          session = session,
-          inputId = 'select.biomarkers',
-          choices = allowed.clusters,
-          selected = allowed.clusters[1]
-        )
-        # Enable downloads
-        enable(id = 'dlumap')
-        enable(id = 'dladt')
-        enable(id = 'dlpred')
-        enable(id = 'dlscript')
-        output$text.dladt <- renderText(expr = {
-          c("imputed.assay <- readRDS('azimuth_impADT.Rds')",
-          "object <- object[, Cells(imputed.assay)]",
-          "object[['impADT']] <- imputed.assay")
-          },
-          sep = "\n"
-        )
-        output$text.dlumap <- renderText(expr = {
-          c("projected.umap <- readRDS('azimuth_umap.Rds')",
-            "object <- object[, Cells(projected.umap)]",
-            "object[['umap.proj']] <- projected.umap")
-          },
-          sep = "\n"
-        )
-        output$text.dlpred <- renderText(expr = {
-          c("predictions <- read.delim('azimuth_pred.tsv', row.names = 1)",
-            "object <- AddMetaData(",
-            "\tobject = object,",
-            "\tmetadata = predictions)")
-          },
-          sep = "\n"
-        )
-        output$menu2 <- renderMenu(expr = {
-          sidebarMenu(
-          menuItem(
-            text = "Cell Plots",
-            tabName = "tab_cell",
-            icon = icon("chart-area")
-          ),
-          menuItem(
-            text = "Feature Plots",
-            tabName = "tab_feature",
-            icon = icon("chart-area")
-          ),
-          menuItem(
-            text = "Download Results",
-            tabName = "tab_download",
-            icon = icon("file-download")
-          ))}
-        )
-      }
     }
   )
   observeEvent( # RNA feature
@@ -923,6 +939,14 @@ server <- function(input, output, session) {
         for (f in c('adtfeature', 'scorefeature')) {
           updateSelectInput(session = session, inputId = f, selected = '')
         }
+        table.check <- input$feature %in% rownames(x = RenderDiffExp(
+          diff.exp = app.env$diff.expr[[app.env$default.assay]],
+          groups.use = input$select.biomarkers
+        ))
+        tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, !table.check)]
+        for (tab in tables.clear) {
+          selectRows(proxy = tab, selected = NULL)
+        }
       }
     }
   )
@@ -937,6 +961,14 @@ server <- function(input, output, session) {
         for (f in c('feature', 'scorefeature')) {
           updateSelectInput(session = session, inputId = f, selected = '')
         }
+        table.check <- input$adtfeature %in% rownames(x = RenderDiffExp(
+          diff.exp = app.env$diff.expr[[adt.key]],
+          groups.use = input$select.biomarkers
+        ))
+        tables.clear <- list(rna.proxy, adt.proxy)[c(TRUE, !table.check)]
+        for (tab in tables.clear) {
+          selectRows(proxy = tab, selected = NULL)
+        }
       }
     }
   )
@@ -944,13 +976,48 @@ server <- function(input, output, session) {
     eventExpr = input$scorefeature,
     handlerExpr = {
       if (nchar(x = input$scorefeature)) {
-        app.env$feature <- paste0(
-          Key(object = app.env$object[[scores.key]]),
-          input$scorefeature
-        )
+        # app.env$feature <- paste0(
+        #   Key(object = app.env$object[[scores.key]]),
+        #   input$scorefeature
+        # )
+        # app.env$feature <- paste0('md_', input$scorefeature)
+        app.env$feature <- input$scorefeature
         for (f in c('feature', 'adtfeature')) {
           updateSelectInput(session = session, inputId = f, selected = '')
         }
+        for (tab in list(rna.proxy, adt.proxy)) {
+          selectRows(proxy = tab, selected = NULL)
+        }
+      }
+    }
+  )
+  observeEvent( # Select from biomarkers table
+    eventExpr = input$biomarkers_rows_selected,
+    handlerExpr = {
+      if (length(x = input$biomarkers_rows_selected)) {
+        updateSelectInput(
+          session = session,
+          inputId = 'feature',
+          selected = rownames(x = RenderDiffExp(
+            diff.exp = app.env$diff.expr[[app.env$default.assay]],
+            groups.use = input$select.biomarkers
+          ))[input$biomarkers_rows_selected]
+        )
+      }
+    }
+  )
+  observeEvent( # Select from adtbio table
+    eventExpr = input$adtbio_rows_selected,
+    handlerExpr = {
+      if (length(x = input$adtbio_rows_selected)) {
+        updateSelectInput(
+          session = session,
+          inputId = 'adtfeature',
+          selected = rownames(x = RenderDiffExp(
+            diff.exp = app.env$diff.expr[[adt.key]],
+            groups.use = input$select.biomarkers
+          ))[input$adtbio_rows_selected]
+        )
       }
     }
   )
@@ -966,57 +1033,107 @@ server <- function(input, output, session) {
         features = qc,
         group.by = 'query',
         combine = FALSE,
-        pt.size = Seurat:::AutoPointSize(data = isolate(app.env$object))
+        pt.size = ifelse(
+          test = input$check.qcpoints,
+          yes = 0,
+          no = Seurat:::AutoPointSize(data = isolate(app.env$object))
+        ),
+        log = input$check.qcscale
       )
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
         geom_hline(yintercept = input$num.ncountmin) +
         geom_hline(yintercept = input$num.ncountmax) +
-        annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = input$num.ncountmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
-        annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = -Inf, ymax = input$num.ncountmin, xmin = 0.5, xmax = 1.5) +
-        NoLegend() + xlab("")
+        annotate(
+          geom = "rect",
+          alpha = 0.2,
+          fill = "red",
+          ymin = input$num.ncountmax,
+          ymax = Inf,
+          xmin = 0.5,
+          xmax = 1.5
+        ) +
+        annotate(
+          geom = "rect",
+          alpha = 0.2,
+          fill = "red",
+          ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+          ymax = input$num.ncountmin,
+          xmin = 0.5,
+          xmax = 1.5
+        ) +
+        NoLegend() +
+        xlab("")
       # nFeature
       vlnlist[[2]] <- vlnlist[[2]] +
         geom_hline(yintercept = input$num.nfeaturemin) +
         geom_hline(yintercept = input$num.nfeaturemax) +
-        annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = input$num.nfeaturemax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
-        annotate(geom = "rect", alpha = 0.2, fill = "red",
-                 ymin = -Inf, ymax = input$num.nfeaturemin, xmin = 0.5, xmax = 1.5) +
-        NoLegend() + xlab("")
+        annotate(
+          geom = "rect",
+          alpha = 0.2,
+          fill = "red",
+          ymin = input$num.nfeaturemax,
+          ymax = Inf,
+          xmin = 0.5,
+          xmax = 1.5
+        ) +
+        annotate(
+          geom = "rect",
+          alpha = 0.2,
+          fill = "red",
+          ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+          ymax = input$num.nfeaturemin,
+          xmin = 0.5,
+          xmax = 1.5
+        ) +
+        NoLegend() +
+        xlab("")
       if (mt.key %in% colnames(x = isolate(app.env$object[[]]))) {
         vlnlist[[3]] <- vlnlist[[3]] +
           geom_hline(yintercept = input$num.mtmin) +
           geom_hline(yintercept = input$num.mtmax) +
-          annotate(geom = "rect", alpha = 0.2, fill = "red",
-                   ymin = input$num.mtmax, ymax = Inf, xmin = 0.5, xmax = 1.5) +
-          annotate(geom = "rect", alpha = 0.2, fill = "red",
-                   ymin = -Inf, ymax = input$num.mtmin, xmin = 0.5, xmax = 1.5) +
-          NoLegend() + xlab("")
-        wrap_plots(vlnlist, ncol = 3)
-      } else {
-        wrap_plots(vlnlist, ncol = 2)
+          annotate(
+            geom = "rect",
+            alpha = 0.2,
+            fill = "red",
+            ymin = input$num.mtmax,
+            ymax = Inf,
+            xmin = 0.5,
+            xmax = 1.5
+          ) +
+          annotate(
+            geom = "rect",
+            alpha = 0.2,
+            fill = "red",
+            ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+            ymax = input$num.mtmin,
+            xmin = 0.5,
+            xmax = 1.5
+          ) +
+          NoLegend() +
+          xlab("")
       }
+      wrap_plots(vlnlist, ncol = length(x = vlnlist))
     }
   })
   output$refdim <- renderPlot(expr = {
-    DimPlot(object = refs$plot)
+    DimPlot(object = refs$plot, label = input$labels, group.by = "id") +
+      scale_colour_hue(limits = plotlevels, drop = FALSE)
   })
   output$objdim <- renderPlot(expr = {
   if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
         if (input$select.metadata == "predicted.id") {
-          plotlevels <- c(levels(refs$plot$id)[levels(refs$plot$id) != "Doublet"], NA)
           DimPlot(
             object = app.env$object,
-            group.by = "predicted.id") +
-            scale_colour_hue(limits = plotlevels, drop = FALSE)
+            group.by = "predicted.id",
+            label = input$labels
+          ) + scale_colour_hue(limits = plotlevels, drop = FALSE)
         } else {
           DimPlot(
             object = app.env$object,
-            group.by = input$select.metadata
+            group.by = input$select.metadata,
+            label = input$labels
           )
         }
       }
@@ -1033,40 +1150,57 @@ server <- function(input, output, session) {
           Key(object = app.env$object[[adt.key]]),
           rownames(x = app.env$object[[adt.key]])
         ),
-        colnames(x = app.env$object[[]])
+        colnames(x = app.env$object[[]]),
+        rownames(x = app.env$object[["predictions"]])
       )
       if (app.env$feature %in% avail) {
+        title <- ifelse(
+          test = grepl(pattern = '^sct_', x = app.env$feature),
+          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+          no = app.env$feature
+        )
         VlnPlot(object = app.env$object, features = app.env$feature) +
+          ggtitle(label = title) +
           NoLegend()
       }
     }
   })
-  output$edim <- renderPlot({
+  output$edim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       palettes <- list(
         c("lightgrey", "blue"),
         c('lightgrey', 'darkgreen'),
-        c('lightgrey', 'blue')
+        c('lightgrey', 'darkred')
       )
       names(x = palettes) <- c(
         Key(object = app.env$object[["SCT"]]),
         Key(object = app.env$object[[adt.key]]),
         'md_'
       )
-      feature.key <- paste0(
-        unlist(x = strsplit(x = app.env$feature, split = '_'))[1],
-        '_'
+      md <- c(
+        colnames(x = app.env$object[[]]),
+        rownames(x = app.env$object[['predictions']])
       )
-      if (feature.key == paste0(app.env$feature, '_')) {
-        feature.key <- 'md_'
+      feature.key <- if (app.env$feature %in% md) {
+        'md_'
+      } else {
+        paste0(
+          unlist(x = strsplit(x = app.env$feature, split = '_'))[1],
+          '_'
+        )
       }
       pal.use <- palettes[[feature.key]]
       if (!is.null(x = pal.use)) {
-        FeaturePlot(
+        title <- ifelse(
+          test = grepl(pattern = '^sct_', x = app.env$feature),
+          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+          no = app.env$feature
+        )
+        suppressWarnings(expr = FeaturePlot(
           object = app.env$object,
           features = app.env$feature,
           cols = pal.use
-        )
+        )) + ggtitle(label = title)
       }
     }
   })
@@ -1074,6 +1208,48 @@ server <- function(input, output, session) {
   output$message <- renderUI(expr = {
     p(HTML(text = paste(app.env$messages, collapse = "<br />")))
   })
+  output$containerid <- renderText(c("debug ID: ", Sys.info()[["nodename"]]))
+  output$text.cellsremain <- renderText(expr = {
+    if (!is.null(x = isolate(app.env$object))) {
+      ncount <- paste0('nCount_', DefaultAssay(object = isolate(app.env$object)))
+      nfeature <- paste0('nFeature_', DefaultAssay(object = isolate(app.env$object)))
+      cells.use <- isolate(app.env$object)[[ncount, drop = TRUE]] >= input$num.ncountmin &
+        isolate(app.env$object)[[ncount, drop = TRUE]] <= input$num.ncountmax &
+        isolate(app.env$object)[[nfeature, drop = TRUE]] >= input$num.nfeaturemin &
+        isolate(app.env$object)[[nfeature, drop = TRUE]] <= input$num.nfeaturemax
+      if (any(grepl(pattern = mito.pattern, x = rownames(x = isolate(app.env$object))))) {
+        cells.use <- cells.use &
+          isolate(app.env$object)[[mt.key, drop = TRUE]] >= input$num.mtmin &
+          isolate(app.env$object)[[mt.key, drop = TRUE]] <= input$num.mtmax
+      }
+      paste(sum(cells.use), "cells remain after current filters")
+    }
+  })
+  output$text.dladt <- renderText(
+    expr = {
+      c("imputed.assay <- readRDS('azimuth_impADT.Rds')",
+        "object <- object[, Cells(imputed.assay)]",
+        "object[['impADT']] <- imputed.assay")
+    },
+    sep = "\n"
+  )
+  output$text.dlumap <- renderText(
+    expr = {
+      c("projected.umap <- readRDS('azimuth_umap.Rds')",
+        "object <- object[, Cells(projected.umap)]",
+        "object[['umap.proj']] <- projected.umap")
+    },
+    sep = "\n"
+  )
+  output$text.dlpred <- renderText(
+    expr = {
+      c("predictions <- read.delim('azimuth_pred.tsv', row.names = 1)",
+        "object <- AddMetaData(",
+        "\tobject = object,",
+        "\tmetadata = predictions)")
+    },
+    sep = "\n"
+  )
   # Tables
   output$table.qc <- renderTable(
     expr = {
@@ -1091,7 +1267,7 @@ server <- function(input, output, session) {
     },
     rownames = TRUE
   )
-  output$biomarkers <- renderTable(
+  output$biomarkers <- renderDT(
     expr = {
       if (!is.null(x = app.env$diff.expr[[app.env$default.assay]])) {
         RenderDiffExp(
@@ -1100,9 +1276,10 @@ server <- function(input, output, session) {
         )
       }
     },
-    rownames = TRUE
+    selection = 'single',
+    options = list(dom = 't', ordering = FALSE)
   )
-  output$adtbio <- renderTable(
+  output$adtbio <- renderDT(
     expr = {
       if (!is.null(x = app.env$diff.expr[[adt.key]])) {
         RenderDiffExp(
@@ -1111,12 +1288,12 @@ server <- function(input, output, session) {
         )
       }
     },
-    rownames = TRUE
+    selection = 'single',
+    options = list(dom = 't', ordering = FALSE)
   )
   output$table.metadata <- renderTable(
     expr = {
       if (!is.null(x = app.env$object)) {
-        # TODO allow user to toggle between frequency and percentage
         CategoryTable(
           object = app.env$object,
           category.1 = input$select.metadata1,
@@ -1197,7 +1374,7 @@ server <- function(input, output, session) {
 
 #' Launch the mapping app
 #'
-#' @param reference,mito,max.upload.mb,default.gene,default,adt See \strong{App options} for more details
+#' @param reference,mito,max.upload.mb,max.cells,default.gene,default.adt See \strong{App options} for more details
 #'
 #' @section App options:
 #'
@@ -1216,6 +1393,9 @@ server <- function(input, output, session) {
 #'  \item{\code{Azimuth.app.max.upload.mb}}{
 #'   Maximum file size (in MB) allowed to upload
 #'  }
+#'  \item{\code{Azimuth.app.max.cells}}{
+#'   Maximum number of cells allowed to upload
+#'  }
 #'  \item{\code{Azimuth.app.default.gene}}{
 #'   Gene to select by default in feature/violin plot
 #'  }
@@ -1231,7 +1411,7 @@ server <- function(input, output, session) {
 #'
 #' @export
 #'
-#' @seealso \code{\link{SeruatMapper-package}}
+#' @seealso \code{\link{SeuratMapper-package}}
 #'
 AzimuthApp <- function(
   mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
@@ -1242,6 +1422,10 @@ AzimuthApp <- function(
   max.upload.mb = getOption(
     x = 'Azimuth.app.max.upload.mb',
     default = 500
+  ),
+  max.cells = getOption(
+    x = 'Azimuth.app.max.cells',
+    default = 50000
   ),
   default.gene = getOption(
     x = 'Azimuth.app.default.gene',
@@ -1257,6 +1441,7 @@ AzimuthApp <- function(
     shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
     Azimuth.app.mito = mito,
     Azimuth.app.reference = reference,
+    Azimuth.app.max.cells = max.cells,
     Azimuth.app.default.gene = default.gene,
     Azimuth.app.default.adt = default.adt
   )

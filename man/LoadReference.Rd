@@ -39,9 +39,9 @@ there must be the following files:
  object (for plotting)
  \item \dQuote{fullref.Rds} for the full reference \code{Seurat}
  object (for density estimation)
- \item \dQuote{adtref.Rds} for the ADT data for the reference \code{Seurat}
- object (for feature imputation)
- \item \dQuote{idx.Rds} for the nearest-neighbor index object
+ \item \dQuote{idx.annoy} for the nearest-neighbor index object
+ \item \dQuote{vf_avg_rna.Rds} for the average expression of variable
+ features of the reference (for pseudobulk check)
 }
 }
 \examples{

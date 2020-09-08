@@ -6,13 +6,17 @@ NULL
 #' Add Predictions
 #'
 #' @param object A \code{Seurat} object
-#' @param preds A named vector with the predicted IDs
-#' @param scores A named vector with the scores for \code{preds}
+#' @param preds dataframe: Rows are cells. Columns are predicted.id,
+#' predicted.id.score, and prediction.score. [CLASSNAME] for all reference
+#' classes
 #' @param preds.levels Levels for predicted IDs, useful for
 #' ordering \code{preds}
-#' @param preds.drop Drop unused levels from \code{preds}
+#' @param preds.drop Drop unused levels from \code{preds} and
+#' \dQuote{predictions} assay.
 #'
-#' @return \code{object} with transformations applied
+#' @return \code{object} with predicted.id and predicted.id.score added to
+#' metadata, and prediction.score. [CLASSNAME] added as an assay named
+#' \dQuote{predictions}
 #'
 #' @importFrom Seurat Idents<-
 #'
@@ -21,24 +25,35 @@ NULL
 AddPredictions <- function(
   object,
   preds,
-  scores,
   preds.levels = unique(x = as.character(x = preds)),
   preds.drop = TRUE
 ) {
   on.exit(expr = gc(verbose = FALSE))
   cells <- colnames(x = object)
-  preds <- factor(x = preds[cells], levels = preds.levels)
+  # make sure order is the same as in the object
+  preds <- preds[cells, , drop = FALSE]
+  object$predicted.id.score <- preds$predicted.id.score
+  ids <- factor(x = preds$predicted.id, levels = preds.levels)
   if (isTRUE(x = preds.drop)) {
-    preds <- droplevels(x = preds)
+    ids <- droplevels(x = ids)
+    # Keep only prediction scores for levels not dropped;
+    # get rid of columns already added as metadata in the process
+    # spaces in levels in predicted.id are replaced with dots in the column names
+    preds <- subset(
+      x = preds,
+      select = gsub(
+        pattern = " ",
+        replacement = ".",
+        x = paste0("prediction.score.", levels(x = ids))
+      )
+    )
+  } else {
+    # Keep all prediction scores, just get rid of columns already added as metadata
+    preds <- subset(x = preds, select = -c("predicted.id", "predicted.id.score"))
   }
-  object$predicted.id <- preds
-  object$predicted.id.score <- scores[cells]
+  object$predicted.id <- ids
   Idents(object = object) <- 'predicted.id'
-  # object[[reduction.name]] <- RunUMAP(
-  #   object = neighbors,
-  #   reduction.model = reduction.model,
-  #   reduction.key = reduction.key
-  # )
+  object[["predictions"]] <- CreateAssayObject(data = t(preds))
   return(object)
 }
 
@@ -183,25 +198,93 @@ MinimalMatchingCells <- function(reference, query, match = TRUE, seed = NULL) {
 
 #' Transform an NN index
 #'
-#' @param neighbors Neighbors
+#' @param object Seurat object
 #' @param meta.data Metadata
+#' @param neighbor.slot Name of Neighbor slot
 #' @param key Column of metadata to use
 #'
-#' @return \code{neighbors} transfomed
+#' @return \code{object} with transfomed neighbor.slot
+#'
+#' @importFrom Seurat Indices
 #'
 #' @keywords internal
 #'
-NNTransform <- function(neighbors, meta.data, key = 'ori.index') {
+NNTransform <- function(
+  object,
+  meta.data,
+  neighbor.slot = "query_ref.nn",
+  key = 'ori.index'
+) {
   on.exit(expr = gc(verbose = FALSE))
+  ind <- Indices(object[[neighbor.slot]])
   ori.index <- t(x = sapply(
-    X = 1:nrow(x = neighbors$nn.idx),
+    X = 1:nrow(x = ind),
     FUN = function(i) {
-      return(meta.data[neighbors$nn.idx[i, ], key])
+      return(meta.data[ind[i, ], key])
     }
   ))
-  rownames(x = ori.index) <- rownames(x = neighbors$nn.idx)
-  neighbors$nn.idx <- ori.index
-  return(neighbors)
+  rownames(x = ori.index) <- rownames(x = ind)
+  slot(object = object[[neighbor.slot]], name = "nn.idx") <- ori.index
+  return(object)
+}
+
+#' Pseudobulk correlation test of query against reference
+#'
+#' Computes the correlation between a pseudobulk of the query object and the
+#' reference dataset. The feature set is the intersection of the reference
+#' variable features and all features present in the query. Correlation is
+#' computed on log normalized expression values using spearman correlation.
+#'
+#' @param object Query object
+#' @param ref Reference expression averages
+#' @param min.features If fewer than min.features exist in the intersection,
+#' return 0 as correlation.
+#'
+#' @return Returns a list with the following values
+#' \describe{
+#'  \item{\code{cor.res}}{correlation between query and reference}
+#'  \item{\code{plot}}{
+#'   scatterplot of average expression of query and reference common genes
+#'  }
+#' }
+#'
+#' @importFrom stats cor
+#' @importFrom Seurat AverageExpression Idents<-
+#' @importFrom ggplot2 ggplot aes geom_point xlab ylab ggtitle theme_bw
+#'
+#' @keywords internal
+#'
+PBCorTest <- function(object, ref, min.features = 250) {
+  Idents(object = object) <- "PBTest"
+  features <- intersect(rownames(x = object), rownames(x = ref))
+  features <- features[features %in% rownames(x = object) & features %in% rownames(x = ref)]
+  if (length(x = features) < 250) {
+    return(0)
+  }
+  avg <- AverageExpression(
+    object = object,
+    features = rownames(x = object),
+    assays = "RNA",
+    verbose = FALSE
+  )[[1]]
+  cor.res <- cor(
+    x = log1p(avg[features, ]), y = log1p(ref[features, ]),
+    method = "spearman"
+  )
+  cor.data <- data.frame(log1p(x = avg[features, ]), log1p(x = ref[features, ]))
+  colnames(cor.data) <- c("q", "r")
+  plot <- ggplot(cor.data, aes(q, r)) +
+    geom_point() +
+    xlab("Query average expression") +
+    ylab("Reference average expression") +
+    ggtitle(label = paste(
+      "Pseudo-bulk correlation of",
+      length(x = features),
+      "common genes:",
+      round(x = cor.res, digits = 2)
+    )) +
+    theme_bw()
+  return(list(cor.res = cor.res, plot = plot))
 }
 
 #' Merge reference and query objects together

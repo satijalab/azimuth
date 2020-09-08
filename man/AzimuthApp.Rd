@@ -9,12 +9,13 @@ AzimuthApp(
   reference = getOption(x = "Azimuth.app.reference", default =
     "http://satijalab04.nygenome.org/pbmc"),
   max.upload.mb = getOption(x = "Azimuth.app.max.upload.mb", default = 500),
+  max.cells = getOption(x = "Azimuth.app.max.cells", default = 50000),
   default.gene = getOption(x = "Azimuth.app.default.gene", default = "GNLY"),
   default.adt = getOption(x = "Azimuth.app.default.adt", default = "CD3-1")
 )
 }
 \arguments{
-\item{reference, mito, max.upload.mb, default.gene, default, adt}{See \strong{App options} for more details}
+\item{reference, mito, max.upload.mb, max.cells, default.gene, default.adt}{See \strong{App options} for more details}
 }
 \value{
 None, launches the mapping Shiny app
@@ -40,6 +41,9 @@ can configure these either \link[base:options]{globally} or via arguments to
  \item{\code{Azimuth.app.max.upload.mb}}{
   Maximum file size (in MB) allowed to upload
  }
+ \item{\code{Azimuth.app.max.cells}}{
+  Maximum number of cells allowed to upload
+ }
  \item{\code{Azimuth.app.default.gene}}{
   Gene to select by default in feature/violin plot
  }
@@ -50,5 +54,5 @@ can configure these either \link[base:options]{globally} or via arguments to
 }
 
 \seealso{
-\code{\link{SeruatMapper-package}}
+\code{\link{SeuratMapper-package}}
 }

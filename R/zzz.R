@@ -12,19 +12,23 @@
 #'  }
 #'  \item{\code{Azimuth.map.ngenes}}{
 #'   Minimum number of genes in common with reference to accept uploaded file.
-#'   Defaults to \code{1000}
+#'   Defaults to \code{250}
 #'  }
-#'  \item{\code{Azimuth.map.ngenes}}{
+#'  \item{\code{Azimuth.map.nanchors}}{
 #'   Minimum number of anchors that must be found to complete mapping.
 #'   Defaults to \code{50}
+#'  }
+#'  \item{\code{Azimuth.map.pbcorthresh}}{
+#'   Only proceed to mapping if query dataset meets or exceeds this threshold in
+#'   pseudobulk correlation test.
 #'  }
 #'  \item{\code{Azimuth.de.mincells}}{
 #'   Minimum number of cells per cluster for differential expression; defaults
 #'   to \code{15}
 #'  }
-#'  \item{\code{Azimuth.map.pcthresh}}{
-#'   Only show mapped plot if the percentage of cells mapped meets or
-#'   exceeds this threshold; defaults to \code{60}
+#'  \item{\code{Azimuth.de.digits}}{
+#'   Number of digits to round differential expression table to; defaults to
+#'   \code{3}
 #'  }
 #'  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
 #'   Number of cells and features to use for
@@ -41,11 +45,12 @@
 "_PACKAGE"
 
 default.options <- list(
+  Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,
-  Azimuth.map.ngenes = 1000L,
+  Azimuth.map.ngenes = 250L,
   Azimuth.map.nanchors = 50L,
-  Azimuth.map.pcthresh = 60L,
+  Azimuth.map.pbcorthresh = 0.75,
   Azimuth.sct.ncells = 1000L,
   Azimuth.sct.nfeats = 1000L
 )
@@ -178,9 +183,9 @@ FilterFeatures <- function(features) {
 #' @return A \code{\link[Seurat]{Seurat}} object
 #'
 #' @importFrom tools file_ext
-#' @importFrom SeuratDisk LoadH5Seurat
-#' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse DietSeurat
-#' DefaultAssay
+#' @importFrom SeuratDisk Connect
+#' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse Assays
+#' GetAssayData DefaultAssay<- DietSeurat as.Seurat
 #'
 #' @keywords internal
 #'
@@ -227,9 +232,15 @@ LoadFileInput <- function(path) {
       if (inherits(x = object, what = c('Matrix', 'matrix', 'data.frame'))) {
         object <- CreateSeuratObject(counts = as.sparse(x = object))
       } else if (inherits(x = object, what = 'Seurat')) {
+        if (!'RNA' %in% Assays(object = object)) {
+          stop("No RNA assay provided", call. = FALSE)
+        } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
+          stop("No RNA counts matrix present", call. = )
+        }
+        DefaultAssay(object = object) <- "RNA"
         object <- DietSeurat(
           object = object,
-          assays = DefaultAssay(object = object)
+          assays = "RNA"
         )
       } else {
         stop("The RDS file must be a Seurat object", call. = FALSE)
@@ -238,10 +249,19 @@ LoadFileInput <- function(path) {
     },
     'h5ad' = LoadH5AD(path = path),
     'h5seurat' = {
-      object <- LoadH5Seurat(file = path, assays = 'counts')
-      object <- DietSeurat(
-        object = object,
-        assays = DefaultAssay(object = object)
+      hfile <- suppressWarnings(expr = Connect(filename = path))
+      on.exit(expr = hfile$close_all())
+      if (!'RNA' %in% names(x = hfile[['assays']])) {
+        stop("Cannot find the RNA assay in this h5Seurat file", call. = FALSE)
+      } else if (!'counts' %in% names(x = hfile[['assays/RNA']])) {
+        stop("No RNA counts matrix provided", call. = FALSE)
+      }
+      object <- as.Seurat(
+        x = hfile,
+        assays = list('RNA' = 'counts'),
+        reductions = FALSE,
+        graphs = FALSE,
+        images = FALSE
       )
       object
     },
@@ -392,9 +412,9 @@ LoadH5AD <- function(path) {
 #'  object (for plotting)
 #'  \item \dQuote{fullref.Rds} for the full reference \code{Seurat}
 #'  object (for density estimation)
-#'  \item \dQuote{adtref.Rds} for the ADT data for the reference \code{Seurat}
-#'  object (for feature imputation)
-#'  \item \dQuote{idx.Rds} for the nearest-neighbor index object
+#'  \item \dQuote{idx.annoy} for the nearest-neighbor index object
+#'  \item \dQuote{vf_avg_rna.Rds} for the average expression of variable
+#'  features of the reference (for pseudobulk check)
 #' }
 #'
 #' @param path Path or URL to the two RDS files
@@ -416,7 +436,7 @@ LoadH5AD <- function(path) {
 #'  }
 #' }
 #'
-#' @importFrom Seurat Idents<-
+#' @importFrom Seurat Idents<- LoadAnnoyIndex
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #'
@@ -435,9 +455,8 @@ LoadReference <- function(path, seconds = 10L) {
     map = 'ref.Rds',
     plt = 'plotref.Rds',
     ref = 'fullref.Rds',
-    adt = 'adtref.Rds',
-    idx = 'idx.Rds',
-    ann = 'idx.annoy'
+    ann = 'idx.annoy',
+    avg = 'vf_avg_rna.Rds'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -450,10 +469,9 @@ LoadReference <- function(path, seconds = 10L) {
     mapref <- file.path(path, ref.names$map)
     pltref <- file.path(path, ref.names$plt)
     fllref <- file.path(path, ref.names$ref)
-    adtref <- file.path(path, ref.names$adt)
-    idxref <- file.path(path, ref.names$idx)
     annref <- file.path(path, ref.names$ann)
-    exists <- file.exists(c(mapref, pltref, fllref, adtref, idxref, annref))
+    avgref <- file.path(path, ref.names$avg)
+    exists <- file.exists(c(mapref, pltref, fllref, annref, avgref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -491,31 +509,28 @@ LoadReference <- function(path, seconds = 10L) {
     mapref <- url(description = ref.uris[['map']])
     pltref <- url(description = ref.uris[['plt']])
     fllref <- url(description = ref.uris[['ref']])
-    adtref <- url(description = ref.uris[['adt']])
-    idxref <- url(description = ref.uris[['idx']])
-    # annref <- url(description = ref.uris[6])
+    avgref <- url(description = ref.uris[['avg']])
     annref <- tempfile()
     download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
     on.exit(expr = {
       close(con = mapref)
       close(con = pltref)
       close(con = fllref)
-      close(con = adtref)
-      close(con = idxref)
+      close(con = avgref)
       unlink(x = annref)
     })
   }
-  # Load the map reference and ADT values for imputation
+  # Load the map reference
   map <- readRDS(file = mapref)
-  map[['ADT']] <- readRDS(file = adtref)[['ADT']]
-  # Load the annoy index
-  nn <- readRDS(file = idxref)
-  annoy.index <- CreateAnn(name = nn$metric, ndim = nn$ndim)
-  annoy.index$load(file = annref)
-  nn$annoy_index <- annoy.index
+  # Load the annoy index into the Neighbor object in the neighbors slot
+  map[["spca.annoy.neighbors"]] <- LoadAnnoyIndex(
+    object = map[["spca.annoy.neighbors"]],
+    file = annref
+  )
   # Load the other references
   plot <- readRDS(file = pltref)
   full <- readRDS(file = fllref)
+  avg <- readRDS(file = avgref)
   id.check <- vapply(
     X = c(map, plot, full),
     FUN = function(x) {
@@ -533,7 +548,7 @@ LoadReference <- function(path, seconds = 10L) {
     map = map,
     plot = plot,
     full = full,
-    index = nn
+    avgexp = avg
   ))
 }
 
@@ -588,12 +603,14 @@ PlottableMetadataNames <- function(
   max.levels = 20
 ) {
   column.status <- sapply(
-    object[[]],
+    X = object[[]],
     FUN = function(column) {
-      length(levels(droplevels(as.factor(column)))) >= min.levels &&
-        length(levels(droplevels(as.factor(column)))) <= max.levels
+      length(x = levels(x = droplevels(x = as.factor(x = column)))) >= min.levels &&
+        length(x = levels(x = droplevels(x = as.factor(x = column)))) <= max.levels
     }
-  ) & (colnames(object[[]]) != "mapping.score") & (colnames(object[[]]) != "predicted.id")
+  ) & (colnames(object[[]]) != "mapping.score") &
+   (colnames(object[[]]) != "predicted.id") &
+   (colnames(object[[]]) != "mapped")
   return(colnames(object[[]])[column.status])
 }
 
@@ -622,7 +639,6 @@ RenderDiffExp <- function(
   n = 10L,
   logfc.thresh = 0L
 ) {
-  # cols.remove <- c('feature', 'logFC', 'auc')
   cols.keep <- c('avgExpr', 'auc', 'padj', 'pct_in', 'pct_out')
   groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
   diff.exp <- lapply(
@@ -636,8 +652,13 @@ RenderDiffExp <- function(
   )
   diff.exp <- do.call(what = 'rbind', diff.exp)
   rownames(x = diff.exp) <- make.unique(names = diff.exp$feature)
-  # diff.exp <- diff.exp[, !colnames(x = diff.exp) %in% cols.remove, drop = FALSE]
-  diff.exp <- diff.exp[, cols.keep, drop = FALSE]
+  diff.exp <- signif(
+    x = diff.exp[, cols.keep, drop = FALSE],
+    digits = getOption(
+      x = "Azimuth.de.digits",
+      default = default.options$Azimuth.de.digits
+    )
+  )
   return(diff.exp)
 }
 
