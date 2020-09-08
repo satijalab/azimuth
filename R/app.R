@@ -303,7 +303,7 @@ ui <- tagList(
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
-#' FindTransferAnchors MapQueryData Misc
+#' FindTransferAnchors MapQueryData Misc Key<- RenameCells
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
@@ -710,8 +710,6 @@ server <- function(input, output, session) {
                   slot = 'data'
                 )
               )
-              rm(anchors)
-              gc(verbose = FALSE)
               setProgress(value = 0.8, message = "Running UMAP transform")
               ingested <- NNTransform(
                 object = ingested,
@@ -731,6 +729,29 @@ server <- function(input, output, session) {
               suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
                 data = ingested[['transfer']][, cells]
               ))
+              setProgress(value = 0.8, message = "Calculating mapping score")
+              spca <- subset(
+                x = anchors@object.list[[1]][["pcaproject"]], 
+                cells = paste0(Cells(x = app.env$object), "_query")
+              )
+              spca <- RenameCells(object = spca, new.names = Cells(x = app.env$object))
+              app.env$object[["spca"]] <- spca
+              Key(object = spca) <- "spca_"
+              DefaultAssay(object = spca) <- "SCT"
+              app.env$object[["spca"]] <- spca
+              app.env$object <- AddMetaData(
+                object = app.env$object, 
+                metadata = MappingScore(
+                  anchorset = anchors, 
+                  ref = refs$map, 
+                  query = app.env$object, 
+                  query.reduction = "spca", 
+                  approx = T
+                ),
+                col.name = "mapping.score"
+              )
+              rm(anchors)
+              gc(verbose = FALSE)
               # setProgress(value = 0.9, message = 'Calculating mapping metrics')
               # app.env$object[['int']] <- CreateDimReducObject(
               #   embeddings = Embeddings(object = ingested[['int']])[cells, ],
@@ -1197,7 +1218,8 @@ server <- function(input, output, session) {
         suppressWarnings(expr = FeaturePlot(
           object = app.env$object,
           features = app.env$feature,
-          cols = pal.use
+          cols = pal.use,
+          reduction = "umap.proj"
         )) + ggtitle(label = title)
       }
     }

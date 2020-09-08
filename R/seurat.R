@@ -1,3 +1,4 @@
+#' @useDynLib SeuratMapper
 #' @include zzz.R
 #' @importFrom Seurat Embeddings
 #'
@@ -151,6 +152,174 @@ CalcMappingMetric <- function(object, reduction = 'int', dims = 1:50) {
     row.names = names(x = query.cells)
   )
   return(mapping.metric)
+}
+
+#' Metric for evaluating transfer quality
+#'
+#' @param anchorset Anchorset object returned from FindTransferAnchors
+#' @param ref Reference object
+#' @param query Query object
+#' @param k Number of anchors to use in projection steps when computing weights
+#' @param ndim Number of dimensions to use when working with low dimensional
+#' projections of the data
+#' @param ksmooth Number of cells to average over when computing transition
+#' probabilities
+#' @param ksnn Number of cells to average over when determining the kernel
+#' bandwidth from the SNN graph
+#' @param snn.prune Amount of pruning to apply to edges in SNN graph
+#' @param verbose Display messages/progress
+#'
+#' @return Returns a vector of cell scores
+#' @importFrom Seurat GetIntegrationData Embeddings Reductions 
+#' CreateDimReducObject Cells Distances Indices
+#'
+#' @export
+#'
+MappingScore <- function(
+  anchorset,
+  ref,
+  query,
+  ref.reduction = "spca",
+  query.reduction = "spca",
+  k = 50,
+  ndim = 50,
+  ksmooth = 100,
+  ksnn = 20,
+  snn.prune = 0,
+  subtract.first.nn = TRUE,
+  approx = FALSE,
+  verbose = TRUE,
+  debug = FALSE
+) {
+  # Input checks
+  if (!query.reduction %in% Reductions(object = query)) {
+    stop("Please provide a query with", query.reduction, "precomputed.")
+  }
+  if (!ref.reduction %in% Reductions(object = ref)) {
+    stop("Please provide a reference with", ref.reduction, "precomputed.")
+  }
+  # Extract info from anchorset object
+  combined.object <- slot(object = anchorset, name = "object.list")[[1]]
+  anchors <- slot(object = anchorset, name = "anchors")
+  reference.cells <- slot(object = anchorset, name = "reference.cells")
+  query.cells <- slot(object = anchorset, name = "query.cells")
+  # Project reference values onto query
+  if (verbose) {
+    message("Projecting reference PCA onto query")
+  }
+  ## Need to set up an IntegrationData object to use FindWeights here
+  int.mat <- matrix(data = NA, nrow = nrow(x = anchors), ncol = 0)
+  rownames(x = int.mat) <- query.cells[anchors[, "cell2"]]
+  slot(object = combined.object, name = 'tools')[["IT1"]] <- new(
+    Class = "IntegrationData",
+    anchors = anchors,
+    neighbors = list(cells1 = reference.cells, cells2 = query.cells),
+    integration.matrix = int.mat
+  )
+  ## Finding weights of anchors in query pca space
+  ref.pca.orig <- Embeddings(object = ref[[ref.reduction]])[, 1:ndim]
+  rownames(x = ref.pca.orig) <- paste0(rownames(x = ref.pca.orig), "_reference")
+  query.pca.orig <- Embeddings(object = query[[query.reduction]])[, 1:ndim]
+  rownames(x = query.pca.orig) <- paste0(rownames(x = query.pca.orig), "_query")
+  
+  dr.weights <- suppressWarnings(CreateDimReducObject(
+    embeddings = rbind(query.pca.orig, ref.pca.orig)
+  ))
+  combined.object <- Seurat:::FindWeights(
+    object = combined.object,
+    integration.name = "IT1",
+    reduction = dr.weights,
+    dims = 1:ncol(x = dr.weights),
+    k = k,
+    sd.weight = 1,
+    eps = 0,
+    nn.method = "annoy",
+    cpp = TRUE,
+    verbose = verbose
+  )
+  weights.matrix <- GetIntegrationData(
+    object = combined.object,
+    integration.name = "IT1",
+    slot = "weights"
+  )
+  ## Perform projection of ref pca values using weights matrix
+  ref.pca <- Embeddings(object = ref[[ref.reduction]])[Cells(x = ref)[anchors[, 1]], 1:ndim]
+  rownames(x = ref.pca) <- paste0(rownames(x = ref.pca), "_reference")
+  query.cells.projected <- crossprod(x = ref.pca, y = as.matrix(x = weights.matrix))
+  colnames(x = query.cells.projected) <- query.cells
+  rownames(x = query.cells.projected) <- colnames(x = ref.pca)
+  
+  # Re-project the query cells back onto query
+  if (verbose) {
+    message("Projecting back the query cells into original PCA space")
+  }
+  ## Compute new weights
+  dr.weights <- suppressWarnings(CreateDimReducObject(
+    embeddings = rbind(
+      t(x = as.matrix(x = query.cells.projected)),
+      ref.pca.orig[reference.cells, ]
+    ),
+  ))
+  combined.object <- FindWeights(
+    object = combined.object,
+    integration.name = "IT1",
+    reduction = dr.weights,
+    dims = 1:ndim,
+    k = k,
+    sd.weight = 1,
+    eps = 0,
+    nn.method = "annoy",
+    reverse = TRUE,
+    cpp = TRUE,
+    verbose = verbose
+  )
+  weights.matrix <- GetIntegrationData(combined.object, integration.name = "IT1", slot = "weights")
+  ## Project back onto query
+  orig.pca <- Embeddings(object = query[[query.reduction]])[Cells(x = query)[anchors[, 2]], ]
+  query.cells.back.corrected <- t(x = crossprod(x = orig.pca, y = as.matrix(x = weights.matrix))[1:ndim, ])
+  rownames(x = query.cells.back.corrected) <- query.cells
+  query.cells.orig <- gsub(pattern = "_query", replacement = "", x = query.cells)
+  query.cells.pca <- Embeddings(object = query[[query.reduction]])[query.cells.orig, 1:ndim]
+  if (verbose) {
+    message("Computing scores:")
+    message("    Finding neighbors of original query cells")
+  }
+  ## Compute original neighborhood of query cells
+  nn.method <- "rann"
+  if (approx) {
+    nn.method <- "annoy"
+  }
+  query.neighbors <- Seurat:::NNHelper(
+    data = query.cells.pca,
+    query = query.cells.pca,
+    k = max(ksmooth, ksnn),
+    method = nn.method
+  )
+  if (verbose) message("    Finding neighbors of transformed query cells")
+  ## Compute new neighborhood of query cells after projections
+  corrected.neighbors <- Seurat:::NNHelper(
+    data = query.cells.pca,
+    query = query.cells.back.corrected,
+    k = max(ksmooth, ksnn),
+    method = nn.method
+  )
+  if (verbose) message("    Computing query SNN")
+  snn <- Seurat:::ComputeSNN(nn_ranked = Indices(query.neighbors)[, 1:ksnn], prune = snn.prune)
+  query.cells.pca <- t(x = query.cells.pca)
+  if (verbose) message("    Determining bandwidth and computing transition probabilities")
+  scores <- ScoreHelper(
+    snn = snn,
+    query_pca = query.cells.pca,
+    query_dists = Distances(query.neighbors),
+    corrected_nns = Indices(corrected.neighbors),
+    k_snn = ksnn,
+    subtract_first_nn = subtract.first.nn,
+    display_progress = verbose
+  )
+  scores[scores > 1] <- 1
+  query.names <- gsub(pattern = "_query", replacement = "", x = query.cells)
+  names(x = scores) <- query.names
+  return(scores)
 }
 
 #' Find a minimum number of matching cells
