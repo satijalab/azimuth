@@ -1116,7 +1116,9 @@ server <- function(input, output, session) {
   })
   output$refdim <- renderPlot(expr = {
     DimPlot(object = refs$plot, label = input$labels, group.by = "id") +
-      scale_colour_hue(limits = plotlevels, drop = FALSE)
+      scale_colour_hue(limits = plotlevels,
+                       breaks = sort(levels(as.factor(refs$plot$id))),
+                       drop = FALSE)
   })
   output$objdim <- renderPlot(expr = {
   if (!is.null(x = app.env$object)) {
@@ -1126,7 +1128,9 @@ server <- function(input, output, session) {
             object = app.env$object,
             group.by = "predicted.id",
             label = input$labels
-          ) + scale_colour_hue(limits = plotlevels, drop = FALSE)
+          ) + scale_colour_hue(limits = plotlevels,
+                               breaks = sort(levels(as.factor(refs$plot$id))),
+                               drop = FALSE)
         } else {
           DimPlot(
             object = app.env$object,
