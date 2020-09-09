@@ -96,7 +96,7 @@ CategoryTable <- function(
   category.2,
   percentage = FALSE
 ) {
-  data <- FetchData(object, c(category.1, category.2))
+  data <- FetchData(object = object, vars = c(category.1, category.2))
   data[, category.1] <- droplevels(x = factor(x = data[, category.1]))
   levels(x = data[, category.1]) <- sort(x = levels(x = data[, category.1]))
   data[, category.2] <- droplevels(x = factor(x = data[, category.2]))
@@ -119,7 +119,7 @@ CategoryTable <- function(
       colnames(x = tbl) <- levels(x = data[, category.2])
     }
   }
-  return(as.data.frame(x = tbl))
+  return(as.data.frame.matrix(x = tbl))
 }
 
 #' Create an annoy index
