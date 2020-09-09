@@ -609,8 +609,7 @@ PlottableMetadataNames <- function(
         length(x = levels(x = droplevels(x = as.factor(x = column)))) <= max.levels
     }
   ) & (colnames(object[[]]) != "mapping.score") &
-   (colnames(object[[]]) != "predicted.id") &
-   (colnames(object[[]]) != "mapped")
+   (colnames(object[[]]) != "predicted.id")
   return(colnames(object[[]])[column.status])
 }
 

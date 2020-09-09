@@ -649,7 +649,7 @@ server <- function(input, output, session) {
               app.env$object <- NULL
               gc(verbose = FALSE)
             } else {
-              setProgress(value = 0.2, message = "Normalizing with SCTransform")
+              setProgress(value = 0.1, message = "Normalizing with SCTransform")
               tryCatch(
                 expr = {
                   app.env$object <- suppressWarnings(expr = SCTransform(
@@ -680,7 +680,7 @@ server <- function(input, output, session) {
                 app.env$messages,
                 paste(ncellspreproc, "cells preprocessed")
               )
-              setProgress(value = 0.4, message = "Finding anchors")
+              setProgress(value = 0.3, message = "Finding anchors")
               cells <- colnames(x = app.env$object)
               anchors <- FindTransferAnchors(
                 reference = refs$map,
@@ -697,7 +697,7 @@ server <- function(input, output, session) {
                 verbose = TRUE
               )
               # TODO fail if not enough anchors (Azimuth.map.nanchors)
-              setProgress(value = 0.6, message = 'Mapping cells')
+              setProgress(value = 0.5, message = 'Mapping cells')
               ingested <- MapQueryData(
                 reference = refs$map,
                 query = app.env$object,
@@ -710,7 +710,7 @@ server <- function(input, output, session) {
                   slot = 'data'
                 )
               )
-              setProgress(value = 0.8, message = "Running UMAP transform")
+              setProgress(value = 0.7, message = "Running UMAP transform")
               ingested <- NNTransform(
                 object = ingested,
                 meta.data = refs$map[[]]
@@ -729,9 +729,9 @@ server <- function(input, output, session) {
               suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
                 data = ingested[['transfer']][, cells]
               ))
-              setProgress(value = 0.9, message = "Calculating mapping score")
+              setProgress(value = 0.8, message = "Calculating mapping score")
               spca <- subset(
-                x = anchors@object.list[[1]][["pcaproject"]], 
+                x = anchors@object.list[[1]][["pcaproject"]],
                 cells = paste0(Cells(x = app.env$object), "_query")
               )
               spca <- RenameCells(object = spca, new.names = Cells(x = app.env$object))
@@ -740,34 +740,18 @@ server <- function(input, output, session) {
               DefaultAssay(object = spca) <- "SCT"
               app.env$object[["spca"]] <- spca
               app.env$object <- AddMetaData(
-                object = app.env$object, 
+                object = app.env$object,
                 metadata = MappingScore(
-                  anchorset = anchors, 
-                  ref = refs$map, 
-                  query = app.env$object, 
-                  query.reduction = "spca", 
+                  anchorset = anchors,
+                  ref = refs$map,
+                  query = app.env$object,
+                  query.reduction = "spca",
                   approx = T
                 ),
                 col.name = "mapping.score"
               )
               rm(anchors)
               gc(verbose = FALSE)
-              # setProgress(value = 0.9, message = 'Calculating mapping metrics')
-              # app.env$object[['int']] <- CreateDimReducObject(
-              #   embeddings = Embeddings(object = ingested[['int']])[cells, ],
-              #   assay = app.env$default.assay
-              # )
-              # dsqr <- QueryReference(
-              #   reference = refs$map,
-              #   query = app.env$object,
-              #   assay.query = app.env$default.assay,
-              #   seed = 4
-              # )
-              # app.env$object <- AddMetaData(
-              #   object = app.env$object,
-              #   metadata = CalcMappingMetric(object = dsqr)
-              # )
-              # rm(dsqr, ingested)
               app.env$object <- SetAssayData(
                 object = app.env$object,
                 assay = 'SCT',
@@ -1146,13 +1130,15 @@ server <- function(input, output, session) {
           DimPlot(
             object = app.env$object,
             group.by = "predicted.id",
-            label = input$labels
+            label = input$labels,
+            reduction = "umap.proj"
           ) + scale_colour_hue(limits = plotlevels, drop = FALSE)
         } else {
           DimPlot(
             object = app.env$object,
             group.by = input$select.metadata,
-            label = input$labels
+            label = input$labels,
+            reduction = "umap.proj"
           )
         }
       }
@@ -1345,17 +1331,17 @@ server <- function(input, output, session) {
       }
     }
   )
-  # TODO: Add data from CalcMappingMetric to _pred.tsv?
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
-      req <- c('predicted.id', 'predicted.id.score')
+      req <- c('predicted.id', 'predicted.id.score', 'mapping.score')
       if (all(req %in% colnames(x = app.env$object[[]]))) {
         write.table(
           x = data.frame(
             cell = colnames(x = app.env$object),
             predicted.id = app.env$object$predicted.id,
             predicted.score = app.env$object$predicted.id.score,
+            mapping.score = app.env$object$mapping.score,
             stringsAsFactors = FALSE
           ),
           file = file,
