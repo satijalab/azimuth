@@ -1,33 +1,23 @@
 #!/usr/bin/env Rscript
 
-# Install Seurat >= v4.0.0 from Github
-install.packages('devtools')
-devtools::install_github(repo = 'satijalab/seurat', ref = 'release/4.0.0')
+# Ensure Seurat v4.0 or higher is installed
+if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9000")) {
+  stop("Mapping datasets requires Seurat v4 or higher", call. = FALSE)
+}
 
 library(Seurat)
+
+# Load helper functions from Azimuth
+source("https://raw.githubusercontent.com/mojaveazure/seurat-mapper/master/R/helpers.R")
 
 # Download the multimodal PBMC reference from [LINK]
 
 # Load the reference file
-# Change the file paths based on where ref.Rds and idx.annoy are located
-# on your system.
-reference <- readRDS(file = "ref.Rds")
-# To take advantage of the speedup from using a precomputed neighbor index,
-# you must re-run this LoadAnnoyIndex command every time you load the reference
-# object AND every time your R session restarts/restores and reloads the
-# reference object.
-reference[["spca.annoy.neighbors"]] <- LoadAnnoyIndex(
-  object = reference[["spca.annoy.neighbors"]],
-  file = "idx.annoy"
-)
+reference <- LoadReference(path = "${ref}")
 
 # Load the query object for mapping
-# Change the command used to read the object/convert your file to a Seurat object
-# depending on the file format of your query.
-# e.g. this readRDS would be used to read an RDS file containing a Seurat object.
 # Change the file path based on where the query file is located on your system.
-query <- readRDS(file = "${path}")
-DefaultAssay(object = query) <- "RNA"
+query <- LoadFileInput(path = "${path}")
 
 # Calculate nCount_RNA and nFeature_RNA if the query does not
 # contain them already
@@ -116,26 +106,6 @@ mapped <- MapQueryData(
   )
 )
 
-# Run this code to source the helper function NNTransform to your environment.
-NNTransform <- function(
-  object,
-  meta.data,
-  neighbor.slot = "query_ref.nn",
-  key = 'ori.index'
-) {
-  on.exit(expr = gc(verbose = FALSE))
-  ind <- Indices(object[[neighbor.slot]])
-  ori.index <- t(x = sapply(
-    X = 1:nrow(x = ind),
-    FUN = function(i) {
-      return(meta.data[ind[i, ], key])
-    }
-  ))
-  rownames(x = ori.index) <- rownames(x = ind)
-  slot(object = object[[neighbor.slot]], name = "nn.idx") <- ori.index
-  return(object)
-}
-
 # The reference used in the app is downsampled compared to the reference on which
 # the UMAP model was computed. This step, using the helper function NNTransform,
 # corrects the Neighbors of the "mapped" object to account for the downsampling.
@@ -145,22 +115,21 @@ mapped <- NNTransform(
 )
 
 # Project the query to the reference UMAP.
-query[["proj.umap"]] <- RunUMAP(object = mapped[["query_ref.nn"]],
-                                reduction.model = reference[["jumap"]],
-                                reduction.key = 'UMAP_')
+query[["proj.umap"]] <- RunUMAP(
+  object = mapped[["query_ref.nn"]],
+  reduction.model = reference[["jumap"]],
+  reduction.key = 'UMAP_'
+)
 
 # Add the predicted cell types to the query object as metadata
 query[["predicted.id"]] <- Misc(object = mapped, slot = "predictions")[,"predicted.id"]
 
 # Add the maximum prediction score (predicted.id.score) and the prediction scores
 # for all cell types to the query as an Assay
-query[["predictions"]] <- CreateAssayObject(data =  t(Misc(object = mapped, slot = "predictions")[, -1]))
+query[["predictions"]] <- CreateAssayObject(data =  t(x = Misc(object = mapped, slot = "predictions")[, -1]))
 
 # Add the imputed protein to the query object as an Assay
-query[['${adt.key}']] <- CreateAssayObject(
-  data = mapped[['transfer']][, colnames(x = query)]
-)
-
+query[['${adt.key}']] <- CreateAssayObject(data = mapped[['transfer']][, colnames(x = query)])
 
 
 # VISUALIZATIONS

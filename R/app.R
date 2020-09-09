@@ -1,5 +1,6 @@
 #' @include zzz.R
 #' @include seurat.R
+#' @include helpers.R
 #' @import V8
 #' @importFrom DT DTOutput
 #' @importFrom htmltools tagList h4 hr h3 tags HTML p div

@@ -51,6 +51,7 @@ Suggests:
   flexdashboard,
   rmarkdown
 Collate:
+    'helpers.R'
     'zzz.R'
     'seurat.R'
     'app.R'
