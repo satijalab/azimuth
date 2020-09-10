@@ -694,7 +694,8 @@ server <- function(input, output, session) {
                 features = rownames(x = refs$map),
                 dims = 1:50,
                 nn.method = "annoy",
-                verbose = TRUE
+                verbose = TRUE,
+                mapping.score.k = 100
               )
               # TODO fail if not enough anchors (Azimuth.map.nanchors)
               setProgress(value = 0.5, message = 'Mapping cells')
@@ -731,7 +732,7 @@ server <- function(input, output, session) {
               ))
               setProgress(value = 0.8, message = "Calculating mapping score")
               spca <- subset(
-                x = anchors@object.list[[1]][["pcaproject"]],
+                x = anchors@object.list[[1]][["pcaproject.l2"]],
                 cells = paste0(Cells(x = app.env$object), "_query")
               )
               spca <- RenameCells(object = spca, new.names = Cells(x = app.env$object))
@@ -745,6 +746,7 @@ server <- function(input, output, session) {
                   anchorset = anchors,
                   ref = refs$map,
                   query = app.env$object,
+                  query.weights = GetIntegrationData(object = ingested, integration.name = "integrated", slot = "weights"),
                   query.reduction = "spca",
                   approx = T
                 ),
