@@ -297,6 +297,7 @@ ui <- tagList(
 #'
 #' @importFrom methods slot<- slot
 #' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
+#' theme_void
 #' @importFrom presto wilcoxauc
 #' @importFrom shinyjs show hide enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
@@ -313,6 +314,7 @@ ui <- tagList(
 #' @importFrom utils write.table
 #' @importFrom patchwork wrap_plots
 #' @importFrom DT dataTableProxy selectRows renderDT
+#' @importFrom future future plan value resolved
 #'
 #' @keywords internal
 #'
@@ -326,6 +328,7 @@ server <- function(input, output, session) {
     default.assay = NULL,
     default.feature = NULL,
     default.adt = NULL,
+    mapping.score = NULL,
     feature = '',
     diff.exp = list(),
     messages = 'Upload a file'
@@ -741,16 +744,24 @@ server <- function(input, output, session) {
               Key(object = spca) <- "spca_"
               DefaultAssay(object = spca) <- "SCT"
               app.env$object[["spca"]] <- spca
+              if (Sys.getenv("RSTUDIO") == "1") {
+                plan("sequential")
+              } else {
+                plan("multicore", workers = 2)
+              }
+              query <- app.env$object
+              ref <- refs$map
+              app.env$mapping.score <- future({MappingScore(
+                anchorset = anchors,
+                ref = ref,
+                query = query,
+                query.weights = GetIntegrationData(object = ingested, integration.name = "integrated", slot = "weights"),
+                query.reduction = "spca",
+                approx = T
+              )})
               app.env$object <- AddMetaData(
                 object = app.env$object,
-                metadata = MappingScore(
-                  anchorset = anchors,
-                  ref = refs$map,
-                  query = app.env$object,
-                  query.weights = GetIntegrationData(object = ingested, integration.name = "integrated", slot = "weights"),
-                  query.reduction = "spca",
-                  approx = T
-                ),
+                metadata = rep(x = 0, times = ncol(x = app.env$object)),
                 col.name = "mapping.score"
               )
               rm(anchors)
@@ -1009,6 +1020,11 @@ server <- function(input, output, session) {
     eventExpr = input$scorefeature,
     handlerExpr = {
       if (nchar(x = input$scorefeature)) {
+        if (input$scorefeature == "mapping.score") {
+          if (resolved(x = app.env$mapping.score)) {
+            app.env$object$mapping.score <- value(app.env$mapping.score)
+          }
+        }
         # app.env$feature <- paste0(
         #   Key(object = app.env$object[[scores.key]]),
         #   input$scorefeature
@@ -1197,14 +1213,20 @@ server <- function(input, output, session) {
         rownames(x = app.env$object[["predictions"]])
       )
       if (app.env$feature %in% avail) {
-        title <- ifelse(
-          test = grepl(pattern = '^sct_', x = app.env$feature),
-          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
-          no = app.env$feature
-        )
-        VlnPlot(object = app.env$object, features = app.env$feature) +
-          ggtitle(label = title) +
-          NoLegend()
+        if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
+          ggplot() +
+            annotate("text", x = 4, y = 25, size=8, label = "Mapping score still computing ... ") +
+            theme_void()
+        } else {
+          title <- ifelse(
+            test = grepl(pattern = '^sct_', x = app.env$feature),
+            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            no = app.env$feature
+          )
+          VlnPlot(object = app.env$object, features = app.env$feature) +
+            ggtitle(label = title) +
+            NoLegend()
+        }
       }
     }
   })
@@ -1234,17 +1256,23 @@ server <- function(input, output, session) {
       }
       pal.use <- palettes[[feature.key]]
       if (!is.null(x = pal.use)) {
-        title <- ifelse(
-          test = grepl(pattern = '^sct_', x = app.env$feature),
-          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
-          no = app.env$feature
-        )
-        suppressWarnings(expr = FeaturePlot(
-          object = app.env$object,
-          features = app.env$feature,
-          cols = pal.use,
-          reduction = "umap.proj"
-        )) + ggtitle(label = title)
+        if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
+          ggplot() +
+            annotate("text", x = 4, y = 25, size=8, label = "Mapping score still computing ... ") +
+            theme_void()
+        } else {
+          title <- ifelse(
+            test = grepl(pattern = '^sct_', x = app.env$feature),
+            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            no = app.env$feature
+          )
+          suppressWarnings(expr = FeaturePlot(
+            object = app.env$object,
+            features = app.env$feature,
+            cols = pal.use,
+            reduction = "umap.proj"
+          )) + ggtitle(label = title)
+        }
       }
     }
   })

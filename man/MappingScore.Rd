@@ -18,7 +18,8 @@ MappingScore(
   subtract.first.nn = TRUE,
   approx = FALSE,
   verbose = TRUE,
-  debug = FALSE
+  debug = FALSE,
+  query.weights = NULL
 )
 }
 \arguments{
