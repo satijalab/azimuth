@@ -283,7 +283,7 @@ MappingScore <- function(
   weights.matrix <- GetIntegrationData(combined.object, integration.name = "IT1", slot = "weights")
   ## Project back onto query
   orig.pca <- Embeddings(object = query[[query.reduction]])[Cells(x = query)[anchors[, 2]], ]
-  query.cells.back.corrected <- Matrix::t(x = Matrix::crossprod(x = as(object = orig.pca, Class = "dgCMatrix"), y = weights.matrix)[1:ndim, ])
+  query.cells.back.corrected <- t(x = crossprod(x = orig.pca, y = as.matrix(x = weights.matrix))[1:ndim, ])
   rownames(x = query.cells.back.corrected) <- query.cells
   query.cells.orig <- gsub(pattern = "_query", replacement = "", x = query.cells)
   query.cells.pca <- Embeddings(object = query[[query.reduction]])[query.cells.orig, 1:ndim]
