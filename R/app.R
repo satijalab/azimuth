@@ -518,6 +518,7 @@ server <- function(input, output, session) {
   observeEvent( # Map data
     eventExpr = input$map,
     handlerExpr = {
+      maptime.start <- Sys.time()
       disable(id = 'map')
       disable(id = 'num.ncountmin')
       disable(id = 'num.ncountmax')
@@ -919,6 +920,33 @@ server <- function(input, output, session) {
           }
           setProgress(value = 1)
         }
+      )
+      maptime.diff <- difftime(
+        time1 = Sys.time(),
+        time2 = maptime.start,
+        units = "secs"
+      )
+      if (maptime.diff < 60) {
+        time.fmt <- gsub(
+          pattern = " 0",
+          replacement = " ",
+          x = format(x = .POSIXct(xx = maptime.diff), format = "in %S seconds"),
+          fixed = TRUE
+        )
+      } else {
+        time.fmt <- gsub(
+          pattern = " 0",
+          replacement = " ",
+          x = format(
+            x = .POSIXct(xx = maptime.diff),
+            format = "in %M minutes %S seconds"
+          ),
+          fixed = TRUE
+        )
+      }
+      app.env$messages <- c(
+        app.env$messages,
+        time.fmt
       )
     }
   )
