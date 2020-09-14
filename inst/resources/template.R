@@ -10,10 +10,11 @@ library(Seurat)
 # Load helper functions from Azimuth
 source("https://raw.githubusercontent.com/mojaveazure/seurat-mapper/master/R/helpers.R")
 
-# Download the multimodal PBMC reference from [LINK]
+# Download the multimodal PBMC reference from [LINK] and extract the archive
 
-# Load the reference file
-reference <- LoadReference(path = "${ref}")
+# Load the reference
+# Change the file path based on where the reference is located on your system.
+reference <- LoadReference(path = "${ref.uri}")
 
 # Load the query object for mapping
 # Change the file path based on where the query file is located on your system.
@@ -48,15 +49,15 @@ if (any(grepl(pattern = '${mito.pattern}', x = rownames(x = query)))) {
 
 # Filter cells based on the thresholds for nCount_RNA and nFeature_RNA
 # you set in the app
-cells.use <- query[["nCount_RNA", drop = TRUE]] <= ${ncount.max} &&
-  query[["nCount_RNA", drop = TRUE]] >= ${ncount.min} &&
-  query[["nFeature_RNA", drop = TRUE]] <= ${nfeature.max} &&
+cells.use <- query[["nCount_RNA", drop = TRUE]] <= ${ncount.max} &
+  query[["nCount_RNA", drop = TRUE]] >= ${ncount.min} &
+  query[["nFeature_RNA", drop = TRUE]] <= ${nfeature.max} &
   query[["nFeature_RNA", drop = TRUE]] >= ${nfeature.min}
 
 # If the query contains mitochondrial genes, filter cells based on the
 # thresholds for ${mito.key} you set in the app
 if ("${mito.key}" %in% c(colnames(x = query[[]]))) {
-  cells.use <- query[["${mito.key}", drop = TRUE]] <= ${mito.max} &&
+  cells.use <- query[["${mito.key}", drop = TRUE]] <= ${mito.max} &
     query[["${mito.key}", drop = TRUE]] >= ${mito.min}
 }
 
@@ -67,7 +68,7 @@ query <- query[, cells.use]
 query <- SCTransform(
   object = query,
   assay = "RNA",
-  residual.features = rownames(x = reference),
+  residual.features = rownames(x = reference$map),
   ncells = ${sct.ncells},
   n_genes = ${sct.nfeats},
   do.correct.umi = FALSE,
@@ -77,7 +78,7 @@ query <- SCTransform(
 
 # Find anchors between query and reference that will be used for mapping
 anchors <- FindTransferAnchors(
-  reference = reference,
+  reference = reference$map,
   query = query,
   mapping = TRUE,
   reference.neighbors = "spca.annoy.neighbors",
@@ -85,7 +86,7 @@ anchors <- FindTransferAnchors(
   query.assay = "SCT",
   reference.reduction = "spca",
   normalization.method = "SCT",
-  features = rownames(x = reference),
+  features = rownames(x = reference$map),
   dims = 1:50,
   nn.method = "annoy",
   verbose = TRUE
@@ -94,14 +95,14 @@ anchors <- FindTransferAnchors(
 # Map cells using the anchors just computed. Transfer cell type labels and
 # impute protein expression.
 mapped <- MapQueryData(
-  reference = reference,
+  reference = reference$map,
   query = query,
   dims = 1:50,
   anchorset = anchors,
   reference.neighbors = "spca.annoy.neighbors",
-  transfer.labels = reference$id,
+  transfer.labels = reference$map$id,
   transfer.expression = GetAssayData(
-    object = reference[['ADT']],
+    object = reference$map[['ADT']],
     slot = 'data'
   )
 )
@@ -111,13 +112,13 @@ mapped <- MapQueryData(
 # corrects the Neighbors of the "mapped" object to account for the downsampling.
 mapped <- NNTransform(
   object = mapped,
-  meta.data = reference[[]]
+  meta.data = reference$map[[]]
 )
 
 # Project the query to the reference UMAP.
 query[["proj.umap"]] <- RunUMAP(
   object = mapped[["query_ref.nn"]],
-  reduction.model = reference[["jumap"]],
+  reduction.model = reference$map[["jumap"]],
   reduction.key = 'UMAP_'
 )
 
@@ -135,7 +136,7 @@ query[['${adt.key}']] <- CreateAssayObject(data = mapped[['transfer']][, colname
 # VISUALIZATIONS
 
 # DimPlot of the reference
-DimPlot(object = reference, reduction = "jumap", group.by = "id", label = TRUE) + NoLegend()
+DimPlot(object = reference$plot, reduction = "umap", group.by = "id", label = TRUE) + NoLegend()
 
 # DimPlot of the query, colored by predicted cell type
 DimPlot(object = query, reduction = "proj.umap", group.by = "predicted.id", label = TRUE) + NoLegend()
