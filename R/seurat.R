@@ -156,9 +156,13 @@ CalcMappingMetric <- function(object, reduction = 'int', dims = 1:50) {
 
 #' Metric for evaluating transfer quality
 #'
-#' @param anchorset Anchorset object returned from FindTransferAnchors
-#' @param ref Reference object
-#' @param query Query object
+#' @param anchorset Anchor matrix from the Anchorset object returned from
+#' FindTransferAnchors
+#' @param combined.object Shell combined object (ref + query) from the
+#' Anchorset object return
+#' @param query.neighbors Neighbors object computed on query cells
+#' @param ref.embeddings Reference embeddings matrix
+#' @param query.embeddings Query embeddings matrix
 #' @param k Number of anchors to use in projection steps when computing weights
 #' @param ndim Number of dimensions to use when working with low dimensional
 #' projections of the data
@@ -167,6 +171,10 @@ CalcMappingMetric <- function(object, reduction = 'int', dims = 1:50) {
 #' @param ksnn Number of cells to average over when determining the kernel
 #' bandwidth from the SNN graph
 #' @param snn.prune Amount of pruning to apply to edges in SNN graph
+#' @param substract.first.nn Option to the scoring function when computing
+#' distances to subtract the distance to the first nearest neighbor
+#' @param approx Use annoy rather than RANN in scoring
+#' @param query.weights Query weights matrix for reuse
 #' @param verbose Display messages/progress
 #'
 #' @return Returns a vector of cell scores
@@ -188,9 +196,8 @@ MappingScore <- function(
   snn.prune = 0,
   subtract.first.nn = TRUE,
   approx = FALSE,
-  verbose = TRUE,
-  debug = FALSE,
-  query.weights = NULL
+  query.weights = NULL,
+  verbose = TRUE
 ) {
   # Input checks
   start.time <- Sys.time()

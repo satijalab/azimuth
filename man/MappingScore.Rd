@@ -5,11 +5,11 @@
 \title{Metric for evaluating transfer quality}
 \usage{
 MappingScore(
-  anchorset,
-  ref,
-  query,
-  ref.reduction = "spca",
-  query.reduction = "spca",
+  anchors,
+  combined.object,
+  query.neighbors,
+  ref.embeddings,
+  query.embeddings,
   k = 50,
   ndim = 50,
   ksmooth = 100,
@@ -17,17 +17,19 @@ MappingScore(
   snn.prune = 0,
   subtract.first.nn = TRUE,
   approx = FALSE,
-  verbose = TRUE,
-  debug = FALSE,
-  query.weights = NULL
+  query.weights = NULL,
+  verbose = TRUE
 )
 }
 \arguments{
-\item{anchorset}{Anchorset object returned from FindTransferAnchors}
+\item{combined.object}{Shell combined object (ref + query) from the
+Anchorset object return}
 
-\item{ref}{Reference object}
+\item{query.neighbors}{Neighbors object computed on query cells}
 
-\item{query}{Query object}
+\item{ref.embeddings}{Reference embeddings matrix}
+
+\item{query.embeddings}{Query embeddings matrix}
 
 \item{k}{Number of anchors to use in projection steps when computing weights}
 
@@ -42,7 +44,17 @@ bandwidth from the SNN graph}
 
 \item{snn.prune}{Amount of pruning to apply to edges in SNN graph}
 
+\item{approx}{Use annoy rather than RANN in scoring}
+
+\item{query.weights}{Query weights matrix for reuse}
+
 \item{verbose}{Display messages/progress}
+
+\item{anchorset}{Anchor matrix from the Anchorset object returned from
+FindTransferAnchors}
+
+\item{substract.first.nn}{Option to the scoring function when computing
+distances to subtract the distance to the first nearest neighbor}
 }
 \value{
 Returns a vector of cell scores
