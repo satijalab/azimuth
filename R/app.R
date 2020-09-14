@@ -715,26 +715,7 @@ server <- function(input, output, session) {
                   slot = 'data'
                 )
               )
-              setProgress(value = 0.7, message = "Running UMAP transform")
-              ingested <- NNTransform(
-                object = ingested,
-                meta.data = refs$map[[]]
-              )
-              app.env$object <- AddPredictions(
-                object = app.env$object,
-                preds = Misc(object = ingested, slot = "predictions"),
-                preds.levels = levels(x = refs$map),
-                preds.drop = TRUE
-              )
-              app.env$object[['umap.proj']] <- RunUMAP(
-                object = ingested[['query_ref.nn']],
-                reduction.model = refs$map[['jumap']],
-                reduction.key = 'UMAP_'
-              )
-              suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
-                data = ingested[['transfer']][, cells]
-              ))
-              setProgress(value = 0.8, message = "Calculating mapping score")
+              setProgress(value = 0.7, message = "Calculating mapping score")
               spca <- subset(
                 x = anchors@object.list[[1]][["pcaproject.l2"]],
                 cells = paste0(Cells(x = app.env$object), "_query")
@@ -746,8 +727,6 @@ server <- function(input, output, session) {
               app.env$object[["spca"]] <- spca
               if (Sys.getenv("RSTUDIO") == "1") {
                 plan("sequential")
-              } else {
-                plan("multicore", workers = 2)
               }
               query <- app.env$object
               ref <- refs$map
@@ -766,6 +745,25 @@ server <- function(input, output, session) {
               )
               rm(anchors)
               gc(verbose = FALSE)
+              setProgress(value = 0.8, message = "Running UMAP transform")
+              ingested <- NNTransform(
+                object = ingested,
+                meta.data = refs$map[[]]
+              )
+              app.env$object <- AddPredictions(
+                object = app.env$object,
+                preds = Misc(object = ingested, slot = "predictions"),
+                preds.levels = levels(x = refs$map),
+                preds.drop = TRUE
+              )
+              app.env$object[['umap.proj']] <- RunUMAP(
+                object = ingested[['query_ref.nn']],
+                reduction.model = refs$map[['jumap']],
+                reduction.key = 'UMAP_'
+              )
+              suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
+                data = ingested[['transfer']][, cells]
+              ))
               app.env$object <- SetAssayData(
                 object = app.env$object,
                 assay = 'SCT',
