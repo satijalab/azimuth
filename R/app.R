@@ -1066,11 +1066,6 @@ server <- function(input, output, session) {
             app.env$object$mapping.score <- value(app.env$mapping.score)
           }
         }
-        # app.env$feature <- paste0(
-        #   Key(object = app.env$object[[scores.key]]),
-        #   input$scorefeature
-        # )
-        # app.env$feature <- paste0('md_', input$scorefeature)
         app.env$feature <- input$scorefeature
         for (f in c('feature', 'adtfeature')) {
           updateSelectInput(session = session, inputId = f, selected = '')
