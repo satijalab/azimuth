@@ -1398,16 +1398,22 @@ server <- function(input, output, session) {
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
-      req <- c('predicted.id', 'predicted.id.score', 'mapping.score')
+      req <- c('predicted.id', 'predicted.id.score')
+      if (resolved(x = app.env$mapping.score)) {
+        req <- c(req, 'mapping.score')
+      }
       if (all(req %in% colnames(x = app.env$object[[]]))) {
+        pred.df <- data.frame(
+          cell = colnames(x = app.env$object),
+          predicted.id = app.env$object$predicted.id,
+          predicted.score = app.env$object$predicted.id.score,
+          stringsAsFactors = FALSE
+        )
+        if (resolved(x = app.env$mapping.score)) {
+          pred.df$mapping.score <- value(app.env$mapping.score)
+        }
         write.table(
-          x = data.frame(
-            cell = colnames(x = app.env$object),
-            predicted.id = app.env$object$predicted.id,
-            predicted.score = app.env$object$predicted.id.score,
-            mapping.score = app.env$object$mapping.score,
-            stringsAsFactors = FALSE
-          ),
+          x = pred.df,
           file = file,
           quote = FALSE,
           row.names = FALSE,
