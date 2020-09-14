@@ -201,6 +201,13 @@ ui <- tagList(
           selectize = FALSE
         ))),
         plotOutput(outputId = 'edim'),
+        disabled(selectInput(
+          inputId = 'groupfeature',
+          label = 'Metadata to group by',
+          choices = '',
+          selectize = FALSE,
+          width = "25%"
+        )),
         plotOutput(outputId = 'evln'),
         width = 12
       ),
@@ -298,6 +305,7 @@ ui <- tagList(
 #'
 #' @importFrom methods slot<- slot
 #' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
+#' theme_void
 #' @importFrom presto wilcoxauc
 #' @importFrom stringr str_interp
 #' @importFrom shinyjs show hide enable disable
@@ -305,7 +313,7 @@ ui <- tagList(
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
-#' FindTransferAnchors MapQueryData Misc
+#' FindTransferAnchors MapQueryData Misc Key<- RenameCells
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
@@ -315,6 +323,7 @@ ui <- tagList(
 #' @importFrom utils write.table
 #' @importFrom patchwork wrap_plots
 #' @importFrom DT dataTableProxy selectRows renderDT
+#' @importFrom future future plan value resolved
 #'
 #' @keywords internal
 #'
@@ -328,6 +337,7 @@ server <- function(input, output, session) {
     default.assay = NULL,
     default.feature = NULL,
     default.adt = NULL,
+    mapping.score = NULL,
     feature = '',
     diff.exp = list(),
     messages = 'Upload a file'
@@ -520,6 +530,7 @@ server <- function(input, output, session) {
   observeEvent( # Map data
     eventExpr = input$map,
     handlerExpr = {
+      maptime.start <- Sys.time()
       disable(id = 'map')
       disable(id = 'num.ncountmin')
       disable(id = 'num.ncountmax')
@@ -651,7 +662,7 @@ server <- function(input, output, session) {
               app.env$object <- NULL
               gc(verbose = FALSE)
             } else {
-              setProgress(value = 0.2, message = "Normalizing with SCTransform")
+              setProgress(value = 0.1, message = "Normalizing with SCTransform")
               tryCatch(
                 expr = {
                   app.env$object <- suppressWarnings(expr = SCTransform(
@@ -682,7 +693,7 @@ server <- function(input, output, session) {
                 app.env$messages,
                 paste(ncellspreproc, "cells preprocessed")
               )
-              setProgress(value = 0.4, message = "Finding anchors")
+              setProgress(value = 0.3, message = "Finding anchors")
               cells <- colnames(x = app.env$object)
               anchors <- FindTransferAnchors(
                 reference = refs$map,
@@ -696,10 +707,11 @@ server <- function(input, output, session) {
                 features = rownames(x = refs$map),
                 dims = 1:50,
                 nn.method = "annoy",
-                verbose = TRUE
+                verbose = TRUE,
+                mapping.score.k = 100
               )
               # TODO fail if not enough anchors (Azimuth.map.nanchors)
-              setProgress(value = 0.6, message = 'Mapping cells')
+              setProgress(value = 0.5, message = 'Mapping cells')
               ingested <- MapQueryData(
                 reference = refs$map,
                 query = app.env$object,
@@ -712,7 +724,62 @@ server <- function(input, output, session) {
                   slot = 'data'
                 )
               )
-              rm(anchors)
+              setProgress(value = 0.7, message = "Calculating mapping score")
+              spca <- subset(
+                x = anchors@object.list[[1]][["pcaproject.l2"]],
+                cells = paste0(Cells(x = app.env$object), "_query")
+              )
+              spca <- RenameCells(object = spca, new.names = Cells(x = app.env$object))
+              if (Sys.getenv("RSTUDIO") == "1") {
+                plan("sequential")
+              }
+              # reduce size of object in anchorset
+              anchors@object.list[[1]] <- DietSeurat(object = anchors@object.list[[1]])
+              anchors@object.list[[1]] <- subset(
+                x = anchors@object.list[[1]],
+                features = c(rownames(x = anchors@object.list[[1]])[1])
+              )
+              anchors@object.list[[1]] <- RenameCells(
+                object = anchors@object.list[[1]],
+                new.names = unname(obj = sapply(
+                  X = Cells(x = anchors@object.list[[1]]),
+                  FUN = function(x) {
+                    return(gsub(pattern = "_reference", replacement = "", x = x))
+                  }
+                )))
+              anchors@object.list[[1]] <- RenameCells(
+                object = anchors@object.list[[1]],
+                new.names = unname(obj = sapply(
+                  X = Cells(x = anchors@object.list[[1]]),
+                  FUN = function(x) {
+                    return(gsub(pattern = "_query", replacement = "", x = x))
+                  }
+                )))
+              anchors@object.list[[1]]@meta.data <- data.frame()
+              anchors@object.list[[1]]@active.ident <- factor()
+              app.env$mapping.score <- future(
+                expr = {
+                  MappingScore(
+                    anchors = anchors@anchors,
+                    combined.object = anchors@object.list[[1]],
+                    query.neighbors =  slot(object = anchors, name = "neighbors")[["query.neighbors"]],
+                    query.weights = GetIntegrationData(
+                      object = ingested,
+                      integration.name = "integrated",
+                      slot = "weights"
+                    ),
+                    query.embeddings = Embeddings(object = spca),
+                    ref.embeddings = Embeddings(object = refs$map[["spca"]]),
+                    approx = TRUE
+                  )
+                }
+              )
+              app.env$object <- AddMetaData(
+                object = app.env$object,
+                metadata = rep(x = 0, times = ncol(x = app.env$object)),
+                col.name = "mapping.score"
+              )
+              rm(anchors, spca)
               gc(verbose = FALSE)
               setProgress(value = 0.8, message = "Running UMAP transform")
               ingested <- NNTransform(
@@ -733,28 +800,13 @@ server <- function(input, output, session) {
               suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
                 data = ingested[['transfer']][, cells]
               ))
-              # setProgress(value = 0.9, message = 'Calculating mapping metrics')
-              # app.env$object[['int']] <- CreateDimReducObject(
-              #   embeddings = Embeddings(object = ingested[['int']])[cells, ],
-              #   assay = app.env$default.assay
-              # )
-              # dsqr <- QueryReference(
-              #   reference = refs$map,
-              #   query = app.env$object,
-              #   assay.query = app.env$default.assay,
-              #   seed = 4
-              # )
-              # app.env$object <- AddMetaData(
-              #   object = app.env$object,
-              #   metadata = CalcMappingMetric(object = dsqr)
-              # )
-              # rm(dsqr, ingested)
               app.env$object <- SetAssayData(
                 object = app.env$object,
                 assay = 'SCT',
                 slot = 'scale.data',
                 new.data = new(Class = 'matrix')
               )
+              rm(ingested)
               gc(verbose = FALSE)
               app.env$messages <- c(
                 app.env$messages,
@@ -807,7 +859,8 @@ server <- function(input, output, session) {
                 "predicted.id",
                 PlottableMetadataNames(
                   object = app.env$object,
-                  min.levels = 1
+                  min.levels = 1,
+                  max.levels = 50
                 )
               ))
               updateSelectInput(
@@ -855,6 +908,13 @@ server <- function(input, output, session) {
                 selected = ''
               )
               enable(id = 'scorefeature')
+              updateSelectInput(
+                session = session,
+                inputId = 'groupfeature',
+                choices = metadata.choices,
+                selected = 'predicted.id'
+              )
+              enable(id = 'groupfeature')
               # Compute biomarkers
               setProgress(
                 value = 0.95,
@@ -923,6 +983,33 @@ server <- function(input, output, session) {
           setProgress(value = 1)
         }
       )
+      maptime.diff <- difftime(
+        time1 = Sys.time(),
+        time2 = maptime.start,
+        units = "secs"
+      )
+      if (maptime.diff < 60) {
+        time.fmt <- gsub(
+          pattern = " 0",
+          replacement = " ",
+          x = format(x = .POSIXct(xx = maptime.diff), format = "in %S seconds"),
+          fixed = TRUE
+        )
+      } else {
+        time.fmt <- gsub(
+          pattern = " 0",
+          replacement = " ",
+          x = format(
+            x = .POSIXct(xx = maptime.diff),
+            format = "in %M minutes %S seconds"
+          ),
+          fixed = TRUE
+        )
+      }
+      app.env$messages <- c(
+        app.env$messages,
+        time.fmt
+      )
     }
   )
   observeEvent( # RNA feature
@@ -977,11 +1064,11 @@ server <- function(input, output, session) {
     eventExpr = input$scorefeature,
     handlerExpr = {
       if (nchar(x = input$scorefeature)) {
-        # app.env$feature <- paste0(
-        #   Key(object = app.env$object[[scores.key]]),
-        #   input$scorefeature
-        # )
-        # app.env$feature <- paste0('md_', input$scorefeature)
+        if (input$scorefeature == "mapping.score") {
+          if (resolved(x = app.env$mapping.score)) {
+            app.env$object$mapping.score <- value(app.env$mapping.score)
+          }
+        }
         app.env$feature <- input$scorefeature
         for (f in c('feature', 'adtfeature')) {
           updateSelectInput(session = session, inputId = f, selected = '')
@@ -1119,7 +1206,11 @@ server <- function(input, output, session) {
   })
   output$refdim <- renderPlot(expr = {
     DimPlot(object = refs$plot, label = input$labels, group.by = "id") +
-      scale_colour_hue(limits = plotlevels, drop = FALSE)
+      scale_colour_hue(
+        limits = plotlevels,
+        breaks = sort(x = levels(x = as.factor(x = refs$plot$id))),
+        drop = FALSE
+      )
   })
   output$objdim <- renderPlot(expr = {
   if (!is.null(x = app.env$object)) {
@@ -1128,13 +1219,19 @@ server <- function(input, output, session) {
           DimPlot(
             object = app.env$object,
             group.by = "predicted.id",
-            label = input$labels
-          ) + scale_colour_hue(limits = plotlevels, drop = FALSE)
+            label = input$labels,
+            reduction = "umap.proj"
+          ) + scale_colour_hue(
+            limits = plotlevels,
+            breaks = sort(x = levels(x = as.factor(x = refs$plot$id))),
+            drop = FALSE
+          )
         } else {
           DimPlot(
             object = app.env$object,
             group.by = input$select.metadata,
-            label = input$labels
+            label = input$labels,
+            reduction = "umap.proj"
           )
         }
       }
@@ -1155,14 +1252,24 @@ server <- function(input, output, session) {
         rownames(x = app.env$object[["predictions"]])
       )
       if (app.env$feature %in% avail) {
-        title <- ifelse(
-          test = grepl(pattern = '^sct_', x = app.env$feature),
-          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
-          no = app.env$feature
-        )
-        VlnPlot(object = app.env$object, features = app.env$feature) +
-          ggtitle(label = title) +
-          NoLegend()
+        if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
+          ggplot() +
+            annotate("text", x = 4, y = 25, size=8, label = "Mapping score still computing ... ") +
+            theme_void()
+        } else {
+          title <- ifelse(
+            test = grepl(pattern = '^sct_', x = app.env$feature),
+            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            no = app.env$feature
+          )
+          VlnPlot(
+            object = app.env$object,
+            features = app.env$feature,
+            group.by = input$groupfeature,
+          ) +
+            ggtitle(label = title) +
+            NoLegend()
+        }
       }
     }
   })
@@ -1192,16 +1299,23 @@ server <- function(input, output, session) {
       }
       pal.use <- palettes[[feature.key]]
       if (!is.null(x = pal.use)) {
-        title <- ifelse(
-          test = grepl(pattern = '^sct_', x = app.env$feature),
-          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
-          no = app.env$feature
-        )
-        suppressWarnings(expr = FeaturePlot(
-          object = app.env$object,
-          features = app.env$feature,
-          cols = pal.use
-        )) + ggtitle(label = title)
+        if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
+          ggplot() +
+            annotate("text", x = 4, y = 25, size=8, label = "Mapping score still computing ... ") +
+            theme_void()
+        } else {
+          title <- ifelse(
+            test = grepl(pattern = '^sct_', x = app.env$feature),
+            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            no = app.env$feature
+          )
+          suppressWarnings(expr = FeaturePlot(
+            object = app.env$object,
+            features = app.env$feature,
+            cols = pal.use,
+            reduction = "umap.proj"
+          )) + ggtitle(label = title)
+        }
       }
     }
   })
@@ -1326,19 +1440,25 @@ server <- function(input, output, session) {
       }
     }
   )
-  # TODO: Add data from CalcMappingMetric to _pred.tsv?
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
       req <- c('predicted.id', 'predicted.id.score')
+      if (resolved(x = app.env$mapping.score)) {
+        req <- c(req, 'mapping.score')
+      }
       if (all(req %in% colnames(x = app.env$object[[]]))) {
+        pred.df <- data.frame(
+          cell = colnames(x = app.env$object),
+          predicted.id = app.env$object$predicted.id,
+          predicted.score = app.env$object$predicted.id.score,
+          stringsAsFactors = FALSE
+        )
+        if (resolved(x = app.env$mapping.score)) {
+          pred.df$mapping.score <- value(app.env$mapping.score)
+        }
         write.table(
-          x = data.frame(
-            cell = colnames(x = app.env$object),
-            predicted.id = app.env$object$predicted.id,
-            predicted.score = app.env$object$predicted.id.score,
-            stringsAsFactors = FALSE
-          ),
+          x = pred.df,
           file = file,
           quote = FALSE,
           row.names = FALSE,
@@ -1444,6 +1564,7 @@ AzimuthApp <- function(
   useShinyjs()
   opts <- list(
     shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
+    future.globals.maxSize = max.cells * 320000,
     Azimuth.app.mito = mito,
     Azimuth.app.reference = reference,
     Azimuth.app.max.cells = max.cells,

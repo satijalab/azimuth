@@ -254,8 +254,6 @@ LoadH5AD <- function(path) {
 #'  object (for mapping)
 #'  \item \dQuote{plotref.Rds} for the reference \code{Seurat}
 #'  object (for plotting)
-#'  \item \dQuote{fullref.Rds} for the full reference \code{Seurat}
-#'  object (for density estimation)
 #'  \item \dQuote{idx.annoy} for the nearest-neighbor index object
 #'  \item \dQuote{vf_avg_rna.Rds} for the average expression of variable
 #'  features of the reference (for pseudobulk check)
@@ -264,20 +262,14 @@ LoadH5AD <- function(path) {
 #' @param path Path or URL to the two RDS files
 #' @param seconds Timeout to check for URLs in seconds
 #'
-#' @return A list with four entries:
+#' @return A list with three entries:
 #' \describe{
 #'  \item{\code{map}}{
 #'   The downsampled reference \code{\link[Seurat]{Seurat}}
 #'   object (for mapping)
 #'  }
 #'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
-#'  \item{\code{full}}{
-#'   The full reference \code{Seurat} object (for density estimation)
-#'  }
-#'  \item{\code{index}}{
-#'   A list with nearest-neighbor index information, includes an
-#'   \code{\link[RcppAnnoy]{AnnoyIndex}} object
-#'  }
+#'  \item{\code{avgexp}}{Average expression (for pseudobulk check)}
 #' }
 #'
 #' @importFrom Seurat Idents<- LoadAnnoyIndex
@@ -298,24 +290,22 @@ LoadReference <- function(path, seconds = 10L) {
   ref.names <- list(
     map = 'ref.Rds',
     plt = 'plotref.Rds',
-    ref = 'fullref.Rds',
     ann = 'idx.annoy',
     avg = 'vf_avg_rna.Rds'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
   }
-  uri <- httr::build_url(url = httr::parse_url(url = path))
+  uri <- build_url(url = parse_url(url = path))
   if (grepl(pattern = '^://', x = uri)) {
     if (!dir.exists(paths = path)) {
       stop("Cannot find directory ", path, call. = FALSE)
     }
     mapref <- file.path(path, ref.names$map)
     pltref <- file.path(path, ref.names$plt)
-    fllref <- file.path(path, ref.names$ref)
     annref <- file.path(path, ref.names$ann)
     avgref <- file.path(path, ref.names$avg)
-    exists <- file.exists(c(mapref, pltref, fllref, annref, avgref))
+    exists <- file.exists(c(mapref, pltref, annref, avgref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -332,10 +322,7 @@ LoadReference <- function(path, seconds = 10L) {
         comp <- Negate(f = identical)
       }
       return(comp(
-        x = httr::status_code(x = httr::GET(
-          url = url,
-          httr::timeout(seconds = seconds)
-        )),
+        x = status_code(x = GET(url = url, timeout(seconds = seconds))),
         y = code
       ))
     }
@@ -355,14 +342,12 @@ LoadReference <- function(path, seconds = 10L) {
     }
     mapref <- url(description = ref.uris[['map']])
     pltref <- url(description = ref.uris[['plt']])
-    fllref <- url(description = ref.uris[['ref']])
     avgref <- url(description = ref.uris[['avg']])
     annref <- tempfile()
     download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
     on.exit(expr = {
       close(con = mapref)
       close(con = pltref)
-      close(con = fllref)
       close(con = avgref)
       unlink(x = annref)
     })
@@ -376,25 +361,21 @@ LoadReference <- function(path, seconds = 10L) {
   )
   # Load the other references
   plot <- readRDS(file = pltref)
-  full <- readRDS(file = fllref)
   avg <- readRDS(file = avgref)
   id.check <- vapply(
-    X = c(map, plot, full),
+    X = c(map, plot),
     FUN = function(x) {
       return('id' %in% colnames(x = x[[]]))
     },
     FUN.VALUE = logical(length = 1L)
   )
   if (all(id.check)) {
-    Idents(object = map) <-
-      Idents(object = plot) <-
-      Idents(object = full) <- 'id'
+    Idents(object = map) <- Idents(object = plot) <- 'id'
   }
   gc(verbose = FALSE)
   return(list(
     map = map,
     plot = plot,
-    full = full,
     avgexp = avg
   ))
 }
