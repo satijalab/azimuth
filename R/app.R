@@ -200,6 +200,13 @@ ui <- tagList(
           selectize = FALSE
         ))),
         plotOutput(outputId = 'edim'),
+        disabled(selectInput(
+          inputId = 'groupfeature',
+          label = 'Metadata to group by',
+          choices = '',
+          selectize = FALSE,
+          width = "25%"
+        )),
         plotOutput(outputId = 'evln'),
         width = 12
       ),
@@ -837,7 +844,8 @@ server <- function(input, output, session) {
                 "predicted.id",
                 PlottableMetadataNames(
                   object = app.env$object,
-                  min.levels = 1
+                  min.levels = 1,
+                  max.levels = 50
                 )
               ))
               updateSelectInput(
@@ -885,6 +893,13 @@ server <- function(input, output, session) {
                 selected = ''
               )
               enable(id = 'scorefeature')
+              updateSelectInput(
+                session = session,
+                inputId = 'groupfeature',
+                choices = metadata.choices,
+                selected = 'predicted.id'
+              )
+              enable(id = 'groupfeature')
               # Compute biomarkers
               setProgress(
                 value = 0.95,
@@ -1236,7 +1251,11 @@ server <- function(input, output, session) {
             yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
-          VlnPlot(object = app.env$object, features = app.env$feature) +
+          VlnPlot(
+            object = app.env$object,
+            features = app.env$feature,
+            group.by = input$groupfeature,
+          ) +
             ggtitle(label = title) +
             NoLegend()
         }
