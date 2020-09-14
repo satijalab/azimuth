@@ -219,7 +219,7 @@ MappingScore <- function(
   ## Finding weights of anchors in query pca space
   ref.pca.orig <- ref.embeddings[, 1:ndim]
   query.pca.orig <- query.embeddings[, 1:ndim]
-  dr.weights <- suppressWarnings(CreateDimReducObject(
+  dr.weights <- suppressWarnings(expr = CreateDimReducObject(
     embeddings = rbind(query.pca.orig, ref.pca.orig)
   ))
   if (!is.null(x = query.weights)) {
@@ -246,7 +246,10 @@ MappingScore <- function(
   ## Perform projection of ref pca values using weights matrix
   ref.pca <- ref.embeddings[ref.cells[anchors[, 1]], 1:ndim]
   rownames(x = ref.pca) <- paste0(rownames(x = ref.pca), "_reference")
-  query.cells.projected <- crossprod(x = ref.pca, y = as.matrix(x = weights.matrix))
+  query.cells.projected <- crossprod(
+    x = ref.pca,
+    y = as.matrix(x = weights.matrix)
+  )
   colnames(x = query.cells.projected) <- query.cells
   rownames(x = query.cells.projected) <- colnames(x = ref.pca)
 
@@ -274,10 +277,16 @@ MappingScore <- function(
     cpp = TRUE,
     verbose = verbose
   )
-  weights.matrix <- GetIntegrationData(object = combined.object, integration.name = "IT1", slot = "weights")
+  weights.matrix <- GetIntegrationData(
+    object = combined.object,
+    integration.name = "IT1",
+    slot = "weights"
+  )
   ## Project back onto query
   orig.pca <- query.embeddings[query.cells[anchors[, 2]], ]
-  query.cells.back.corrected <- t(x = crossprod(x = orig.pca, y = as.matrix(x = weights.matrix))[1:ndim, ])
+  query.cells.back.corrected <- t(
+    x = crossprod(x = orig.pca, y = as.matrix(x = weights.matrix))[1:ndim, ]
+  )
   rownames(x = query.cells.back.corrected) <- query.cells
   query.cells.pca <- query.embeddings[query.cells, 1:ndim]
   if (verbose) {
@@ -285,10 +294,7 @@ MappingScore <- function(
     message("    Finding neighbors of original query cells")
   }
   ## Compute original neighborhood of query cells
-  nn.method <- "rann"
-  if (approx) {
-    nn.method <- "annoy"
-  }
+  nn.method <- ifelse(test = isTRUE(x = approx), yes = 'annoy', no = 'rann')
   if (is.null(x = query.neighbors)) {
     query.neighbors <- Seurat:::NNHelper(
       data = query.cells.pca,
@@ -298,7 +304,9 @@ MappingScore <- function(
       cache.index = TRUE
     )
   }
-  if (verbose) message("    Finding neighbors of transformed query cells")
+  if (verbose) {
+    message("    Finding neighbors of transformed query cells")
+  }
   ## Compute new neighborhood of query cells after projections
   if (nn.method == "annoy") {
     if (is.null(x = Index(object = query.neighbors))) {
@@ -321,10 +329,17 @@ MappingScore <- function(
       )
     }
   }
-  if (verbose) message("    Computing query SNN")
-  snn <- Seurat:::ComputeSNN(nn_ranked = Indices(query.neighbors)[, 1:ksnn], prune = snn.prune)
+  if (verbose) {
+    message("    Computing query SNN")
+  }
+  snn <- Seurat:::ComputeSNN(
+    nn_ranked = Indices(query.neighbors)[, 1:ksnn],
+    prune = snn.prune
+  )
   query.cells.pca <- t(x = query.cells.pca)
-  if (verbose) message("    Determining bandwidth and computing transition probabilities")
+  if (verbose) {
+    message("    Determining bandwidth and computing transition probabilities")
+  }
   scores <- ScoreHelper(
     snn = snn,
     query_pca = query.cells.pca,

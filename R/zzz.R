@@ -530,8 +530,7 @@ LoadReference <- function(path, seconds = 10L) {
     FUN.VALUE = logical(length = 1L)
   )
   if (all(id.check)) {
-    Idents(object = map) <-
-      Idents(object = plot) <- 'id'
+    Idents(object = map) <- Idents(object = plot) <- 'id'
   }
   gc(verbose = FALSE)
   return(list(

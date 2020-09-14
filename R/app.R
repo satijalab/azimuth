@@ -733,30 +733,43 @@ server <- function(input, output, session) {
               }
               # reduce size of object in anchorset
               anchors@object.list[[1]] <- DietSeurat(object = anchors@object.list[[1]])
-              anchors@object.list[[1]] <- subset(anchors@object.list[[1]], features = c(rownames(x = anchors@object.list[[1]])[1]))
+              anchors@object.list[[1]] <- subset(
+                x = anchors@object.list[[1]],
+                features = c(rownames(x = anchors@object.list[[1]])[1])
+              )
               anchors@object.list[[1]] <- RenameCells(
                 object = anchors@object.list[[1]],
                 new.names = unname(obj = sapply(
                   X = Cells(x = anchors@object.list[[1]]),
-                  FUN = function(x) gsub(pattern = "_reference", replacement = "", x = x))
-              ))
+                  FUN = function(x) {
+                    return(gsub(pattern = "_reference", replacement = "", x = x))
+                  }
+                )))
               anchors@object.list[[1]] <- RenameCells(
                 object = anchors@object.list[[1]],
                 new.names = unname(obj = sapply(
                   X = Cells(x = anchors@object.list[[1]]),
-                  FUN = function(x) gsub(pattern = "_query", replacement = "", x = x))
-              ))
+                  FUN = function(x) {
+                    return(gsub(pattern = "_query", replacement = "", x = x))
+                  }
+                )))
               anchors@object.list[[1]]@meta.data <- data.frame()
               anchors@object.list[[1]]@active.ident <- factor()
               app.env$mapping.score <- future(
-                expr = { MappingScore(
-                  anchors = anchors@anchors,
-                  combined.object = anchors@object.list[[1]],
-                  query.neighbors =  slot(object = anchors, name = "neighbors")[["query.neighbors"]],
-                  query.weights = GetIntegrationData(object = ingested, integration.name = "integrated", slot = "weights"),
-                  query.embeddings = Embeddings(object = spca),
-                  ref.embeddings = Embeddings(object = refs$map[["spca"]]),
-                  approx = TRUE)
+                expr = {
+                  MappingScore(
+                    anchors = anchors@anchors,
+                    combined.object = anchors@object.list[[1]],
+                    query.neighbors =  slot(object = anchors, name = "neighbors")[["query.neighbors"]],
+                    query.weights = GetIntegrationData(
+                      object = ingested,
+                      integration.name = "integrated",
+                      slot = "weights"
+                    ),
+                    query.embeddings = Embeddings(object = spca),
+                    ref.embeddings = Embeddings(object = refs$map[["spca"]]),
+                    approx = TRUE
+                  )
                 }
               )
               app.env$object <- AddMetaData(
