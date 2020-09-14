@@ -721,29 +721,43 @@ server <- function(input, output, session) {
                 cells = paste0(Cells(x = app.env$object), "_query")
               )
               spca <- RenameCells(object = spca, new.names = Cells(x = app.env$object))
-              app.env$object[["spca"]] <- spca
-              Key(object = spca) <- "spca_"
-              DefaultAssay(object = spca) <- "SCT"
-              app.env$object[["spca"]] <- spca
               if (Sys.getenv("RSTUDIO") == "1") {
                 plan("sequential")
               }
-              query <- app.env$object
-              ref <- refs$map
-              app.env$mapping.score <- future({MappingScore(
-                anchorset = anchors,
-                ref = ref,
-                query = query,
-                query.weights = GetIntegrationData(object = ingested, integration.name = "integrated", slot = "weights"),
-                query.reduction = "spca",
-                approx = T
-              )})
+              # reduce size of object in anchorset
+              anchors@object.list[[1]] <- DietSeurat(object = anchors@object.list[[1]])
+              anchors@object.list[[1]] <- subset(anchors@object.list[[1]], features = c(rownames(x = anchors@object.list[[1]])[1]))
+              anchors@object.list[[1]] <- RenameCells(
+                object = anchors@object.list[[1]],
+                new.names = unname(obj = sapply(
+                  X = Cells(x = anchors@object.list[[1]]),
+                  FUN = function(x) gsub(pattern = "_reference", replacement = "", x = x))
+              ))
+              anchors@object.list[[1]] <- RenameCells(
+                object = anchors@object.list[[1]],
+                new.names = unname(obj = sapply(
+                  X = Cells(x = anchors@object.list[[1]]),
+                  FUN = function(x) gsub(pattern = "_query", replacement = "", x = x))
+              ))
+              anchors@object.list[[1]]@meta.data <- data.frame()
+              anchors@object.list[[1]]@active.ident <- factor()
+              app.env$mapping.score <- future(
+                expr = { MappingScore(
+                  anchors = anchors@anchors,
+                  combined.object = anchors@object.list[[1]],
+                  query.neighbors =  slot(object = anchors, name = "neighbors")[["query.neighbors"]],
+                  query.weights = GetIntegrationData(object = ingested, integration.name = "integrated", slot = "weights"),
+                  query.embeddings = Embeddings(object = spca),
+                  ref.embeddings = Embeddings(object = refs$map[["spca"]]),
+                  approx = TRUE)
+                }
+              )
               app.env$object <- AddMetaData(
                 object = app.env$object,
                 metadata = rep(x = 0, times = ncol(x = app.env$object)),
                 col.name = "mapping.score"
               )
-              rm(anchors)
+              rm(anchors, spca)
               gc(verbose = FALSE)
               setProgress(value = 0.8, message = "Running UMAP transform")
               ingested <- NNTransform(
@@ -770,6 +784,7 @@ server <- function(input, output, session) {
                 slot = 'scale.data',
                 new.data = new(Class = 'matrix')
               )
+              rm(ingested)
               gc(verbose = FALSE)
               app.env$messages <- c(
                 app.env$messages,

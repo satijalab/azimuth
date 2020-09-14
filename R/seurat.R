@@ -176,11 +176,11 @@ CalcMappingMetric <- function(object, reduction = 'int', dims = 1:50) {
 #' @export
 #'
 MappingScore <- function(
-  anchorset,
-  ref,
-  query,
-  ref.reduction = "spca",
-  query.reduction = "spca",
+  anchors,
+  combined.object,
+  query.neighbors,
+  ref.embeddings,
+  query.embeddings,
   k = 50,
   ndim = 50,
   ksmooth = 100,
@@ -194,18 +194,8 @@ MappingScore <- function(
 ) {
   # Input checks
   start.time <- Sys.time()
-  if (!query.reduction %in% Reductions(object = query)) {
-    stop("Please provide a query with", query.reduction, "precomputed.")
-  }
-  if (!ref.reduction %in% Reductions(object = ref)) {
-    stop("Please provide a reference with", ref.reduction, "precomputed.")
-  }
-  # Extract info from anchorset object
-  combined.object <- slot(object = anchorset, name = "object.list")[[1]]
-  anchors <- slot(object = anchorset, name = "anchors")
-  reference.cells <- slot(object = anchorset, name = "reference.cells")
-  query.cells <- slot(object = anchorset, name = "query.cells")
-  query.neighbors <- slot(object = anchorset, name = "neighbors")[["query.neighbors"]]
+  ref.cells <- rownames(x = ref.embeddings)
+  query.cells <- rownames(query.embeddings)
   # Project reference values onto query
   if (verbose) {
     message("Projecting reference PCA onto query")
@@ -216,15 +206,12 @@ MappingScore <- function(
   slot(object = combined.object, name = 'tools')[["IT1"]] <- new(
     Class = "IntegrationData",
     anchors = anchors,
-    neighbors = list(cells1 = reference.cells, cells2 = query.cells),
+    neighbors = list(cells1 = ref.cells, cells2 = query.cells),
     integration.matrix = int.mat
   )
   ## Finding weights of anchors in query pca space
-  ref.pca.orig <- Embeddings(object = ref[[ref.reduction]])[, 1:ndim]
-  rownames(x = ref.pca.orig) <- paste0(rownames(x = ref.pca.orig), "_reference")
-  query.pca.orig <- Embeddings(object = query[[query.reduction]])[, 1:ndim]
-  rownames(x = query.pca.orig) <- paste0(rownames(x = query.pca.orig), "_query")
-
+  ref.pca.orig <- ref.embeddings[, 1:ndim]
+  query.pca.orig <- query.embeddings[, 1:ndim]
   dr.weights <- suppressWarnings(CreateDimReducObject(
     embeddings = rbind(query.pca.orig, ref.pca.orig)
   ))
@@ -250,7 +237,7 @@ MappingScore <- function(
     )
   }
   ## Perform projection of ref pca values using weights matrix
-  ref.pca <- Embeddings(object = ref[[ref.reduction]])[Cells(x = ref)[anchors[, 1]], 1:ndim]
+  ref.pca <- ref.embeddings[ref.cells[anchors[, 1]], 1:ndim]
   rownames(x = ref.pca) <- paste0(rownames(x = ref.pca), "_reference")
   query.cells.projected <- crossprod(x = ref.pca, y = as.matrix(x = weights.matrix))
   colnames(x = query.cells.projected) <- query.cells
@@ -264,7 +251,7 @@ MappingScore <- function(
   dr.weights <- suppressWarnings(CreateDimReducObject(
     embeddings = rbind(
       t(x = as.matrix(x = query.cells.projected)),
-      ref.pca.orig[reference.cells, ]
+      ref.pca.orig[ref.cells, ]
     ),
   ))
   combined.object <- Seurat:::FindWeights(
@@ -280,13 +267,12 @@ MappingScore <- function(
     cpp = TRUE,
     verbose = verbose
   )
-  weights.matrix <- GetIntegrationData(combined.object, integration.name = "IT1", slot = "weights")
+  weights.matrix <- GetIntegrationData(object = combined.object, integration.name = "IT1", slot = "weights")
   ## Project back onto query
-  orig.pca <- Embeddings(object = query[[query.reduction]])[Cells(x = query)[anchors[, 2]], ]
+  orig.pca <- query.embeddings[query.cells[anchors[, 2]], ]
   query.cells.back.corrected <- t(x = crossprod(x = orig.pca, y = as.matrix(x = weights.matrix))[1:ndim, ])
   rownames(x = query.cells.back.corrected) <- query.cells
-  query.cells.orig <- gsub(pattern = "_query", replacement = "", x = query.cells)
-  query.cells.pca <- Embeddings(object = query[[query.reduction]])[query.cells.orig, 1:ndim]
+  query.cells.pca <- query.embeddings[query.cells, 1:ndim]
   if (verbose) {
     message("Computing scores:")
     message("    Finding neighbors of original query cells")
@@ -335,15 +321,14 @@ MappingScore <- function(
   scores <- ScoreHelper(
     snn = snn,
     query_pca = query.cells.pca,
-    query_dists = Distances(query.neighbors),
-    corrected_nns = Indices(corrected.neighbors),
+    query_dists = Distances(object = query.neighbors),
+    corrected_nns = Indices(object = corrected.neighbors),
     k_snn = ksnn,
     subtract_first_nn = subtract.first.nn,
     display_progress = verbose
   )
   scores[scores > 1] <- 1
-  query.names <- gsub(pattern = "_query", replacement = "", x = query.cells)
-  names(x = scores) <- query.names
+  names(x = scores) <- query.cells
   end.time <- Sys.time()
   if (verbose) {
     message("Total elapsed time: ", end.time - start.time)
