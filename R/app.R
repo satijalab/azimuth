@@ -1526,6 +1526,7 @@ AzimuthApp <- function(
   useShinyjs()
   opts <- list(
     shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
+    future.globals.maxsize = max.cells * 320000,
     Azimuth.app.mito = mito,
     Azimuth.app.reference = reference,
     Azimuth.app.max.cells = max.cells,
