@@ -66,7 +66,7 @@ color <- c("experimental" = "orange", "maturing" = "blue", "stable" = "brightgre
 [![Lifecycle](https://img.shields.io/badge/lifecycle-`r stage`-`r color`.svg)](`r github.url`)
 <!-- badges: end -->
 
-This is the source code for a Shiny app demonstrating the query-reference mapping algorithm available in Seurat 4. The reference data accompanying the app and the algorithms used are described [in our publication](Seurat 4 biorxiv link).
+seurat-mapper is a Shiny app demonstrating a query-reference mapping algorithm for single-cell data. The reference data accompanying the app and the algorithms used are described [in our publication](Seurat 4 biorxiv link).
 
 We have made an instance of the app available for public use, [available here](app landing page on lab website).
 
@@ -109,7 +109,7 @@ You can set options by passing a parameter to the `AzimuthApp` function:
 SeuratMapper::AzimuthApp(reference = '/path/to/reference', max.cells = 100000)
 ```
 
-or setting the option in R (e.g. if it is not a parameter to the `AzimuthApp` function)
+or setting the option in R (e.g. if it is not a parameter to the `AzimuthApp` function):
 
 ```r
 options('Azimuth.map.pbcorthresh' = 0.5)
@@ -119,17 +119,18 @@ SeuratMapper::AzimuthApp(reference = '/path/to/reference')
 ## Docker
 
 First, build the Docker image. Clone the repository and run the following while in the root of the repository to build the image and tag it with the name "seurat-mapper":
+
 ```
 docker build -t seurat-mapper .
 ```
 
-Next, launch the container with a bind mount connecting the directory on the host containing the reference files (e.g. `/path/to/reference`) to `/reference-data` in the container.
+Next, launch a container based on the image `seurat-mapper` with a bind mount mounting the directory on the host containing the reference files (e.g. `/path/to/reference`) as `/reference-data` in the container.
 
 ```
 docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper
 ```
 
-If port 3838 is already in use on the host, use `-p NNNN:3838` in the run command instead, to bind port NNNN on the host to port 3838 on the container.
+If port 3838 is already in use on the host or you wish to use a different port, use `-p NNNN:3838` in the run command instead, to bind port NNNN on the host to port 3838 on the container.
 The container runs the command `R -e "SeuratMapper::AzimuthApp(reference = '/reference-data')"` by default. 
 
 ### Specifying options
@@ -140,13 +141,13 @@ You can set options by passing a parameter to the `AzimuthApp` function:
 docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "SeuratMapper::AzimuthApp(reference = '/reference-data', max.cells = 100000)"
 ```
 
-or setting the option in R (e.g. if it is not a parameter to the `AzimuthApp` function)
+or setting the option in R (e.g. if it is not a parameter to the `AzimuthApp` function):
 
 ```
 docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "options('Azimuth.map.pbcorthresh' = 0.5)" -e "SeuratMapper::AzimuthApp(reference = '/reference-data')"
 ```
 
-or just starting a shell in the container, from which you can launch an interactive R session and set options as desired.
+or just starting a shell in the container, from which you can launch an interactive R session and set options as desired:
 
 ```
 docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper /bin/bash
@@ -160,7 +161,7 @@ If the app is launched in an environment with `future::plan('multicore', workers
 
 ## Support
 
-We do not actively support users running the app themselves and suggest you use [version 4 of the Seurat package](Seurat4 landing page on lab website) to run the reference mapping workflow and related visualizations on your local system. Please see the [Seurat mapping vignette](link to vignette) for an example of how to use Seurat for reference mapping. If you use the instance of the app we are hosting on the web, you can download a Seurat v4 R script once your analysis is complete that will guide you in reproducing the analysis.
+We do not actively support users running the app themselves and suggest you use [version 4 of the Seurat package](Seurat4 landing page on lab website) to run the reference mapping workflow and related visualizations on your local system. Please see the [Seurat mapping vignette](link to vignette) for an example of how to use Seurat for reference mapping. If you use the instance of the app we are hosting on the web, you can download a Seurat v4 R script once your analysis is complete that will guide you in reproducing the analysis. You do not need seurat-mapper to reproduce the analysis.
 
 If you would like to help us improve the app, and you believe a dataset meets the requirements and it is publicly available for us to use for debugging but the app doesn’t work, please file a Github issue linking to the dataset and describing the problem on [the issues page](https://github.com/mojaveazure/seurat-mapper/issues). 
 
