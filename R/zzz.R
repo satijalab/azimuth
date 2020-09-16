@@ -98,9 +98,9 @@ CategoryTable <- function(
 ) {
   data <- FetchData(object = object, vars = c(category.1, category.2))
   data[, category.1] <- droplevels(x = factor(x = data[, category.1]))
-  levels(x = data[, category.1]) <- sort(x = levels(x = data[, category.1]))
+  data[, category.1] <- factor(x = data[, category.1], levels = sort(x = levels(x = data[, category.1])))
   data[, category.2] <- droplevels(x = factor(x = data[, category.2]))
-  levels(x = data[, category.2]) <- sort(x = levels(x = data[, category.2]))
+  data[, category.2] <- factor(x = data[, category.2], levels = sort(x = levels(x = data[, category.2])))
   tbl <- table(
     data[, category.1],
     data[, category.2],
