@@ -342,6 +342,22 @@ server <- function(input, output, session) {
   )
   rna.proxy <- dataTableProxy(outputId = "biomarkers")
   adt.proxy <- dataTableProxy(outputId = "adtbio")
+  logdir <- getOption(x = 'Azimuth.app.logdir')
+  if (is.null(logdir) || !dir.exists(logdir)) {
+    logfile <- NULL
+  } else {
+    logfile <- file.path(logdir, paste0(Sys.info()[["nodename"]],".log"))
+  }
+  if (!is.null(logfile)) {
+    cat("TIME",
+        "STARTUP",
+        Sys.time(),
+        "\n",
+        file = logfile,
+        append = TRUE,
+        sep = "\t"
+    )
+  }
   withProgress(
     message = "Loading reference",
     expr = {
@@ -520,6 +536,16 @@ server <- function(input, output, session) {
               color = "green"
             ))
             enable(id = 'map')
+            if (!is.null(logfile)) {
+              cat("STAT",
+                  "CELLSUPLOAD",
+                  ncellsupload,
+                  "\n",
+                  file = logfile,
+                  sep = "\t",
+                  append = TRUE
+              )
+            }
           }
         }
       }
@@ -642,12 +668,32 @@ server <- function(input, output, session) {
               icon = icon("check"),
               color = "green"
             ))
+            if (!is.null(logfile)) {
+              cat("STAT",
+                  "CELLSPREPROC",
+                  ncellspreproc,
+                  "\n",
+                  file = logfile,
+                  append = TRUE,
+                  sep = "\t"
+              )
+            }
             app.env$object <- app.env$object[, cells.use]
             # Pseudobulk correlation test
             pbcor <- PBCorTest(
               object = app.env$object,
               ref = refs$avg
             )
+            if (!is.null(logfile)) {
+              cat("STAT",
+                  "PBCOR",
+                  pbcor[["cor.res"]],
+                  "\n",
+                  file = logfile,
+                  append = TRUE,
+                  sep = "\t"
+              )
+            }
             if (pbcor[["cor.res"]] < getOption(x = 'Azimuth.map.pbcorthresh')) {
               output$valuebox.mapped <- renderValueBox(expr = valueBox(
                 value = "Failure",
@@ -685,6 +731,15 @@ server <- function(input, output, session) {
                     do.scale = FALSE,
                     do.center = TRUE
                   ))
+                  if (!is.null(logfile)) {
+                    cat("NOTE",
+                        "GLMGAMPOIFAIL",
+                        "\n",
+                        file = logfile,
+                        append = TRUE,
+                        sep = "\t"
+                    )
+                  }
                 }
               )
               app.env$messages <- c(
@@ -1002,6 +1057,16 @@ server <- function(input, output, session) {
                 app.env$messages,
                 time.fmt
               )
+              if (!is.null(logfile)) {
+                cat("DIFFTIME",
+                    "MAPPING",
+                    as.numeric(maptime.diff, units="secs"),
+                    "\n",
+                    file = logfile,
+                    append = TRUE,
+                    sep = "\t"
+                )
+              }
             }
           }
           setProgress(value = 1)
@@ -1485,6 +1550,10 @@ server <- function(input, output, session) {
 #'   URL or directory path to reference dataset; see \code{\link{LoadReference}}
 #'   for more details
 #'  }
+#'  \item{\code{Azimuth.app.logdir}}{
+#'   Directory path to write logfile (must exist or no logs are written);
+#'   default is NULL which disables logging.
+#'  }
 #'  \item{\code{Azimuth.app.max.upload.mb}}{
 #'   Maximum file size (in MB) allowed to upload
 #'  }
@@ -1514,6 +1583,10 @@ AzimuthApp <- function(
     x = 'Azimuth.app.reference',
     default = 'http://satijalab04.nygenome.org/pbmc'
   ),
+  logdir = getOption(
+    x = 'Azimuth.app.logdir',
+    default = NULL
+  ),
   max.upload.mb = getOption(
     x = 'Azimuth.app.max.upload.mb',
     default = 500
@@ -1539,7 +1612,8 @@ AzimuthApp <- function(
     Azimuth.app.reference = reference,
     Azimuth.app.max.cells = max.cells,
     Azimuth.app.default.gene = default.gene,
-    Azimuth.app.default.adt = default.adt
+    Azimuth.app.default.adt = default.adt,
+    Azimuth.app.logdir = logdir
   )
   with_options(
     new = opts,
