@@ -346,7 +346,7 @@ server <- function(input, output, session) {
   if (is.null(logdir) || !dir.exists(logdir)) {
     logfile <- NULL
   } else {
-    logfile <- file.path(logdir, paste0(Sys.info()[["nodename"]],".log"))
+    logfile <- file.path(logdir, paste(Sys.info()[["nodename"]], as.numeric(Sys.time(), units = "secs"), "log", sep = "."))
   }
   if (!is.null(logfile)) {
     cat("TIME",
