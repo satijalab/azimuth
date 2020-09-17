@@ -311,7 +311,8 @@ ui <- tagList(
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
-#' FindTransferAnchors MapQueryData Misc Key<- RenameCells
+#' FindTransferAnchors MapQueryData Misc Key<- RenameCells MappingScore
+#' GetIntegrationData
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
@@ -769,7 +770,7 @@ server <- function(input, output, session) {
                     ),
                     query.embeddings = Embeddings(object = spca),
                     ref.embeddings = Embeddings(object = refs$map[["spca"]]),
-                    approx = TRUE
+                    nn.method = "annoy"
                   )
                 }
               )
