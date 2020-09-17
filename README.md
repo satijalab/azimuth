@@ -8,10 +8,10 @@
 [![Lifecycle](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://github.com/mojaveazure/seurat-mapper)
 <!-- badges: end -->
 
-What the package does (one paragraph).
-
-This is the source code for a Shiny app demonstrating the
-query-reference mapping algorithm available in Seurat 4.
+SeuratMapper is a Shiny app demonstrating a query-reference mapping
+algorithm for single-cell data. The reference data accompanying the app
+and the algorithms used are described [in our
+publication](Seurat%204%20biorxiv%20link).
 
 We have made an instance of the app available for public use, [available
 here](app%20landing%20page%20on%20lab%20website).
@@ -28,19 +28,20 @@ You can install SeuratMapper from GitHub with:
 if (!requireNamespace('remotes', quietly = TRUE) {
   install.packages('remotes')
 }
-remotes::install_github('mojaveazure/seurat-mapper', ref = 'develop')
+remotes::install_github('mojaveazure/seurat-mapper', ref = 'master')
 ```
-
-## Reference files
-
-Necessary reference files can be downloaded from
-[here](link%20to%20reference%20files%20as%20tar.gz). Extract the
-archive.
 
 ## Running the app
 
-If the directory containing the reference files is `/path/to/reference`,
-the app is launched as:
+The app is launched as:
+
+``` r
+SeuratMapper::AzimuthApp()
+```
+
+By default, the appropriate reference files are loaded into memory by
+accessing a web URL. If you instead have a directory containing
+reference files at `/path/to/reference`, specify it as:
 
 ``` r
 SeuratMapper::AzimuthApp(reference = '/path/to/reference')
@@ -51,15 +52,15 @@ SeuratMapper::AzimuthApp(reference = '/path/to/reference')
 You can set options by passing a parameter to the `AzimuthApp` function:
 
 ``` r
-SeuratMapper::AzimuthApp(reference = '/path/to/reference', max.cells = 100000)
+SeuratMapper::AzimuthApp(max.cells = 100000)
 ```
 
 or setting the option in R (e.g. if it is not a parameter to the
-`AzimuthApp` function)
+`AzimuthApp` function):
 
 ``` r
 options('Azimuth.map.pbcorthresh' = 0.5)
-SeuratMapper::AzimuthApp(reference = '/path/to/reference')
+SeuratMapper::AzimuthApp()
 ```
 
 ## Docker
@@ -70,16 +71,17 @@ it with the name “seurat-mapper”:
 
     docker build -t seurat-mapper .
 
-Next, launch the container with a bind mount connecting the directory on
-the host containing the reference files (e.g. `/path/to/reference`) to
-`/reference-data` in the container.
+Next, launch a container based on the image `seurat-mapper` with a bind
+mount mounting the directory on the host containing the reference files
+(e.g. `/path/to/reference`) as `/reference-data` in the container.
 
     docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper
 
-If port 3838 is already in use on the host, use `-p NNNN:3838` in the
-run command instead, to bind port NNNN on the host to port 3838 on the
-container. The container runs the command `R -e
-"SeuratMapper::AzimuthApp(reference = '/reference-data')"` by default.
+If port 3838 is already in use on the host or you wish to use a
+different port, use `-p NNNN:3838` in the run command instead, to bind
+port NNNN on the host to port 3838 on the container. The container runs
+the command `R -e "SeuratMapper::AzimuthApp(reference =
+'/reference-data')"` by default.
 
 ### Specifying options
 
@@ -88,12 +90,12 @@ You can set options by passing a parameter to the `AzimuthApp` function:
     docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "SeuratMapper::AzimuthApp(reference = '/reference-data', max.cells = 100000)"
 
 or setting the option in R (e.g. if it is not a parameter to the
-`AzimuthApp` function)
+`AzimuthApp` function):
 
     docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "options('Azimuth.map.pbcorthresh' = 0.5)" -e "SeuratMapper::AzimuthApp(reference = '/reference-data')"
 
 or just starting a shell in the container, from which you can launch an
-interactive R session and set options as desired.
+interactive R session and set options as desired:
 
     docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper /bin/bash
 
@@ -115,10 +117,11 @@ system. Please see the [Seurat mapping vignette](link%20to%20vignette)
 for an example of how to use Seurat for reference mapping. If you use
 the instance of the app we are hosting on the web, you can download a
 Seurat v4 R script once your analysis is complete that will guide you in
-reproducing the analysis.
+reproducing the analysis. You do not need seurat-mapper to reproduce the
+analysis.
 
 If you would like to help us improve the app, and you believe a dataset
 meets the requirements and it is publicly available for us to use for
 debugging but the app doesn’t work, please file a Github issue linking
 to the dataset and describing the problem on [the issues
-page](https://github.com/mojaveazure/seurat-mapper/issues).
+page](app%20repository%20issue%20page).

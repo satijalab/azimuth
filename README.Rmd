@@ -66,7 +66,7 @@ color <- c("experimental" = "orange", "maturing" = "blue", "stable" = "brightgre
 [![Lifecycle](https://img.shields.io/badge/lifecycle-`r stage`-`r color`.svg)](`r github.url`)
 <!-- badges: end -->
 
-seurat-mapper is a Shiny app demonstrating a query-reference mapping algorithm for single-cell data. The reference data accompanying the app and the algorithms used are described [in our publication](Seurat 4 biorxiv link).
+`r pkg` is a Shiny app demonstrating a query-reference mapping algorithm for single-cell data. The reference data accompanying the app and the algorithms used are described [in our publication](Seurat 4 biorxiv link).
 
 We have made an instance of the app available for public use, [available here](app landing page on lab website).
 
@@ -84,19 +84,22 @@ cat(
   "if (!requireNamespace('remotes', quietly = TRUE) {",
   "  install.packages('remotes')",
   "}",
-  paste0("remotes::install_github('", github.base, "', ref = 'develop')"),
+  paste0("remotes::install_github('", github.base, "', ref = 'master')"),
   "```",
   sep = "\n"
 )
 ```
 
-## Reference files
-
-Necessary reference files can be downloaded from [here](link to reference files as tar.gz). Extract the archive.
-
 ## Running the app
 
-If the directory containing the reference files is `/path/to/reference`, the app is launched as:
+The app is launched as:
+
+```r
+SeuratMapper::AzimuthApp()
+```
+
+By default, the appropriate reference files are loaded into memory by accessing a web URL. If you instead have a directory containing reference files at `/path/to/reference`, specify it as:
+
 ```r
 SeuratMapper::AzimuthApp(reference = '/path/to/reference')
 ```
@@ -106,14 +109,14 @@ SeuratMapper::AzimuthApp(reference = '/path/to/reference')
 You can set options by passing a parameter to the `AzimuthApp` function:
 
 ```r
-SeuratMapper::AzimuthApp(reference = '/path/to/reference', max.cells = 100000)
+SeuratMapper::AzimuthApp(max.cells = 100000)
 ```
 
 or setting the option in R (e.g. if it is not a parameter to the `AzimuthApp` function):
 
 ```r
 options('Azimuth.map.pbcorthresh' = 0.5)
-SeuratMapper::AzimuthApp(reference = '/path/to/reference')
+SeuratMapper::AzimuthApp()
 ```
 
 ## Docker
@@ -163,5 +166,5 @@ If the app is launched in an environment with `future::plan('multicore', workers
 
 We do not actively support users running the app themselves and suggest you use [version 4 of the Seurat package](Seurat4 landing page on lab website) to run the reference mapping workflow and related visualizations on your local system. Please see the [Seurat mapping vignette](link to vignette) for an example of how to use Seurat for reference mapping. If you use the instance of the app we are hosting on the web, you can download a Seurat v4 R script once your analysis is complete that will guide you in reproducing the analysis. You do not need seurat-mapper to reproduce the analysis.
 
-If you would like to help us improve the app, and you believe a dataset meets the requirements and it is publicly available for us to use for debugging but the app doesn’t work, please file a Github issue linking to the dataset and describing the problem on [the issues page](https://github.com/mojaveazure/seurat-mapper/issues). 
+If you would like to help us improve the app, and you believe a dataset meets the requirements and it is publicly available for us to use for debugging but the app doesn’t work, please file a Github issue linking to the dataset and describing the problem on [the issues page](app repository issue page). 
 
