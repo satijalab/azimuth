@@ -730,6 +730,11 @@ server <- function(input, output, session) {
                 cells = paste0(Cells(x = app.env$object), "_query")
               )
               spca <- RenameCells(object = spca, new.names = Cells(x = app.env$object))
+              spca.ref <- subset(
+                x = anchors@object.list[[1]][["pcaproject.l2"]],
+                cells = paste0(Cells(x = refs$map), "_reference")
+              )
+              spca.ref <- RenameCells(object = spca.ref, new.names = Cells(x = refs$map))
               if (Sys.getenv("RSTUDIO") == "1") {
                 plan("sequential")
               }
@@ -769,7 +774,7 @@ server <- function(input, output, session) {
                       slot = "weights"
                     ),
                     query.embeddings = Embeddings(object = spca),
-                    ref.embeddings = Embeddings(object = refs$map[["spca"]]),
+                    ref.embeddings = Embeddings(object = spca.ref),
                     nn.method = "annoy"
                   )
                 }
