@@ -315,7 +315,7 @@ ui <- tagList(
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
-#' isolate
+#' isolate onStop
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
 #' @importFrom stats quantile
 #' @importFrom utils write.table
@@ -350,7 +350,7 @@ server <- function(input, output, session) {
              cache = getOption(x = "Azimuth.app.googletoken"))
     googlesheet <- gs4_get(ss = getOption(x = "Azimuth.app.googlesheet"))
     app_start_time <- Sys.time()
-    on.exit(expr = sheet_append(ss = googlesheet, data = data.frame("SESSIONLENGTH", Sys.info()[["nodename"]], as.numeric(Sys.time() - app_start_time, units = "mins"))))
+    onStop(fun = function() sheet_append(ss = googlesheet, data = data.frame("SESSIONLENGTH", Sys.info()[["nodename"]], as.numeric(Sys.time() - app_start_time, units = "mins"))))
   } else {
     googlesheet <- NULL
   }
