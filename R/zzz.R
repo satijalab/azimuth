@@ -32,7 +32,7 @@
 #'  }
 #'  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
 #'   Number of cells and features to use for
-#'   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{1000}
+#'   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{2000}
 #'   for each
 #'  }
 #' }
@@ -51,8 +51,8 @@ default.options <- list(
   Azimuth.map.ngenes = 250L,
   Azimuth.map.nanchors = 50L,
   Azimuth.map.pbcorthresh = 0.75,
-  Azimuth.sct.ncells = 1000L,
-  Azimuth.sct.nfeats = 1000L
+  Azimuth.sct.ncells = 2000L,
+  Azimuth.sct.nfeats = 2000L
 )
 
 #' Attach dependent packages

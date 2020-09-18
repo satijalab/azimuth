@@ -42,7 +42,7 @@ users can configure these with \code{\link[base]{options}}:
  }
  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
   Number of cells and features to use for
-  \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{1000}
+  \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{2000}
   for each
  }
 }

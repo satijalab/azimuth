@@ -734,17 +734,18 @@ server <- function(input, output, session) {
               )
               # TODO fail if not enough anchors (Azimuth.map.nanchors)
               setProgress(value = 0.5, message = 'Mapping cells')
-              ingested <- MapQueryData(
+              app.env$object <- MapQueryData(
                 reference = refs$map,
                 query = app.env$object,
                 dims = 1:50,
                 anchorset = anchors,
                 reference.neighbors = "spca.annoy.neighbors",
-                transfer.labels = Idents(object = refs$map),
-                transfer.expression = GetAssayData(
+                transfer.labels = list(id = Idents(object = refs$map)),
+                transfer.expression = list(impADT = GetAssayData(
                   object = refs$map[['ADT']],
                   slot = 'data'
-                )
+                )),
+                return.intermediate = TRUE
               )
               setProgress(value = 0.7, message = "Calculating mapping score")
               spca <- subset(
@@ -786,7 +787,7 @@ server <- function(input, output, session) {
                     combined.object = anchors@object.list[[1]],
                     query.neighbors =  slot(object = anchors, name = "neighbors")[["query.neighbors"]],
                     query.weights = GetIntegrationData(
-                      object = ingested,
+                      object = app.env$object,
                       integration.name = "integrated",
                       slot = "weights"
                     ),
@@ -804,31 +805,31 @@ server <- function(input, output, session) {
               rm(anchors, spca)
               gc(verbose = FALSE)
               setProgress(value = 0.8, message = "Running UMAP transform")
-              ingested <- NNTransform(
-                object = ingested,
+              app.env$object <- NNTransform(
+                object = app.env$object,
                 meta.data = refs$map[[]]
               )
-              app.env$object <- AddPredictions(
-                object = app.env$object,
-                preds = Misc(object = ingested, slot = "predictions"),
-                preds.levels = levels(x = refs$map),
-                preds.drop = TRUE
-              )
+              # app.env$object <- AddPredictions(
+              #   object = app.env$object,
+              #   preds = Misc(object = ingested, slot = "predictions"),
+              #   preds.levels = levels(x = refs$map),
+              #   preds.drop = TRUE
+              # )
               app.env$object[['umap.proj']] <- RunUMAP(
-                object = ingested[['query_ref.nn']],
+                object = app.env$object[['query_ref.nn']],
                 reduction.model = refs$map[['jumap']],
                 reduction.key = 'UMAP_'
               )
-              suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
-                data = ingested[['transfer']][, cells]
-              ))
+              # suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
+              #   data = ingested[['transfer']][, cells]
+              # ))
               app.env$object <- SetAssayData(
                 object = app.env$object,
                 assay = 'SCT',
                 slot = 'scale.data',
                 new.data = new(Class = 'matrix')
               )
-              rm(ingested)
+              # rm(ingested)
               gc(verbose = FALSE)
               app.env$messages <- c(
                 app.env$messages,
@@ -921,7 +922,7 @@ server <- function(input, output, session) {
               # Add prediction scores for all classes to continuous metadata
               metadata.cont <- sort(x = c(
                 metadata.cont,
-                rownames(x = app.env$object[["predictions"]])
+                rownames(x = app.env$object[["prediction.score.id"]])
               ))
               updateSelectInput(
                 session = session,
@@ -1273,7 +1274,7 @@ server <- function(input, output, session) {
           rownames(x = app.env$object[[adt.key]])
         ),
         colnames(x = app.env$object[[]]),
-        rownames(x = app.env$object[["predictions"]])
+        rownames(x = app.env$object[["prediction.score.id"]])
       )
       if (app.env$feature %in% avail) {
         if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
@@ -1311,7 +1312,7 @@ server <- function(input, output, session) {
       )
       md <- c(
         colnames(x = app.env$object[[]]),
-        rownames(x = app.env$object[['predictions']])
+        rownames(x = app.env$object[['prediction.score.id']])
       )
       feature.key <- if (app.env$feature %in% md) {
         'md_'
