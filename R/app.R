@@ -830,12 +830,12 @@ server <- function(input, output, session) {
               features.select <- FilterFeatures(
                 features = rownames(x = app.env$object)
               )
-              if (length(x = features.select) > 25000) {
-                features.select <- intersect(
-                  x = features.select,
-                  y = FilterFeatures(features = rownames(x = refs$plot))
-                )
-              }
+              # if (length(x = features.select) > 25000) {
+              #   features.select <- intersect(
+              #     x = features.select,
+              #     y = FilterFeatures(features = rownames(x = refs$plot))
+              #   )
+              # }
               updateSelectInput(
                 session = session,
                 inputId = 'feature',
