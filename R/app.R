@@ -827,11 +827,20 @@ server <- function(input, output, session) {
                 yes = getOption(x = 'Azimuth.app.default.gene'),
                 no = VariableFeatures(object = app.env$object)[1]
               )
+              features.select <- FilterFeatures(
+                features = rownames(x = app.env$object)
+              )
+              if (length(x = features.select) > 25000) {
+                features.select <- intersect(
+                  x = features.select,
+                  y = FilterFeatures(features = rownames(x = refs$plot))
+                )
+              }
               updateSelectInput(
                 session = session,
                 inputId = 'feature',
                 label = 'Feature',
-                choices = FilterFeatures(features = rownames(x = app.env$object)),
+                choices = features.select,
                 selected = app.env$default.feature
               )
               # Add the predicted ID and score to the plots
