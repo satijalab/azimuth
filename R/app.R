@@ -318,9 +318,9 @@ ui <- tagList(
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
 #' isolate
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
-#' @importFrom stats quantile
 #' @importFrom utils write.table
 #' @importFrom patchwork wrap_plots
+#' @importFrom stats quantile na.omit
 #' @importFrom DT dataTableProxy selectRows renderDT
 #' @importFrom future future plan value resolved
 #'
@@ -543,7 +543,10 @@ server <- function(input, output, session) {
       withProgress(
         message = "Normalizing with SCTransform",
         expr = {
-          setProgress( value = 0, message = "Filtering based on nCount and nFeature")
+          setProgress(
+            value = 0,
+            message = "Filtering based on nCount and nFeature"
+          )
           ncount <- paste0('nCount_', DefaultAssay(object = app.env$object))
           nfeature <- paste0('nFeature_', DefaultAssay(object = app.env$object))
           cells.use <- app.env$object[[ncount, drop = TRUE]] >= input$num.ncountmin &
@@ -839,13 +842,6 @@ server <- function(input, output, session) {
               )
               # Add the predicted ID and score to the plots
               enable(id = 'adtfeature')
-              updateSelectInput(
-                session = session,
-                inputId = 'feature',
-                label = 'Feature',
-                choices = FilterFeatures(features = rownames(x = app.env$object)),
-                selected = app.env$default.feature
-              )
               adt.features <- sort(x = FilterFeatures(features = rownames(
                 x = app.env$object[[adt.key]]
               )))
@@ -942,9 +938,12 @@ server <- function(input, output, session) {
               ))
               allowed.clusters <- factor(
                 x = allowed.clusters,
-                levels = levels(x = app.env$object)
+                # levels = levels(x = app.env$object)
+                levels = unique(x = as.vector(x = app.env$object$predicted.id))
               )
-              allowed.clusters <- sort(levels(x = droplevels(x = allowed.clusters)))
+              allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(
+                object = allowed.clusters
+              ))))
               enable(id = 'select.prediction')
               updateSelectInput(
                 session = session,
