@@ -32,7 +32,7 @@
 #'  }
 #'  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
 #'   Number of cells and features to use for
-#'   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{1000}
+#'   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{2000}
 #'   for each
 #'  }
 #' }
@@ -51,8 +51,8 @@ default.options <- list(
   Azimuth.map.ngenes = 250L,
   Azimuth.map.nanchors = 50L,
   Azimuth.map.pbcorthresh = 0.75,
-  Azimuth.sct.ncells = 1000L,
-  Azimuth.sct.nfeats = 1000L
+  Azimuth.sct.ncells = 2000L,
+  Azimuth.sct.nfeats = 2000L
 )
 
 #' Attach dependent packages
@@ -98,9 +98,9 @@ CategoryTable <- function(
 ) {
   data <- FetchData(object = object, vars = c(category.1, category.2))
   data[, category.1] <- droplevels(x = factor(x = data[, category.1]))
-  levels(x = data[, category.1]) <- sort(x = levels(x = data[, category.1]))
+  data[, category.1] <- factor(x = data[, category.1], levels = sort(x = levels(x = data[, category.1])))
   data[, category.2] <- droplevels(x = factor(x = data[, category.2]))
-  levels(x = data[, category.2]) <- sort(x = levels(x = data[, category.2]))
+  data[, category.2] <- factor(x = data[, category.2], levels = sort(x = levels(x = data[, category.2])))
   tbl <- table(
     data[, category.1],
     data[, category.2],
