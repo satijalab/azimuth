@@ -60,6 +60,30 @@ stage <- if (pkg.version >= package_version(x = "1.0.0")) {
 color <- c("experimental" = "orange", "maturing" = "blue", "stable" = "brightgreen")[stage]
 ```
 
+```{r launchcmd, echo=FALSE}
+launchcmd <- function(...) {
+  args <- c(...)
+  return(paste0(
+    pkg,
+    "::AzimuthApp(",
+    paste(args, collapse = ","),
+    ")"
+  ))
+}
+```
+
+```{r mdemit, echo=FALSE}
+mdemit <- function(..., highlight = "r") {
+  ticks <- "```"
+  return(paste(
+    paste0(ticks, highlight),
+    ...,
+    ticks,
+    sep = "\n"
+  ))
+}
+```
+
 # `r pkg` v`r pkg.version`
 
 <!-- badges: start -->
@@ -94,29 +118,28 @@ cat(
 
 The app is launched as:
 
-```r
-SeuratMapper::AzimuthApp()
+```{r launch, echo=FALSE, results="asis"}
+cat(mdemit(launchcmd()))
 ```
 
 By default, the appropriate reference files are loaded into memory by accessing a web URL. If you instead have a directory containing reference files at `/path/to/reference`, specify it as:
 
-```r
-SeuratMapper::AzimuthApp(reference = '/path/to/reference')
+```{r launch.ref, echo=FALSE, results="asis"}
+cat(mdemit(launchcmd("reference = '/path/to/reference'")))
 ```
 
 ### Specifying options
 
 You can set options by passing a parameter to the `AzimuthApp` function:
 
-```r
-SeuratMapper::AzimuthApp(max.cells = 100000)
+```{r launch.param, echo=FALSE, results="asis"}
+cat(mdemit(launchcmd("maxcells = 100000")))
 ```
 
 or setting the option in R (e.g. if it is not a parameter to the `AzimuthApp` function):
 
-```r
-options('Azimuth.map.pbcorthresh' = 0.5)
-SeuratMapper::AzimuthApp()
+```{r launch.opt, echo=FALSE, results="asis"}
+cat(mdemit("options('Azimuth.map.pbcorthresh' = 0.5)", launchcmd()))
 ```
 
 ## Docker
@@ -134,20 +157,20 @@ docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapp
 ```
 
 If port 3838 is already in use on the host or you wish to use a different port, use `-p NNNN:3838` in the run command instead, to bind port NNNN on the host to port 3838 on the container.
-The container runs the command `R -e "SeuratMapper::AzimuthApp(reference = '/reference-data')"` by default. 
+The container runs the command `R -e "Azimuth::AzimuthApp(reference = '/reference-data')"` by default.
 
 ### Specifying options
 
 You can set options by passing a parameter to the `AzimuthApp` function:
 
 ```
-docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "SeuratMapper::AzimuthApp(reference = '/reference-data', max.cells = 100000)"
+docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "Azimuth::AzimuthApp(reference = '/reference-data', max.cells = 100000)"
 ```
 
 or setting the option in R (e.g. if it is not a parameter to the `AzimuthApp` function):
 
 ```
-docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "options('Azimuth.map.pbcorthresh' = 0.5)" -e "SeuratMapper::AzimuthApp(reference = '/reference-data')"
+docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "options('Azimuth.map.pbcorthresh' = 0.5)" -e "Azimuth::AzimuthApp(reference = '/reference-data')"
 ```
 
 or just starting a shell in the container, from which you can launch an interactive R session and set options as desired:

@@ -1,16 +1,16 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# SeuratMapper v0.0.0.9005
+# Azimuth v0.0.0.9007
 
 <!-- badges: start -->
 
 [![Lifecycle](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://github.com/mojaveazure/seurat-mapper)
 <!-- badges: end -->
 
-SeuratMapper is a Shiny app demonstrating a query-reference mapping
-algorithm for single-cell data. The reference data accompanying the app
-and the algorithms used are described [in our
+Azimuth is a Shiny app demonstrating a query-reference mapping algorithm
+for single-cell data. The reference data accompanying the app and the
+algorithms used are described [in our
 publication](Seurat%204%20biorxiv%20link).
 
 We have made an instance of the app available for public use, [available
@@ -22,7 +22,7 @@ package](Seurat4%20landing%20page%20on%20lab%20website).
 
 ## Installation
 
-You can install SeuratMapper from GitHub with:
+You can install Azimuth from GitHub with:
 
 ``` r
 if (!requireNamespace('remotes', quietly = TRUE) {
@@ -36,7 +36,7 @@ remotes::install_github('mojaveazure/seurat-mapper', ref = 'master')
 The app is launched as:
 
 ``` r
-SeuratMapper::AzimuthApp()
+Azimuth::AzimuthApp()
 ```
 
 By default, the appropriate reference files are loaded into memory by
@@ -44,7 +44,7 @@ accessing a web URL. If you instead have a directory containing
 reference files at `/path/to/reference`, specify it as:
 
 ``` r
-SeuratMapper::AzimuthApp(reference = '/path/to/reference')
+Azimuth::AzimuthApp(reference = '/path/to/reference')
 ```
 
 ### Specifying options
@@ -52,7 +52,7 @@ SeuratMapper::AzimuthApp(reference = '/path/to/reference')
 You can set options by passing a parameter to the `AzimuthApp` function:
 
 ``` r
-SeuratMapper::AzimuthApp(max.cells = 100000)
+Azimuth::AzimuthApp(maxcells = 100000)
 ```
 
 or setting the option in R (e.g. if it is not a parameter to the
@@ -60,7 +60,7 @@ or setting the option in R (e.g. if it is not a parameter to the
 
 ``` r
 options('Azimuth.map.pbcorthresh' = 0.5)
-SeuratMapper::AzimuthApp()
+Azimuth::AzimuthApp()
 ```
 
 ## Docker
@@ -80,19 +80,19 @@ mount mounting the directory on the host containing the reference files
 If port 3838 is already in use on the host or you wish to use a
 different port, use `-p NNNN:3838` in the run command instead, to bind
 port NNNN on the host to port 3838 on the container. The container runs
-the command `R -e "SeuratMapper::AzimuthApp(reference =
-'/reference-data')"` by default.
+the command `R -e "Azimuth::AzimuthApp(reference = '/reference-data')"`
+by default.
 
 ### Specifying options
 
 You can set options by passing a parameter to the `AzimuthApp` function:
 
-    docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "SeuratMapper::AzimuthApp(reference = '/reference-data', max.cells = 100000)"
+    docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "Azimuth::AzimuthApp(reference = '/reference-data', max.cells = 100000)"
 
 or setting the option in R (e.g. if it is not a parameter to the
 `AzimuthApp` function):
 
-    docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "options('Azimuth.map.pbcorthresh' = 0.5)" -e "SeuratMapper::AzimuthApp(reference = '/reference-data')"
+    docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro seurat-mapper R -e "options('Azimuth.map.pbcorthresh' = 0.5)" -e "Azimuth::AzimuthApp(reference = '/reference-data')"
 
 or just starting a shell in the container, from which you can launch an
 interactive R session and set options as desired:
