@@ -311,7 +311,8 @@ ui <- tagList(
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
-#' FindTransferAnchors MapQueryData Misc Key<- RenameCells
+#' FindTransferAnchors MapQueryData Misc Key<- RenameCells MappingScore
+#' GetIntegrationData
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
@@ -732,6 +733,11 @@ server <- function(input, output, session) {
                 cells = paste0(Cells(x = app.env$object), "_query")
               )
               spca <- RenameCells(object = spca, new.names = Cells(x = app.env$object))
+              spca.ref <- subset(
+                x = anchors@object.list[[1]][["pcaproject.l2"]],
+                cells = paste0(Cells(x = refs$map), "_reference")
+              )
+              spca.ref <- RenameCells(object = spca.ref, new.names = Cells(x = refs$map))
               if (Sys.getenv("RSTUDIO") == "1") {
                 plan("sequential")
               }
@@ -771,8 +777,8 @@ server <- function(input, output, session) {
                       slot = "weights"
                     ),
                     query.embeddings = Embeddings(object = spca),
-                    ref.embeddings = Embeddings(object = refs$map[["spca"]]),
-                    approx = TRUE
+                    ref.embeddings = Embeddings(object = spca.ref),
+                    nn.method = "annoy"
                   )
                 }
               )
