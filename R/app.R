@@ -208,6 +208,7 @@ ui <- tagList(
           selectize = FALSE,
           width = "25%"
         )),
+        checkboxInput(inputId = 'check.featpoints', label = 'Hide points'),
         plotOutput(outputId = 'evln'),
         width = 12
       ),
@@ -1272,6 +1273,11 @@ server <- function(input, output, session) {
             object = app.env$object,
             features = app.env$feature,
             group.by = input$groupfeature,
+            pt.size = ifelse(
+              test = input$check.featpoints,
+              yes = 0,
+              no = Seurat:::AutoPointSize(data = app.env$object)
+            )
           ) +
             ggtitle(label = title) +
             NoLegend()
