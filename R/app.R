@@ -148,27 +148,33 @@ ui <- tagList(
       ),
       box(
         title = "Metadata table",
-        div(style="display: inline-block;vertical-align:top;width: 25%",
-        disabled(selectInput(
-          inputId = 'select.metadata1',
-          label = 'Table rows',
-          choices = '',
-          selectize = FALSE
-        ))),
-        div(style="display: inline-block;vertical-align:top;width: 25%",
-        disabled(selectInput(
-          inputId = 'select.metadata2',
-          label = 'Table columns',
-          choices = '',
-          selectize = FALSE
-        ))),
-        div(style="display: inline-block;vertical-align:top;width: 50%",
-        disabled(radioButtons(
-          inputId = 'radio.pct',
-          label = NULL,
-          choices = c('Percentage','Frequency'),
-          inline = TRUE
-        ))),
+        div(
+          style="display: inline-block;vertical-align:top;width: 25%",
+          disabled(selectInput(
+            inputId = 'select.metadata1',
+            label = 'Table rows',
+            choices = '',
+            selectize = FALSE
+          ))
+        ),
+        div(
+          style="display: inline-block;vertical-align:top;width: 25%",
+          disabled(selectInput(
+            inputId = 'select.metadata2',
+            label = 'Table columns',
+            choices = '',
+            selectize = FALSE
+          ))
+        ),
+        div(
+          style="display: inline-block;vertical-align:top;width: 50%",
+          disabled(radioButtons(
+            inputId = 'radio.pct',
+            label = NULL,
+            choices = c('Percentage','Frequency'),
+            inline = TRUE
+          ))
+        ),
         tableOutput(outputId = 'table.metadata'),
         width = 12
       )
@@ -178,27 +184,38 @@ ui <- tagList(
       tabName = "tab_feature",
       box(
         title = "Feature Plots",
-        div(style="display: inline-block;vertical-align:top;width: 33%",
-        disabled(selectInput(
-          inputId = "feature",
-          label = "Feature",
-          choices = '',
-          selectize = FALSE
-        ))),
-        div(style="display: inline-block;vertical-align:top;width: 33%",
-        disabled(selectInput(
-          inputId = 'adtfeature',
-          label = 'Imputed protein',
-          choices = '',
-          selectize = FALSE
-        ))),
-        div(style="display: inline-block;vertical-align:top;width: 33%",
-        disabled(selectInput(
-          inputId = 'scorefeature',
-          label = "Prediction Scores and Continuous Metadata", #'Prediction Scores',
-          choices = '',
-          selectize = FALSE
-        ))),
+        div(
+          style="display: inline-block;vertical-align:top;width: 33%",
+          # disabled(selectInput(
+          #   inputId = "feature",
+          #   label = "Feature",
+          #   choices = '',
+          #   selectize = FALSE
+          # ))
+          disabled(shiny::selectizeInput(
+            inputId = 'feature',
+            label = 'Feature',
+            choices = ''
+          ))
+        ),
+        div(
+          style="display: inline-block;vertical-align:top;width: 33%",
+          disabled(selectInput(
+            inputId = 'adtfeature',
+            label = 'Imputed protein',
+            choices = '',
+            selectize = FALSE
+          ))
+        ),
+        div(
+          style="display: inline-block;vertical-align:top;width: 33%",
+          disabled(selectInput(
+            inputId = 'scorefeature',
+            label = "Prediction Scores and Continuous Metadata",
+            choices = '',
+            selectize = FALSE
+          ))
+        ),
         plotOutput(outputId = 'edim'),
         disabled(selectInput(
           inputId = 'groupfeature',
@@ -843,12 +860,23 @@ server <- function(input, output, session) {
               #     y = FilterFeatures(features = rownames(x = refs$plot))
               #   )
               # }
-              updateSelectInput(
+              # updateSelectInput(
+              #   session = session,
+              #   inputId = 'feature',
+              #   label = 'Feature',
+              #   choices = features.select,
+              #   selected = app.env$default.feature
+              # )
+              shiny::updateSelectizeInput(
                 session = session,
                 inputId = 'feature',
                 label = 'Feature',
                 choices = features.select,
-                selected = app.env$default.feature
+                selected = app.env$default.feature,
+                server = TRUE,
+                options = list(
+                  maxItems = 2
+                )
               )
               # Add the predicted ID and score to the plots
               enable(id = 'adtfeature')
