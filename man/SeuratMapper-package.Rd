@@ -42,7 +42,7 @@ users can configure these with \code{\link[base]{options}}:
  }
  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
   Number of cells and features to use for
-  \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{1000}
+  \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{2000}
   for each
  }
 }
@@ -94,6 +94,7 @@ Authors:
   \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID})
   \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID})
   \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
+  \item Andrew Butler \email{abutler@nygenome.org} (\href{https://orcid.org/0000-0003-3608-0463}{ORCID})
 }
 
 }

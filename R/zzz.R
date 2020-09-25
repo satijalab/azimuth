@@ -32,7 +32,7 @@
 #'  }
 #'  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
 #'   Number of cells and features to use for
-#'   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{1000}
+#'   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{2000}
 #'   for each
 #'  }
 #' }
@@ -51,8 +51,8 @@ default.options <- list(
   Azimuth.map.ngenes = 250L,
   Azimuth.map.nanchors = 50L,
   Azimuth.map.pbcorthresh = 0.75,
-  Azimuth.sct.ncells = 1000L,
-  Azimuth.sct.nfeats = 1000L
+  Azimuth.sct.ncells = 2000L,
+  Azimuth.sct.nfeats = 2000L
 )
 
 #' Attach dependent packages
@@ -98,9 +98,9 @@ CategoryTable <- function(
 ) {
   data <- FetchData(object = object, vars = c(category.1, category.2))
   data[, category.1] <- droplevels(x = factor(x = data[, category.1]))
-  levels(x = data[, category.1]) <- sort(x = levels(x = data[, category.1]))
+  data[, category.1] <- factor(x = data[, category.1], levels = sort(x = levels(x = data[, category.1])))
   data[, category.2] <- droplevels(x = factor(x = data[, category.2]))
-  levels(x = data[, category.2]) <- sort(x = levels(x = data[, category.2]))
+  data[, category.2] <- factor(x = data[, category.2], levels = sort(x = levels(x = data[, category.2])))
   tbl <- table(
     data[, category.1],
     data[, category.2],
@@ -414,8 +414,6 @@ LoadH5AD <- function(path) {
 #'  object (for mapping)
 #'  \item \dQuote{plotref.Rds} for the reference \code{Seurat}
 #'  object (for plotting)
-#'  \item \dQuote{fullref.Rds} for the full reference \code{Seurat}
-#'  object (for density estimation)
 #'  \item \dQuote{idx.annoy} for the nearest-neighbor index object
 #'  \item \dQuote{vf_avg_rna.Rds} for the average expression of variable
 #'  features of the reference (for pseudobulk check)
@@ -424,20 +422,14 @@ LoadH5AD <- function(path) {
 #' @param path Path or URL to the two RDS files
 #' @param seconds Timeout to check for URLs in seconds
 #'
-#' @return A list with four entries:
+#' @return A list with three entries:
 #' \describe{
 #'  \item{\code{map}}{
 #'   The downsampled reference \code{\link[Seurat]{Seurat}}
 #'   object (for mapping)
 #'  }
 #'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
-#'  \item{\code{full}}{
-#'   The full reference \code{Seurat} object (for density estimation)
-#'  }
-#'  \item{\code{index}}{
-#'   A list with nearest-neighbor index information, includes an
-#'   \code{\link[RcppAnnoy]{AnnoyIndex}} object
-#'  }
+#'  \item{\code{avgexp}}{Average expression (for pseudobulk check)}
 #' }
 #'
 #' @importFrom Seurat Idents<- LoadAnnoyIndex
@@ -458,7 +450,6 @@ LoadReference <- function(path, seconds = 10L) {
   ref.names <- list(
     map = 'ref.Rds',
     plt = 'plotref.Rds',
-    ref = 'fullref.Rds',
     ann = 'idx.annoy',
     avg = 'vf_avg_rna.Rds'
   )
@@ -472,10 +463,9 @@ LoadReference <- function(path, seconds = 10L) {
     }
     mapref <- file.path(path, ref.names$map)
     pltref <- file.path(path, ref.names$plt)
-    fllref <- file.path(path, ref.names$ref)
     annref <- file.path(path, ref.names$ann)
     avgref <- file.path(path, ref.names$avg)
-    exists <- file.exists(c(mapref, pltref, fllref, annref, avgref))
+    exists <- file.exists(c(mapref, pltref, annref, avgref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -512,14 +502,12 @@ LoadReference <- function(path, seconds = 10L) {
     }
     mapref <- url(description = ref.uris[['map']])
     pltref <- url(description = ref.uris[['plt']])
-    fllref <- url(description = ref.uris[['ref']])
     avgref <- url(description = ref.uris[['avg']])
     annref <- tempfile()
     download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
     on.exit(expr = {
       close(con = mapref)
       close(con = pltref)
-      close(con = fllref)
       close(con = avgref)
       unlink(x = annref)
     })
@@ -533,25 +521,21 @@ LoadReference <- function(path, seconds = 10L) {
   )
   # Load the other references
   plot <- readRDS(file = pltref)
-  full <- readRDS(file = fllref)
   avg <- readRDS(file = avgref)
   id.check <- vapply(
-    X = c(map, plot, full),
+    X = c(map, plot),
     FUN = function(x) {
       return('id' %in% colnames(x = x[[]]))
     },
     FUN.VALUE = logical(length = 1L)
   )
   if (all(id.check)) {
-    Idents(object = map) <-
-      Idents(object = plot) <-
-      Idents(object = full) <- 'id'
+    Idents(object = map) <- Idents(object = plot) <- 'id'
   }
   gc(verbose = FALSE)
   return(list(
     map = map,
     plot = plot,
-    full = full,
     avgexp = avg
   ))
 }
@@ -613,8 +597,7 @@ PlottableMetadataNames <- function(
         length(x = levels(x = droplevels(x = as.factor(x = column)))) <= max.levels
     }
   ) & (colnames(object[[]]) != "mapping.score") &
-   (colnames(object[[]]) != "predicted.id") &
-   (colnames(object[[]]) != "mapped")
+   (colnames(object[[]]) != "predicted.id")
   return(colnames(object[[]])[column.status])
 }
 

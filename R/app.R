@@ -207,6 +207,7 @@ ui <- tagList(
           selectize = FALSE,
           width = "25%"
         )),
+        checkboxInput(inputId = 'check.featpoints', label = 'Hide points'),
         plotOutput(outputId = 'evln'),
         width = 12
       ),
@@ -304,22 +305,25 @@ ui <- tagList(
 #'
 #' @importFrom methods slot<- slot
 #' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
+#' theme_void
 #' @importFrom presto wilcoxauc
 #' @importFrom shinyjs show hide enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
-#' FindTransferAnchors MapQueryData Misc
+#' FindTransferAnchors MapQueryData Misc Key<- RenameCells MappingScore
+#' GetIntegrationData
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
 #' isolate
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
-#' @importFrom stats quantile
 #' @importFrom utils write.table
 #' @importFrom patchwork wrap_plots
+#' @importFrom stats quantile na.omit
 #' @importFrom DT dataTableProxy selectRows renderDT
+#' @importFrom future future plan value resolved
 #'
 #' @keywords internal
 #'
@@ -333,6 +337,7 @@ server <- function(input, output, session) {
     default.assay = NULL,
     default.feature = NULL,
     default.adt = NULL,
+    mapping.score = NULL,
     feature = '',
     diff.exp = list(),
     messages = 'Upload a file'
@@ -429,18 +434,18 @@ server <- function(input, output, session) {
             session = session,
             inputId = 'num.ncountmin',
             label = paste("min", ncount),
-            value = min(ncount.val),
-            min = min(ncount.val),
-            max = max(ncount.val)
+            value = floor(min(ncount.val)),
+            min = floor(min(ncount.val)),
+            max = ceiling(max(ncount.val))
           )
           enable(id = 'num.ncountmin')
           updateNumericInput(
             session = session,
             inputId = 'num.ncountmax',
             label = paste("max", ncount),
-            value = max(ncount.val),
-            min = min(ncount.val),
-            max = max(ncount.val)
+            value = ceiling(max(ncount.val)),
+            min = floor(min(ncount.val)),
+            max = ceiling(max(ncount.val))
           )
           enable(id = 'num.ncountmax')
           nfeature.val <- range(app.env$object[[nfeature, drop = TRUE]])
@@ -448,18 +453,18 @@ server <- function(input, output, session) {
             session = session,
             inputId = 'num.nfeaturemin',
             label = paste("min", nfeature),
-            value = min(nfeature.val),
-            min = min(nfeature.val),
-            max = max(nfeature.val)
+            value = floor(min(nfeature.val)),
+            min = floor(min(nfeature.val)),
+            max = ceiling(max(nfeature.val))
           )
           enable(id = 'num.nfeaturemin')
           updateNumericInput(
             session = session,
             inputId = 'num.nfeaturemax',
             label = paste("max", nfeature),
-            value = max(nfeature.val),
-            min = min(nfeature.val),
-            max = max(nfeature.val)
+            value = ceiling(max(nfeature.val)),
+            min = floor(min(nfeature.val)),
+            max = ceiling(max(nfeature.val))
           )
           enable(id = 'num.nfeaturemax')
           if (any(grepl(pattern = mito.pattern, x = rownames(x = app.env$object)))) {
@@ -476,7 +481,7 @@ server <- function(input, output, session) {
               label = paste("min", mt.key),
               value = floor(min(mito.val)),
               min = floor(min(mito.val)),
-              max = max(mito.val)
+              max = ceiling(max(mito.val))
             )
             enable(id = 'num.mtmin')
             updateNumericInput(
@@ -484,7 +489,7 @@ server <- function(input, output, session) {
               inputId = 'num.mtmax',
               label = paste("max", mt.key),
               value = ceiling(max(mito.val)),
-              min = min(mito.val),
+              min = floor(min(mito.val)),
               max = ceiling(max(mito.val))
             )
             enable(id = 'num.mtmax')
@@ -539,7 +544,10 @@ server <- function(input, output, session) {
       withProgress(
         message = "Normalizing with SCTransform",
         expr = {
-          setProgress( value = 0, message = "Filtering based on nCount and nFeature")
+          setProgress(
+            value = 0,
+            message = "Filtering based on nCount and nFeature"
+          )
           ncount <- paste0('nCount_', DefaultAssay(object = app.env$object))
           nfeature <- paste0('nFeature_', DefaultAssay(object = app.env$object))
           cells.use <- app.env$object[[ncount, drop = TRUE]] >= input$num.ncountmin &
@@ -657,7 +665,7 @@ server <- function(input, output, session) {
               app.env$object <- NULL
               gc(verbose = FALSE)
             } else {
-              setProgress(value = 0.2, message = "Normalizing with SCTransform")
+              setProgress(value = 0.1, message = "Normalizing with SCTransform")
               tryCatch(
                 expr = {
                   app.env$object <- suppressWarnings(expr = SCTransform(
@@ -688,7 +696,7 @@ server <- function(input, output, session) {
                 app.env$messages,
                 paste(ncellspreproc, "cells preprocessed")
               )
-              setProgress(value = 0.4, message = "Finding anchors")
+              setProgress(value = 0.3, message = "Finding anchors")
               cells <- colnames(x = app.env$object)
               anchors <- FindTransferAnchors(
                 reference = refs$map,
@@ -702,65 +710,112 @@ server <- function(input, output, session) {
                 features = rownames(x = refs$map),
                 dims = 1:50,
                 nn.method = "annoy",
-                verbose = TRUE
+                verbose = TRUE,
+                mapping.score.k = 100
               )
               # TODO fail if not enough anchors (Azimuth.map.nanchors)
-              setProgress(value = 0.6, message = 'Mapping cells')
-              ingested <- MapQueryData(
+              setProgress(value = 0.5, message = 'Mapping cells')
+              app.env$object <- MapQueryData(
                 reference = refs$map,
                 query = app.env$object,
                 dims = 1:50,
                 anchorset = anchors,
                 reference.neighbors = "spca.annoy.neighbors",
-                transfer.labels = Idents(object = refs$map),
-                transfer.expression = GetAssayData(
+                transfer.labels = list(id = Idents(object = refs$map)),
+                transfer.expression = list(impADT = GetAssayData(
                   object = refs$map[['ADT']],
                   slot = 'data'
-                )
+                )),
+                return.intermediate = TRUE
               )
-              rm(anchors)
+              setProgress(value = 0.7, message = "Calculating mapping score")
+              spca <- subset(
+                x = anchors@object.list[[1]][["pcaproject.l2"]],
+                cells = paste0(Cells(x = app.env$object), "_query")
+              )
+              spca <- RenameCells(object = spca, new.names = Cells(x = app.env$object))
+              spca.ref <- subset(
+                x = anchors@object.list[[1]][["pcaproject.l2"]],
+                cells = paste0(Cells(x = refs$map), "_reference")
+              )
+              spca.ref <- RenameCells(object = spca.ref, new.names = Cells(x = refs$map))
+              if (Sys.getenv("RSTUDIO") == "1") {
+                plan("sequential")
+              }
+              # reduce size of object in anchorset
+              anchors@object.list[[1]] <- DietSeurat(object = anchors@object.list[[1]])
+              anchors@object.list[[1]] <- subset(
+                x = anchors@object.list[[1]],
+                features = c(rownames(x = anchors@object.list[[1]])[1])
+              )
+              anchors@object.list[[1]] <- RenameCells(
+                object = anchors@object.list[[1]],
+                new.names = unname(obj = sapply(
+                  X = Cells(x = anchors@object.list[[1]]),
+                  FUN = function(x) {
+                    return(gsub(pattern = "_reference", replacement = "", x = x))
+                  }
+                )))
+              anchors@object.list[[1]] <- RenameCells(
+                object = anchors@object.list[[1]],
+                new.names = unname(obj = sapply(
+                  X = Cells(x = anchors@object.list[[1]]),
+                  FUN = function(x) {
+                    return(gsub(pattern = "_query", replacement = "", x = x))
+                  }
+                )))
+              anchors@object.list[[1]]@meta.data <- data.frame()
+              anchors@object.list[[1]]@active.ident <- factor()
+              app.env$mapping.score <- future(
+                expr = {
+                  MappingScore(
+                    anchors = anchors@anchors,
+                    combined.object = anchors@object.list[[1]],
+                    query.neighbors =  slot(object = anchors, name = "neighbors")[["query.neighbors"]],
+                    query.weights = GetIntegrationData(
+                      object = app.env$object,
+                      integration.name = "integrated",
+                      slot = "weights"
+                    ),
+                    query.embeddings = Embeddings(object = spca),
+                    ref.embeddings = Embeddings(object = spca.ref),
+                    nn.method = "annoy"
+                  )
+                }
+              )
+              app.env$object <- AddMetaData(
+                object = app.env$object,
+                metadata = rep(x = 0, times = ncol(x = app.env$object)),
+                col.name = "mapping.score"
+              )
+              rm(anchors, spca)
               gc(verbose = FALSE)
               setProgress(value = 0.8, message = "Running UMAP transform")
-              ingested <- NNTransform(
-                object = ingested,
+              app.env$object <- NNTransform(
+                object = app.env$object,
                 meta.data = refs$map[[]]
               )
-              app.env$object <- AddPredictions(
-                object = app.env$object,
-                preds = Misc(object = ingested, slot = "predictions"),
-                preds.levels = levels(x = refs$map),
-                preds.drop = TRUE
-              )
+              # app.env$object <- AddPredictions(
+              #   object = app.env$object,
+              #   preds = Misc(object = ingested, slot = "predictions"),
+              #   preds.levels = levels(x = refs$map),
+              #   preds.drop = TRUE
+              # )
               app.env$object[['umap.proj']] <- RunUMAP(
-                object = ingested[['query_ref.nn']],
+                object = app.env$object[['query_ref.nn']],
                 reduction.model = refs$map[['jumap']],
                 reduction.key = 'UMAP_'
               )
-              suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
-                data = ingested[['transfer']][, cells]
-              ))
-              # setProgress(value = 0.9, message = 'Calculating mapping metrics')
-              # app.env$object[['int']] <- CreateDimReducObject(
-              #   embeddings = Embeddings(object = ingested[['int']])[cells, ],
-              #   assay = app.env$default.assay
-              # )
-              # dsqr <- QueryReference(
-              #   reference = refs$map,
-              #   query = app.env$object,
-              #   assay.query = app.env$default.assay,
-              #   seed = 4
-              # )
-              # app.env$object <- AddMetaData(
-              #   object = app.env$object,
-              #   metadata = CalcMappingMetric(object = dsqr)
-              # )
-              # rm(dsqr, ingested)
+              # suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
+              #   data = ingested[['transfer']][, cells]
+              # ))
               app.env$object <- SetAssayData(
                 object = app.env$object,
                 assay = 'SCT',
                 slot = 'scale.data',
                 new.data = new(Class = 'matrix')
               )
+              # rm(ingested)
               gc(verbose = FALSE)
               app.env$messages <- c(
                 app.env$messages,
@@ -788,13 +843,6 @@ server <- function(input, output, session) {
               )
               # Add the predicted ID and score to the plots
               enable(id = 'adtfeature')
-              updateSelectInput(
-                session = session,
-                inputId = 'feature',
-                label = 'Feature',
-                choices = FilterFeatures(features = rownames(x = app.env$object)),
-                selected = app.env$default.feature
-              )
               adt.features <- sort(x = FilterFeatures(features = rownames(
                 x = app.env$object[[adt.key]]
               )))
@@ -853,7 +901,7 @@ server <- function(input, output, session) {
               # Add prediction scores for all classes to continuous metadata
               metadata.cont <- sort(x = c(
                 metadata.cont,
-                rownames(x = app.env$object[["predictions"]])
+                rownames(x = app.env$object[["prediction.score.id"]])
               ))
               updateSelectInput(
                 session = session,
@@ -891,9 +939,12 @@ server <- function(input, output, session) {
               ))
               allowed.clusters <- factor(
                 x = allowed.clusters,
-                levels = levels(x = app.env$object)
+                # levels = levels(x = app.env$object)
+                levels = unique(x = as.vector(x = app.env$object$predicted.id))
               )
-              allowed.clusters <- sort(levels(x = droplevels(x = allowed.clusters)))
+              allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(
+                object = allowed.clusters
+              ))))
               enable(id = 'select.prediction')
               updateSelectInput(
                 session = session,
@@ -931,37 +982,37 @@ server <- function(input, output, session) {
                   )
                 )
               })
+              maptime.diff <- difftime(
+                time1 = Sys.time(),
+                time2 = maptime.start,
+                units = "secs"
+              )
+              if (maptime.diff < 60) {
+                time.fmt <- gsub(
+                  pattern = " 0",
+                  replacement = " ",
+                  x = format(x = .POSIXct(xx = maptime.diff), format = "in %S seconds"),
+                  fixed = TRUE
+                )
+              } else {
+                time.fmt <- gsub(
+                  pattern = " 0",
+                  replacement = " ",
+                  x = format(
+                    x = .POSIXct(xx = maptime.diff),
+                    format = "in %M minutes %S seconds"
+                  ),
+                  fixed = TRUE
+                )
+              }
+              app.env$messages <- c(
+                app.env$messages,
+                time.fmt
+              )
             }
           }
           setProgress(value = 1)
         }
-      )
-      maptime.diff <- difftime(
-        time1 = Sys.time(),
-        time2 = maptime.start,
-        units = "secs"
-      )
-      if (maptime.diff < 60) {
-        time.fmt <- gsub(
-          pattern = " 0",
-          replacement = " ",
-          x = format(x = .POSIXct(xx = maptime.diff), format = "in %S seconds"),
-          fixed = TRUE
-        )
-      } else {
-        time.fmt <- gsub(
-          pattern = " 0",
-          replacement = " ",
-          x = format(
-            x = .POSIXct(xx = maptime.diff),
-            format = "in %M minutes %S seconds"
-          ),
-          fixed = TRUE
-        )
-      }
-      app.env$messages <- c(
-        app.env$messages,
-        time.fmt
       )
     }
   )
@@ -1017,11 +1068,11 @@ server <- function(input, output, session) {
     eventExpr = input$scorefeature,
     handlerExpr = {
       if (nchar(x = input$scorefeature)) {
-        # app.env$feature <- paste0(
-        #   Key(object = app.env$object[[scores.key]]),
-        #   input$scorefeature
-        # )
-        # app.env$feature <- paste0('md_', input$scorefeature)
+        if (input$scorefeature == "mapping.score") {
+          if (resolved(x = app.env$mapping.score)) {
+            app.env$object$mapping.score <- value(app.env$mapping.score)
+          }
+        }
         app.env$feature <- input$scorefeature
         for (f in c('feature', 'adtfeature')) {
           updateSelectInput(session = session, inputId = f, selected = '')
@@ -1172,7 +1223,8 @@ server <- function(input, output, session) {
           DimPlot(
             object = app.env$object,
             group.by = "predicted.id",
-            label = input$labels
+            label = input$labels,
+            reduction = "umap.proj"
           ) + scale_colour_hue(
             limits = plotlevels,
             breaks = sort(x = levels(x = as.factor(x = refs$plot$id))),
@@ -1182,7 +1234,8 @@ server <- function(input, output, session) {
           DimPlot(
             object = app.env$object,
             group.by = input$select.metadata,
-            label = input$labels
+            label = input$labels,
+            reduction = "umap.proj"
           )
         }
       }
@@ -1200,21 +1253,32 @@ server <- function(input, output, session) {
           rownames(x = app.env$object[[adt.key]])
         ),
         colnames(x = app.env$object[[]]),
-        rownames(x = app.env$object[["predictions"]])
+        rownames(x = app.env$object[["prediction.score.id"]])
       )
       if (app.env$feature %in% avail) {
-        title <- ifelse(
-          test = grepl(pattern = '^sct_', x = app.env$feature),
-          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
-          no = app.env$feature
-        )
-        VlnPlot(
-          object = app.env$object,
-          features = app.env$feature,
-          group.by = input$groupfeature
-        ) +
-          ggtitle(label = title) +
-          NoLegend()
+        if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
+          ggplot() +
+            annotate("text", x = 4, y = 25, size=8, label = "Mapping score still computing ... ") +
+            theme_void()
+        } else {
+          title <- ifelse(
+            test = grepl(pattern = '^sct_', x = app.env$feature),
+            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            no = app.env$feature
+          )
+          VlnPlot(
+            object = app.env$object,
+            features = app.env$feature,
+            group.by = input$groupfeature,
+            pt.size = ifelse(
+              test = input$check.featpoints,
+              yes = 0,
+              no = Seurat:::AutoPointSize(data = app.env$object)
+            )
+          ) +
+            ggtitle(label = title) +
+            NoLegend()
+        }
       }
     }
   })
@@ -1232,7 +1296,7 @@ server <- function(input, output, session) {
       )
       md <- c(
         colnames(x = app.env$object[[]]),
-        rownames(x = app.env$object[['predictions']])
+        rownames(x = app.env$object[['prediction.score.id']])
       )
       feature.key <- if (app.env$feature %in% md) {
         'md_'
@@ -1244,16 +1308,23 @@ server <- function(input, output, session) {
       }
       pal.use <- palettes[[feature.key]]
       if (!is.null(x = pal.use)) {
-        title <- ifelse(
-          test = grepl(pattern = '^sct_', x = app.env$feature),
-          yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
-          no = app.env$feature
-        )
-        suppressWarnings(expr = FeaturePlot(
-          object = app.env$object,
-          features = app.env$feature,
-          cols = pal.use
-        )) + ggtitle(label = title)
+        if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
+          ggplot() +
+            annotate("text", x = 4, y = 25, size=8, label = "Mapping score still computing ... ") +
+            theme_void()
+        } else {
+          title <- ifelse(
+            test = grepl(pattern = '^sct_', x = app.env$feature),
+            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            no = app.env$feature
+          )
+          suppressWarnings(expr = FeaturePlot(
+            object = app.env$object,
+            features = app.env$feature,
+            cols = pal.use,
+            reduction = "umap.proj"
+          )) + ggtitle(label = title)
+        }
       }
     }
   })
@@ -1378,19 +1449,25 @@ server <- function(input, output, session) {
       }
     }
   )
-  # TODO: Add data from CalcMappingMetric to _pred.tsv?
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
       req <- c('predicted.id', 'predicted.id.score')
+      if (resolved(x = app.env$mapping.score)) {
+        req <- c(req, 'mapping.score')
+      }
       if (all(req %in% colnames(x = app.env$object[[]]))) {
+        pred.df <- data.frame(
+          cell = colnames(x = app.env$object),
+          predicted.id = app.env$object$predicted.id,
+          predicted.score = app.env$object$predicted.id.score,
+          stringsAsFactors = FALSE
+        )
+        if (resolved(x = app.env$mapping.score)) {
+          pred.df$mapping.score <- value(app.env$mapping.score)
+        }
         write.table(
-          x = data.frame(
-            cell = colnames(x = app.env$object),
-            predicted.id = app.env$object$predicted.id,
-            predicted.score = app.env$object$predicted.id.score,
-            stringsAsFactors = FALSE
-          ),
+          x = pred.df,
           file = file,
           quote = FALSE,
           row.names = FALSE,
@@ -1469,6 +1546,7 @@ AzimuthApp <- function(
   useShinyjs()
   opts <- list(
     shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
+    future.globals.maxSize = max.cells * 320000,
     Azimuth.app.mito = mito,
     Azimuth.app.reference = reference,
     Azimuth.app.max.cells = max.cells,
