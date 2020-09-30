@@ -334,13 +334,14 @@ ui <- tagList(
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
-#' isolate
+#' isolate onStop
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
 #' @importFrom utils write.table
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats quantile na.omit
 #' @importFrom DT dataTableProxy selectRows renderDT
 #' @importFrom future future plan value resolved
+#' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #'
 #' @keywords internal
 #'
@@ -361,6 +362,20 @@ server <- function(input, output, session) {
   )
   rna.proxy <- dataTableProxy(outputId = "biomarkers")
   adt.proxy <- dataTableProxy(outputId = "adtbio")
+  if (!is.null(getOption(x = "Azimuth.app.googlesheet")) &&
+      !is.null(getOption(x = "Azimuth.app.googletoken")) &&
+      !is.null(getOption(x = "Azimuth.app.googletokenemail"))) {
+    gs4_auth(email = getOption(x = "Azimuth.app.googletokenemail"),
+             cache = getOption(x = "Azimuth.app.googletoken"))
+    googlesheet <- gs4_get(ss = getOption(x = "Azimuth.app.googlesheet"))
+    app_start_time <- Sys.time()
+    onStop(fun = function() sheet_append(ss = googlesheet, data = data.frame("SESSIONLENGTH", Sys.info()[["nodename"]], as.numeric(Sys.time() - app_start_time, units = "mins"))))
+  } else {
+    googlesheet <- NULL
+  }
+  if (!is.null(googlesheet)) {
+    sheet_append(ss = googlesheet, data = data.frame("STARTUPTIME", Sys.info()[["nodename"]], Sys.time()))
+  }
   withProgress(
     message = "Loading reference",
     expr = {
@@ -539,6 +554,9 @@ server <- function(input, output, session) {
               color = "green"
             ))
             enable(id = 'map')
+            if (!is.null(googlesheet)) {
+              sheet_append(ss = googlesheet, data = data.frame("CELLSUPLOAD", Sys.info()[["nodename"]], ncellsupload))
+            }
           }
         }
       }
@@ -664,12 +682,18 @@ server <- function(input, output, session) {
               icon = icon("check"),
               color = "green"
             ))
+            if (!is.null(googlesheet)) {
+              sheet_append(ss = googlesheet, data = data.frame("CELLSPREPROC", Sys.info()[["nodename"]], ncellspreproc))
+            }
             app.env$object <- app.env$object[, cells.use]
             # Pseudobulk correlation test
             pbcor <- PBCorTest(
               object = app.env$object,
               ref = refs$avg
             )
+            if (!is.null(googlesheet)) {
+              sheet_append(ss = googlesheet, data = data.frame("PBCOR", Sys.info()[["nodename"]], pbcor[["cor.res"]]))
+            }
             if (pbcor[["cor.res"]] < getOption(x = 'Azimuth.map.pbcorthresh')) {
               output$valuebox.mapped <- renderValueBox(expr = valueBox(
                 value = "Failure",
@@ -1046,6 +1070,9 @@ server <- function(input, output, session) {
                 app.env$messages,
                 time.fmt
               )
+              if (!is.null(googlesheet)) {
+                sheet_append(ss = googlesheet, data = data.frame("MAPPINGTIME", Sys.info()[["nodename"]], as.numeric(maptime.diff, units="secs")))
+              }
             }
           }
           setProgress(value = 1)
@@ -1534,6 +1561,18 @@ server <- function(input, output, session) {
 #'   URL or directory path to reference dataset; see \code{\link{LoadReference}}
 #'   for more details
 #'  }
+#'  \item{\code{Azimuth.app.googlesheet}}{
+#'   Google Sheet identifier (appropriate for use with \code{googlesheets4::gs4_get()})
+#'   to write log records. Logging is only enabled if this parameter is specified.
+#'  }
+#'  \item{\code{Azimuth.app.googletoken}}{
+#'   Path to directory containing Google Authentication token file.
+#'   Logging is only enabled if this parameter is specified.
+#'  }
+#'  \item{\code{Azimuth.app.googletokenemail}}{
+#'   Email address corresponding to the Google Authentication token file.
+#'   Logging is only enabled if this parameter is specified.
+#'  }
 #'  \item{\code{Azimuth.app.max.upload.mb}}{
 #'   Maximum file size (in MB) allowed to upload
 #'  }
@@ -1552,6 +1591,7 @@ server <- function(input, output, session) {
 #'
 #' @importFrom shiny runApp shinyApp
 #' @importFrom withr with_options
+#' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #'
 #' @export
 #'
@@ -1562,6 +1602,18 @@ AzimuthApp <- function(
   reference = getOption(
     x = 'Azimuth.app.reference',
     default = 'http://satijalab04.nygenome.org/pbmc'
+  ),
+  googlesheet = getOption(
+    x = 'Azimuth.app.googlesheet',
+    default = NULL
+  ),
+  googletoken = getOption(
+    x = 'Azimuth.app.googletoken',
+    default = NULL
+  ),
+  googletokenemail = getOption(
+    x = 'Azimuth.app.googletokenemail',
+    default = NULL
   ),
   max.upload.mb = getOption(
     x = 'Azimuth.app.max.upload.mb',
@@ -1588,7 +1640,10 @@ AzimuthApp <- function(
     Azimuth.app.reference = reference,
     Azimuth.app.max.cells = max.cells,
     Azimuth.app.default.gene = default.gene,
-    Azimuth.app.default.adt = default.adt
+    Azimuth.app.default.adt = default.adt,
+    Azimuth.app.googlesheet = googlesheet,
+    Azimuth.app.googletoken = googletoken,
+    Azimuth.app.googletokenemail = googletokenemail
   )
   with_options(
     new = opts,

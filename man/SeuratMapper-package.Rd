@@ -63,6 +63,18 @@ can configure these either \link[base:options]{globally} or via arguments to
   URL or directory path to reference dataset; see \code{\link{LoadReference}}
   for more details
  }
+ \item{\code{Azimuth.app.googlesheet}}{
+  Google Sheet identifier (appropriate for use with \code{googlesheets4::gs4_get()})
+  to write log records. Logging is only enabled if this parameter is specified.
+ }
+ \item{\code{Azimuth.app.googletoken}}{
+  Path to directory containing Google Authentication token file.
+  Logging is only enabled if this parameter is specified.
+ }
+ \item{\code{Azimuth.app.googletokenemail}}{
+  Email address corresponding to the Google Authentication token file.
+  Logging is only enabled if this parameter is specified.
+ }
  \item{\code{Azimuth.app.max.upload.mb}}{
   Maximum file size (in MB) allowed to upload
  }
