@@ -76,62 +76,81 @@ query <- SCTransform(
   do.center = TRUE
 )
 
-# Find anchors between query and reference that will be used for mapping
+# Find anchors between query and reference
 anchors <- FindTransferAnchors(
   reference = reference$map,
   query = query,
-  mapping = TRUE,
+  k.filter = NA,
   reference.neighbors = "spca.annoy.neighbors",
   reference.assay = "RNA",
   query.assay = "SCT",
   reference.reduction = "spca",
   normalization.method = "SCT",
-  features = rownames(x = reference$map),
+  features = intersect(rownames(x = reference$map), VariableFeatures(object = query)),
   dims = 1:50,
-  nn.method = "annoy",
-  verbose = TRUE
+  mapping.score.k = 100
 )
 
-# Map cells using the anchors just computed. Transfer cell type labels and
-# impute protein expression.
-mapped <- MapQueryData(
+# Transfer cell type labels and impute protein expression
+# Transferred labels are in a metadata column named "predicted.id"
+# The maximum prediction score is in a metadata column named "predicted.id.score"
+# The prediction scores for each class are in an assay named "prediction.score.id"
+# The imputed assay is named "impADT"
+query <- TransferData(
   reference = reference$map,
   query = query,
   dims = 1:50,
   anchorset = anchors,
-  reference.neighbors = "spca.annoy.neighbors",
-  transfer.labels = reference$map$id,
-  transfer.expression = GetAssayData(
+  refdata = list(
+    id = Idents(reference$map),
+    impADT = GetAssayData(
     object = reference$map[['ADT']],
     slot = 'data'
-  )
+  )),
+  store.weights = TRUE
+)
+
+# Calculate the embeddings of the query data on the reference SPCA
+query <- IntegrateEmbeddings(
+  anchorset = anchors,
+  reference = reference$map,
+  query = query,
+  reductions = "pcaproject",
+  anchorset.reduction = TRUE,
+  reuse.weights.matrix = TRUE
+)
+
+# Calculate the query neighbors in the reference
+# with respect to the integrated embeddings
+query[["query_ref.nn"]] <- FindNeighbors(
+  object = Embeddings(reference$map[["spca"]]),
+  query = Embeddings(query[["integrated_pcaproject"]]),
+  return.neighbor = TRUE,
+  l2.norm = TRUE
 )
 
 # The reference used in the app is downsampled compared to the reference on which
 # the UMAP model was computed. This step, using the helper function NNTransform,
-# corrects the Neighbors of the "mapped" object to account for the downsampling.
-mapped <- NNTransform(
-  object = mapped,
+# corrects the Neighbors to account for the downsampling.
+query <- NNTransform(
+  object = query,
   meta.data = reference$map[[]]
 )
 
 # Project the query to the reference UMAP.
 query[["proj.umap"]] <- RunUMAP(
-  object = mapped[["query_ref.nn"]],
+  object = query[["query_ref.nn"]],
   reduction.model = reference$map[["jumap"]],
   reduction.key = 'UMAP_'
 )
 
-# Add the predicted cell types to the query object as metadata
-query[["predicted.id"]] <- Misc(object = mapped, slot = "predictions")[,"predicted.id"]
 
-# Add the maximum prediction score (predicted.id.score) and the prediction scores
-# for all cell types to the query as an Assay
-query[["predictions"]] <- CreateAssayObject(data =  t(x = Misc(object = mapped, slot = "predictions")[, -1]))
-
-# Add the imputed protein to the query object as an Assay
-query[['${adt.key}']] <- CreateAssayObject(data = mapped[['transfer']][, colnames(x = query)])
-
+# Calculate mapping score and add to metadata
+query <- AddMetaData(
+  object = query,
+  metadata = MappingScore(anchors = anchors),
+  col.name = "mapping.score"
+)
 
 # VISUALIZATIONS
 
@@ -145,9 +164,13 @@ DimPlot(object = query, reduction = "proj.umap", group.by = "predicted.id", labe
 FeaturePlot(object = query, features = "predicted.id.score", reduction = "proj.umap")
 VlnPlot(object = query, features = "predicted.id.score", group.by = "predicted.id") + NoLegend()
 
+# Plot the mapping score
+FeaturePlot(object = query, features = "mapping.score", reduction = "proj.umap")
+VlnPlot(object = query, features = "mapping.score", group.by = "predicted.id") + NoLegend()
+
 # Plot the prediction score for the class CD16 Mono
-FeaturePlot(object = query, features = "prediction.score.CD16.Mono", reduction = "proj.umap")
-VlnPlot(object = query, features = "prediction.score.CD16.Mono", group.by = "predicted.id") + NoLegend()
+FeaturePlot(object = query, features = "CD16 Mono", reduction = "proj.umap")
+VlnPlot(object = query, features = "CD16 Mono", group.by = "predicted.id") + NoLegend()
 
 # Plot an RNA feature
 FeaturePlot(object = query, features = "${plotgene}", reduction = "proj.umap")
