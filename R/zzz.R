@@ -152,7 +152,8 @@ CreateAnn <- function(name, ndim) {
 #' feature names. This function sanitizes feature names according to the
 #' following rules:
 #' \itemize{
-#'  \item Names matching \dQuote{\\.1} are \strong{removed}
+#'  \item Names matching the regular expression \dQuote{\\.\\d+$} are
+#'   \strong{removed}
 #' }
 #'
 #' @param features A character vector of feature names
@@ -165,7 +166,7 @@ CreateAnn <- function(name, ndim) {
 #'
 FilterFeatures <- function(features) {
   return(sort(x = grep(
-    pattern = '\\.1',
+    pattern = '\\.\\d+$',
     x = features,
     value = TRUE,
     invert = TRUE
