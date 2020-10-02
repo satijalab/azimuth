@@ -5,9 +5,9 @@
 #' @importFrom htmltools tagList h4 hr h3 tags HTML p div
 #' @importFrom shinyjs useShinyjs extendShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
-#' actionButton selectInput downloadButton mainPanel tabsetPanel tabPanel
+#' actionButton selectizeInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow
-#' updateNumericInput radioButtons textOutput htmlOutput column checkboxInput
+#' radioButtons textOutput htmlOutput column checkboxInput
 #' @importFrom shinydashboard dashboardPage dashboardHeader dashboardSidebar
 #' dashboardBody menuItem tabItems tabItem sidebarMenu box valueBoxOutput
 #' sidebarMenuOutput
@@ -16,6 +16,10 @@
 NULL
 
 app.title <- 'Azimuth'
+selectize.opts <- list(
+  maxOptions = 10000L,
+  maxItems = 1L
+)
 
 ui <- tagList(
   useShinyjs(),
@@ -136,11 +140,10 @@ ui <- tagList(
       ),
       box(
         title = "Query",
-        disabled(selectInput(
+        disabled(selectizeInput(
           inputId = 'select.metadata',
           label = 'Metadata to color by',
           choices = '',
-          selectize = FALSE,
           width = "25%"
         )),
         plotOutput(outputId = 'objdim'),
@@ -150,20 +153,18 @@ ui <- tagList(
         title = "Metadata table",
         div(
           style="display: inline-block;vertical-align:top;width: 25%",
-          disabled(selectInput(
+          disabled(selectizeInput(
             inputId = 'select.metadata1',
             label = 'Table rows',
-            choices = '',
-            selectize = FALSE
+            choices = ''
           ))
         ),
         div(
           style="display: inline-block;vertical-align:top;width: 25%",
-          disabled(selectInput(
+          disabled(selectizeInput(
             inputId = 'select.metadata2',
             label = 'Table columns',
-            choices = '',
-            selectize = FALSE
+            choices = ''
           ))
         ),
         div(
@@ -186,13 +187,7 @@ ui <- tagList(
         title = "Feature Plots",
         div(
           style="display: inline-block;vertical-align:top;width: 33%",
-          # disabled(selectInput(
-          #   inputId = "feature",
-          #   label = "Feature",
-          #   choices = '',
-          #   selectize = FALSE
-          # ))
-          disabled(shiny::selectizeInput(
+          disabled(selectizeInput(
             inputId = 'feature',
             label = 'Feature',
             choices = ''
@@ -200,28 +195,25 @@ ui <- tagList(
         ),
         div(
           style="display: inline-block;vertical-align:top;width: 33%",
-          disabled(selectInput(
+          disabled(selectizeInput(
             inputId = 'adtfeature',
             label = 'Imputed protein',
-            choices = '',
-            selectize = FALSE
+            choices = ''
           ))
         ),
         div(
           style="display: inline-block;vertical-align:top;width: 33%",
-          disabled(selectInput(
+          disabled(selectizeInput(
             inputId = 'scorefeature',
             label = "Prediction Scores and Continuous Metadata",
-            choices = '',
-            selectize = FALSE
+            choices = ''
           ))
         ),
         plotOutput(outputId = 'edim'),
-        disabled(selectInput(
+        disabled(selectizeInput(
           inputId = 'groupfeature',
           label = 'Metadata to group by',
           choices = '',
-          selectize = FALSE,
           width = "25%"
         )),
         checkboxInput(inputId = 'check.featpoints', label = 'Hide points'),
@@ -248,11 +240,10 @@ ui <- tagList(
           trigger = "focus",
           options = list(container = "body")
         ),
-        disabled(selectInput(
+        disabled(selectizeInput(
           inputId = 'select.biomarkers',
           label = 'Predicted cell type',
           choices = '',
-          selectize = FALSE,
           width = "25%"
         )),
         column(
@@ -332,9 +323,9 @@ ui <- tagList(
 #' FindTransferAnchors MapQueryData Misc Key<- RenameCells MappingScore
 #' GetIntegrationData
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
-#' withProgress setProgress updateSliderInput renderText updateSelectInput
-#' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
-#' isolate onStop
+#' withProgress setProgress updateNumericInput updateSliderInput renderText
+#' updateSelectizeInput updateTabsetPanel renderPlot renderTable downloadHandler
+#' renderUI isolate onStop
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
 #' @importFrom utils write.table
 #' @importFrom patchwork wrap_plots
@@ -358,7 +349,10 @@ server <- function(input, output, session) {
     mapping.score = NULL,
     feature = '',
     diff.exp = list(),
-    messages = 'Upload a file'
+    messages = 'Upload a file',
+    features = character(length = 0L),
+    adt.features = character(length = 0L),
+    scorefeatures = character(length = 0L)
   )
   rna.proxy <- dataTableProxy(outputId = "biomarkers")
   adt.proxy <- dataTableProxy(outputId = "adtbio")
@@ -875,48 +869,35 @@ server <- function(input, output, session) {
                 yes = getOption(x = 'Azimuth.app.default.gene'),
                 no = VariableFeatures(object = app.env$object)[1]
               )
-              features.select <- FilterFeatures(
+              app.env$features <- FilterFeatures(
                 features = rownames(x = app.env$object)
               )
-              # if (length(x = features.select) > 25000) {
-              #   features.select <- intersect(
-              #     x = features.select,
-              #     y = FilterFeatures(features = rownames(x = refs$plot))
-              #   )
-              # }
-              # updateSelectInput(
-              #   session = session,
-              #   inputId = 'feature',
-              #   label = 'Feature',
-              #   choices = features.select,
-              #   selected = app.env$default.feature
-              # )
               shiny::updateSelectizeInput(
                 session = session,
                 inputId = 'feature',
                 label = 'Feature',
-                choices = features.select,
+                choices = app.env$features,
                 selected = app.env$default.feature,
                 server = TRUE,
-                options = list(
-                  maxItems = 2
-                )
+                options = selectize.opts
               )
               # Add the predicted ID and score to the plots
               enable(id = 'adtfeature')
-              adt.features <- sort(x = FilterFeatures(features = rownames(
+              app.env$adt.features <- sort(x = FilterFeatures(features = rownames(
                 x = app.env$object[[adt.key]]
               )))
               app.env$default.adt <- ifelse(
-                test = getOption(x = 'Azimuth.app.default.adt') %in% adt.features,
+                test = getOption(x = 'Azimuth.app.default.adt') %in% app.env$adt.features,
                 yes = getOption(x = 'Azimuth.app.default.adt'),
-                no = adt.features[1]
+                no = app.env$adt.features[1]
               )
-              updateSelectInput(
+              updateSelectizeInput(
                 session = session,
                 inputId = 'adtfeature',
-                choices = adt.features,
-                selected = ''
+                choices = app.env$adt.features,
+                selected = '',
+                server = TRUE,
+                options = selectize.opts
               )
               metadata.choices <- sort(x = c(
                 "predicted.id",
@@ -926,23 +907,29 @@ server <- function(input, output, session) {
                   max.levels = 50
                 )
               ))
-              updateSelectInput(
+              updateSelectizeInput(
                 session = session,
                 inputId = 'select.metadata',
                 choices = metadata.choices,
-                selected = 'predicted.id'
+                selected = 'predicted.id',
+                server = TRUE,
+                options = selectize.opts
               )
-              updateSelectInput(
+              updateSelectizeInput(
                 session = session,
                 inputId = 'select.metadata1',
                 choices = metadata.choices,
-                selected = 'predicted.id'
+                selected = 'predicted.id',
+                server = TRUE,
+                options = selectize.opts
               )
-              updateSelectInput(
+              updateSelectizeInput(
                 session = session,
                 inputId = 'select.metadata2',
                 choices = metadata.choices,
-                selected = 'predicted.id'
+                selected = 'predicted.id',
+                server = TRUE,
+                options = selectize.opts
               )
               enable(id = 'select.metadata')
               enable(id = 'select.metadata1')
@@ -964,18 +951,23 @@ server <- function(input, output, session) {
                 metadata.cont,
                 rownames(x = app.env$object[["prediction.score.id"]])
               ))
-              updateSelectInput(
+              app.env$scorefeatures <- metadata.cont
+              updateSelectizeInput(
                 session = session,
-                inputId = 'scorefeature',
-                choices = metadata.cont,
-                selected = ''
+                inputId = 'scorefature',
+                choices = app.env$scorefeatures,
+                selected = '',
+                server = TRUE,
+                options = selectize.opts
               )
               enable(id = 'scorefeature')
-              updateSelectInput(
+              updateSelectizeInput(
                 session = session,
                 inputId = 'groupfeature',
                 choices = metadata.choices,
-                selected = 'predicted.id'
+                selected = 'predicted.id',
+                server = TRUE,
+                options = selectize.opts
               )
               enable(id = 'groupfeature')
               # Compute biomarkers
@@ -1007,18 +999,22 @@ server <- function(input, output, session) {
                 object = allowed.clusters
               ))))
               enable(id = 'select.prediction')
-              updateSelectInput(
+              updateSelectizeInput(
                 session = session,
                 inputId = 'select.prediction',
                 choices = allowed.clusters,
-                selected = allowed.clusters[1]
+                selected = allowed.clusters[1],
+                server = TRUE,
+                options = selectize.opts
               )
               enable(id = 'select.biomarkers')
-              updateSelectInput(
+              updateSelectizeInput(
                 session = session,
                 inputId = 'select.biomarkers',
                 choices = allowed.clusters,
-                selected = allowed.clusters[1]
+                selected = allowed.clusters[1],
+                server = TRUE,
+                options = selectize.opts
               )
               # Enable downloads
               enable(id = 'dlumap')
@@ -1093,7 +1089,17 @@ server <- function(input, output, session) {
           no = input$feature
         )
         for (f in c('adtfeature', 'scorefeature')) {
-          updateSelectInput(session = session, inputId = f, selected = '')
+          updateSelectizeInput(
+            session = session,
+            inputId = f,
+            choices = list(
+              'adtfeature' = app.env$adt.features,
+              'scorefeature' = app.env$scorefeatures
+            )[[f]],
+            selected = '',
+            server = TRUE,
+            options = selectize.opts
+          )
         }
         table.check <- input$feature %in% rownames(x = RenderDiffExp(
           diff.exp = app.env$diff.expr[[app.env$default.assay]],
@@ -1115,7 +1121,17 @@ server <- function(input, output, session) {
           input$adtfeature
         )
         for (f in c('feature', 'scorefeature')) {
-          updateSelectInput(session = session, inputId = f, selected = '')
+          updateSelectizeInput(
+            session = session,
+            inputId = f,
+            choices = list(
+              'feature' = app.env$features,
+              'scorefeature' = app.env$scorefeatures
+            )[[f]],
+            selected = '',
+            server = TRUE,
+            options = selectize.opts
+          )
         }
         table.check <- input$adtfeature %in% rownames(x = RenderDiffExp(
           diff.exp = app.env$diff.expr[[adt.key]],
@@ -1139,7 +1155,17 @@ server <- function(input, output, session) {
         }
         app.env$feature <- input$scorefeature
         for (f in c('feature', 'adtfeature')) {
-          updateSelectInput(session = session, inputId = f, selected = '')
+          updateSelectizeInput(
+            session = session,
+            inputId = f,
+            choices = list(
+              'feature' = app.env$features,
+              'adtfeature' = app.env$adt.features
+            )[[f]],
+            selected = '',
+            server = TRUE,
+            options = selectize.opts
+          )
         }
         for (tab in list(rna.proxy, adt.proxy)) {
           selectRows(proxy = tab, selected = NULL)
@@ -1151,13 +1177,16 @@ server <- function(input, output, session) {
     eventExpr = input$biomarkers_rows_selected,
     handlerExpr = {
       if (length(x = input$biomarkers_rows_selected)) {
-        updateSelectInput(
+        updateSelectizeInput(
           session = session,
           inputId = 'feature',
+          choices = app.env$features,
           selected = rownames(x = RenderDiffExp(
             diff.exp = app.env$diff.expr[[app.env$default.assay]],
             groups.use = input$select.biomarkers
-          ))[input$biomarkers_rows_selected]
+          ))[input$biomarkers_rows_selected],
+          server = TRUE,
+          options = selectize.opts
         )
       }
     }
@@ -1166,13 +1195,16 @@ server <- function(input, output, session) {
     eventExpr = input$adtbio_rows_selected,
     handlerExpr = {
       if (length(x = input$adtbio_rows_selected)) {
-        updateSelectInput(
+        updateSelectizeInput(
           session = session,
           inputId = 'adtfeature',
+          choices = app.env$adt.features,
           selected = rownames(x = RenderDiffExp(
             diff.exp = app.env$diff.expr[[adt.key]],
             groups.use = input$select.biomarkers
-          ))[input$adtbio_rows_selected]
+          ))[input$adtbio_rows_selected],
+          server = TRUE,
+          options = selectize.opts
         )
       }
     }
