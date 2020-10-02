@@ -17,7 +17,8 @@ FilterFeatures(features)
 feature names. This function sanitizes feature names according to the
 following rules:
 \itemize{
- \item Names matching \dQuote{\\.1} are \strong{removed}
+ \item Names matching the regular expression \dQuote{\\.\\d+$} are
+  \strong{removed}
 }
 }
 \seealso{
