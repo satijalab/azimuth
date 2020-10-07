@@ -796,7 +796,7 @@ server <- function(input, output, session) {
               setProgress(value = 0.8, message = "Running UMAP transform")
               app.env$object[["query_ref.nn"]] <- FindNeighbors(
                 object = Embeddings(refs$map[["spca"]]),
-                query = Embeddings(app.env$object[["integrated_pcaproject"]]),
+                query = Embeddings(app.env$object[["integrated_dr"]]),
                 return.neighbor = TRUE,
                 l2.norm = TRUE
               )
