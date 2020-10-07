@@ -92,58 +92,26 @@ anchors <- FindTransferAnchors(
 )
 
 # Transfer cell type labels and impute protein expression
+# Calculate the embeddings of the query data on the reference SPCA
+# Project the query to the reference UMAP
+#
 # Transferred labels are in a metadata column named "predicted.id"
 # The maximum prediction score is in a metadata column named "predicted.id.score"
 # The prediction scores for each class are in an assay named "prediction.score.id"
 # The imputed assay is named "impADT"
-query <- TransferData(
+# The projected UMAP is named "proj.umap"
+query <- MapQuery(
   reference = reference$map,
   query = query,
-  dims = 1:50,
   anchorset = anchors,
   refdata = list(
-    id = Idents(reference$map),
-    impADT = GetAssayData(
-    object = reference$map[['ADT']],
-    slot = 'data'
-  )),
-  store.weights = TRUE
+    id = "id",
+    impADT = "ADT"
+  ),
+  reference.reduction = "spca",
+  reduction.model = "jumap",
+  projectumap.args = list("l2.norm" = TRUE, "reduction.name" = "umap.proj", "reduction.key" = 'UMAP_')
 )
-
-# Calculate the embeddings of the query data on the reference SPCA
-query <- IntegrateEmbeddings(
-  anchorset = anchors,
-  reference = reference$map,
-  query = query,
-  reductions = "pcaproject",
-  anchorset.reduction = TRUE,
-  reuse.weights.matrix = TRUE
-)
-
-# Calculate the query neighbors in the reference
-# with respect to the integrated embeddings
-query[["query_ref.nn"]] <- FindNeighbors(
-  object = Embeddings(reference$map[["spca"]]),
-  query = Embeddings(query[["integrated_pcaproject"]]),
-  return.neighbor = TRUE,
-  l2.norm = TRUE
-)
-
-# The reference used in the app is downsampled compared to the reference on which
-# the UMAP model was computed. This step, using the helper function NNTransform,
-# corrects the Neighbors to account for the downsampling.
-query <- NNTransform(
-  object = query,
-  meta.data = reference$map[[]]
-)
-
-# Project the query to the reference UMAP.
-query[["proj.umap"]] <- RunUMAP(
-  object = query[["query_ref.nn"]],
-  reduction.model = reference$map[["jumap"]],
-  reduction.key = 'UMAP_'
-)
-
 
 # Calculate mapping score and add to metadata
 query <- AddMetaData(
