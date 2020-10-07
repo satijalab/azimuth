@@ -712,20 +712,30 @@ server <- function(input, output, session) {
                 verbose = TRUE,
                 mapping.score.k = 100
               )
+              # TODO fail if not enough anchors (Azimuth.map.nanchors)
               setProgress(value = 0.5, message = 'Mapping cells')
-              app.env$object <- MapQuery(
-                anchorset = anchors,
-                query = app.env$object,
+              app.env$object <- TransferData(
                 reference = refs$map,
+                query = app.env$object,
+                dims = 1:50,
+                anchorset = anchors,
                 refdata = list(
-                  id = "id",
-                  impADT = "ADT"
-                ),
-                reference.reduction = "spca",
-                reduction.model = "jumap",
-                projectumap.args = list("l2.norm" = TRUE, "reduction.name" = "umap.proj", "reduction.key" = 'UMAP_')
+                  id = Idents(object = refs$map),
+                  impADT = GetAssayData(
+                    object = refs$map[['ADT']],
+                    slot = 'data'
+                )),
+                store.weights = TRUE
               )
-              setProgress(value = 0.8, message = "Calculating mapping score")
+              app.env$object <- IntegrateEmbeddings(
+                anchorset = anchors,
+                reference = refs$map,
+                query = app.env$object,
+                reductions = "pcaproject",
+                anchorset.reduction = TRUE,
+                reuse.weights.matrix = TRUE
+              )
+              setProgress(value = 0.7, message = "Calculating mapping score")
               spca <- subset(
                 x = anchors@object.list[[1]][["pcaproject.l2"]],
                 cells = paste0(Cells(x = app.env$object), "_query")
@@ -783,12 +793,38 @@ server <- function(input, output, session) {
               )
               rm(anchors, spca)
               gc(verbose = FALSE)
+              setProgress(value = 0.8, message = "Running UMAP transform")
+              app.env$object[["query_ref.nn"]] <- FindNeighbors(
+                object = Embeddings(refs$map[["spca"]]),
+                query = Embeddings(app.env$object[["integrated_pcaproject"]]),
+                return.neighbor = TRUE,
+                l2.norm = TRUE
+              )
+              app.env$object <- NNTransform(
+                object = app.env$object,
+                meta.data = refs$map[[]]
+              )
+              # app.env$object <- AddPredictions(
+              #   object = app.env$object,
+              #   preds = Misc(object = ingested, slot = "predictions"),
+              #   preds.levels = levels(x = refs$map),
+              #   preds.drop = TRUE
+              # )
+              app.env$object[['umap.proj']] <- RunUMAP(
+                object = app.env$object[['query_ref.nn']],
+                reduction.model = refs$map[['jumap']],
+                reduction.key = 'UMAP_'
+              )
+              # suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
+              #   data = ingested[['transfer']][, cells]
+              # ))
               app.env$object <- SetAssayData(
                 object = app.env$object,
                 assay = 'SCT',
                 slot = 'scale.data',
                 new.data = new(Class = 'matrix')
               )
+              # rm(ingested)
               gc(verbose = FALSE)
               app.env$messages <- c(
                 app.env$messages,
