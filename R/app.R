@@ -321,8 +321,8 @@ ui <- tagList(
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
-#' FindTransferAnchors MapQueryData Misc Key<- RenameCells MappingScore
-#' GetIntegrationData
+#' FindTransferAnchors Misc Key<- RenameCells MappingScore
+#' GetIntegrationData TransferData IntegrateEmbeddings FindNeighbors Tool
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateNumericInput updateSliderInput renderText
 #' updateSelectizeInput updateTabsetPanel renderPlot renderTable downloadHandler
@@ -737,32 +737,38 @@ server <- function(input, output, session) {
               anchors <- FindTransferAnchors(
                 reference = refs$map,
                 query = app.env$object,
-                mapping = TRUE,
+                k.filter = NA,
                 reference.neighbors = "spca.annoy.neighbors",
-                reference.assay = "RNA",
+                reference.assay = "SCT",
                 query.assay = 'SCT',
                 reference.reduction = 'spca',
                 normalization.method = 'SCT',
-                features = rownames(x = refs$map),
+                features = intersect(rownames(x = refs$map), VariableFeatures(object = app.env$object)),
                 dims = 1:50,
-                nn.method = "annoy",
                 verbose = TRUE,
                 mapping.score.k = 100
               )
               # TODO fail if not enough anchors (Azimuth.map.nanchors)
               setProgress(value = 0.5, message = 'Mapping cells')
-              app.env$object <- MapQueryData(
+              app.env$object <- TransferData(
                 reference = refs$map,
                 query = app.env$object,
                 dims = 1:50,
                 anchorset = anchors,
-                reference.neighbors = "spca.annoy.neighbors",
-                transfer.labels = list(id = Idents(object = refs$map)),
-                transfer.expression = list(impADT = GetAssayData(
-                  object = refs$map[['ADT']],
-                  slot = 'data'
+                refdata = list(
+                  id = Idents(object = refs$map),
+                  impADT = GetAssayData(
+                    object = refs$map[['ADT']],
+                    slot = 'data'
                 )),
-                return.intermediate = TRUE
+                store.weights = TRUE
+              )
+              app.env$object <- IntegrateEmbeddings(
+                anchorset = anchors,
+                reference = refs$map,
+                query = app.env$object,
+                reductions = "pcaproject",
+                reuse.weights.matrix = TRUE
               )
               setProgress(value = 0.7, message = "Calculating mapping score")
               spca <- subset(
@@ -808,11 +814,7 @@ server <- function(input, output, session) {
                     anchors = anchors@anchors,
                     combined.object = anchors@object.list[[1]],
                     query.neighbors =  slot(object = anchors, name = "neighbors")[["query.neighbors"]],
-                    query.weights = GetIntegrationData(
-                      object = app.env$object,
-                      integration.name = "integrated",
-                      slot = "weights"
-                    ),
+                    query.weights = Tool(object = app.env$object, slot = "TransferData")$weights.matrix,
                     query.embeddings = Embeddings(object = spca),
                     ref.embeddings = Embeddings(object = spca.ref),
                     nn.method = "annoy"
@@ -827,6 +829,12 @@ server <- function(input, output, session) {
               rm(anchors, spca)
               gc(verbose = FALSE)
               setProgress(value = 0.8, message = "Running UMAP transform")
+              app.env$object[["query_ref.nn"]] <- FindNeighbors(
+                object = Embeddings(refs$map[["spca"]]),
+                query = Embeddings(app.env$object[["integrated_dr"]]),
+                return.neighbor = TRUE,
+                l2.norm = TRUE
+              )
               app.env$object <- NNTransform(
                 object = app.env$object,
                 meta.data = refs$map[[]]

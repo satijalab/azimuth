@@ -218,7 +218,7 @@ MinimalMatchingCells <- function(reference, query, match = TRUE, seed = NULL) {
 #'
 #' @importFrom stats cor
 #' @importFrom Seurat AverageExpression Idents<-
-#' @importFrom ggplot2 ggplot aes geom_point xlab ylab ggtitle theme_bw
+#' @importFrom ggplot2 ggplot aes_string geom_point xlab ylab ggtitle theme_bw
 #'
 #' @keywords internal
 #'
@@ -241,7 +241,7 @@ PBCorTest <- function(object, ref, min.features = 250) {
   )
   cor.data <- data.frame(log1p(x = avg[features, ]), log1p(x = ref[features, ]))
   colnames(cor.data) <- c("q", "r")
-  plot <- ggplot(cor.data, aes(q, r)) +
+  plot <- ggplot(cor.data, aes_string(x = "q", y = "r")) +
     geom_point() +
     xlab("Query average expression") +
     ylab("Reference average expression") +
