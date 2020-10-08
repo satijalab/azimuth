@@ -732,7 +732,6 @@ server <- function(input, output, session) {
                 reference = refs$map,
                 query = app.env$object,
                 reductions = "pcaproject",
-                anchorset.reduction = TRUE,
                 reuse.weights.matrix = TRUE
               )
               setProgress(value = 0.7, message = "Calculating mapping score")
