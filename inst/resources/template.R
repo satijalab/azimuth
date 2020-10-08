@@ -8,7 +8,7 @@ if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9000")) {
 library(Seurat)
 
 # Load helper functions from Azimuth
-source("https://raw.githubusercontent.com/mojaveazure/seurat-mapper/master/R/helpers.R")
+source("https://raw.githubusercontent.com/satijalab/azimuth/master/R/helpers.R")
 
 # Download the multimodal PBMC reference from [LINK] and extract the archive
 
@@ -92,6 +92,7 @@ anchors <- FindTransferAnchors(
 )
 
 # Transfer cell type labels and impute protein expression
+#
 # Transferred labels are in a metadata column named "predicted.id"
 # The maximum prediction score is in a metadata column named "predicted.id.score"
 # The prediction scores for each class are in an assay named "prediction.score.id"
