@@ -313,7 +313,7 @@ ui <- tagList(
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
 #' FindTransferAnchors Misc Key<- RenameCells MappingScore
-#' GetIntegrationData
+#' GetIntegrationData TransferData IntegrateEmbeddings FindNeighbors Tool
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateSliderInput renderText updateSelectInput
 #' updateTabsetPanel renderPlot renderTable downloadHandler renderUI
