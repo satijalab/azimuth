@@ -8,6 +8,9 @@ AzimuthApp(
   mito = getOption(x = "Azimuth.app.mito", default = "^MT-"),
   reference = getOption(x = "Azimuth.app.reference", default =
     "http://satijalab04.nygenome.org/pbmc"),
+  googlesheet = getOption(x = "Azimuth.app.googlesheet", default = NULL),
+  googletoken = getOption(x = "Azimuth.app.googletoken", default = NULL),
+  googletokenemail = getOption(x = "Azimuth.app.googletokenemail", default = NULL),
   max.upload.mb = getOption(x = "Azimuth.app.max.upload.mb", default = 500),
   max.cells = getOption(x = "Azimuth.app.max.cells", default = 50000),
   default.gene = getOption(x = "Azimuth.app.default.gene", default = "GNLY"),
@@ -37,6 +40,18 @@ can configure these either \link[base:options]{globally} or via arguments to
  \item{\code{Azimuth.app.reference}}{
   URL or directory path to reference dataset; see \code{\link{LoadReference}}
   for more details
+ }
+ \item{\code{Azimuth.app.googlesheet}}{
+  Google Sheet identifier (appropriate for use with \code{googlesheets4::gs4_get()})
+  to write log records. Logging is only enabled if this parameter is specified.
+ }
+ \item{\code{Azimuth.app.googletoken}}{
+  Path to directory containing Google Authentication token file.
+  Logging is only enabled if this parameter is specified.
+ }
+ \item{\code{Azimuth.app.googletokenemail}}{
+  Email address corresponding to the Google Authentication token file.
+  Logging is only enabled if this parameter is specified.
  }
  \item{\code{Azimuth.app.max.upload.mb}}{
   Maximum file size (in MB) allowed to upload
