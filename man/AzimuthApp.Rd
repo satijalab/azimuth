@@ -69,5 +69,5 @@ can configure these either \link[base:options]{globally} or via arguments to
 }
 
 \seealso{
-\code{\link{SeuratMapper-package}}
+\code{\link{Azimuth-package}}
 }

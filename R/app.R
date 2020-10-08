@@ -1,9 +1,9 @@
 #' @include zzz.R
 #' @include seurat.R
-#' @import V8
+#' @include helpers.R
 #' @importFrom DT DTOutput
 #' @importFrom htmltools tagList h4 hr h3 tags HTML p div
-#' @importFrom shinyjs useShinyjs extendShinyjs disabled
+#' @importFrom shinyjs useShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectizeInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow
@@ -264,7 +264,6 @@ ui <- tagList(
       tabName = "tab_download",
       box(
         title = "Analysis script template ",
-        verbatimTextOutput(outputId = "text.dlscript", placeholder = TRUE),
         disabled(downloadButton(
           outputId = 'dlscript',
           label = 'Download'
@@ -315,6 +314,7 @@ ui <- tagList(
 #' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
 #' theme_void
 #' @importFrom presto wilcoxauc
+#' @importFrom stringr str_interp
 #' @importFrom shinyjs show hide enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
@@ -1028,6 +1028,7 @@ server <- function(input, output, session) {
               enable(id = 'dlumap')
               enable(id = 'dladt')
               enable(id = 'dlpred')
+              enable(id = 'dlscript')
               output$menu2 <- renderMenu(expr = {
                 sidebarMenu(
                   menuItem(
@@ -1581,6 +1582,33 @@ server <- function(input, output, session) {
       }
     }
   )
+  output$dlscript <- downloadHandler(
+    filename = paste0(tolower(x = app.title), '_analysis.R'),
+    content = function(file) {
+      template <- readLines(con = system.file(
+        file.path('resources', 'template.R'),
+        package = 'Azimuth'
+      ))
+      template <- paste(template, collapse = '\n')
+      e <- new.env()
+      e$ref.uri <- getOption(x = 'Azimuth.app.reference')
+      e$path <- input$file$name
+      e$mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
+      e$mito.key <- mt.key
+      e$ncount.max <- input$num.ncountmax
+      e$ncount.min <- input$num.ncountmin
+      e$nfeature.max <- input$num.nfeaturemax
+      e$nfeature.min <- input$num.nfeaturemin
+      e$mito.max <- input$num.mtmax
+      e$mito.min <- input$num.mtmin
+      e$sct.ncells <- getOption(x = 'Azimuth.sct.ncells')
+      e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
+      e$adt.key <- adt.key
+      e$plotgene <- getOption(x = 'Azimuth.app.default.gene')
+      e$plotadt <- getOption(x = 'Azimuth.app.default.adt')
+      writeLines(text = str_interp(string = template, env = e), con = file)
+    }
+  )
 }
 
 #' Launch the mapping app
@@ -1635,7 +1663,7 @@ server <- function(input, output, session) {
 #'
 #' @export
 #'
-#' @seealso \code{\link{SeuratMapper-package}}
+#' @seealso \code{\link{Azimuth-package}}
 #'
 AzimuthApp <- function(
   mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
