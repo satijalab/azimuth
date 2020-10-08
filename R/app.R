@@ -1,10 +1,9 @@
 #' @include zzz.R
 #' @include seurat.R
 #' @include helpers.R
-#' @import V8
 #' @importFrom DT DTOutput
 #' @importFrom htmltools tagList h4 hr h3 tags HTML p div
-#' @importFrom shinyjs useShinyjs extendShinyjs disabled
+#' @importFrom shinyjs useShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectizeInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow

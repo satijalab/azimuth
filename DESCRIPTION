@@ -37,7 +37,6 @@ Imports:
   methods,
   patchwork (>= 1.0.1),
   presto,
-  RcppAnnoy (>= 0.0.16),
   rdist (>= 0.0.5),
   rlang (>= 0.4.8),
   Seurat (>= 3.9.0),
@@ -45,12 +44,10 @@ Imports:
   shiny (>= 1.5.0),
   shinyBS (>= 0.61),
   shinydashboard (>= 0.7.1),
-  shinyjs (>= 1.1),
   shinyjs (>= 2.0.0),
   stringr (>= 1.4.0),
   tools,
   utils,
-  V8 (>= 3.2.0),
   withr (>= 2.3.0)
 Collate:
     'helpers.R'

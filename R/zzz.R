@@ -122,30 +122,6 @@ CategoryTable <- function(
   return(as.data.frame.matrix(x = tbl))
 }
 
-#' Create an annoy index
-#'
-#' @note Function exists because it's not exported from \pkg{uwot}
-#'
-#' @param name,ndim Paramters
-#'
-#' @return An nn index object
-#'
-#' @importFrom methods new
-#' @importFrom RcppAnnoy AnnoyAngular AnnoyManhattan AnnoyEuclidean AnnoyHamming
-#'
-#' @keywords internal
-#'
-CreateAnn <- function(name, ndim) {
-  return(switch(
-    EXPR = name,
-    cosine = new(Class = AnnoyAngular, ndim),
-    manhattan = new(Class = AnnoyManhattan, ndim),
-    euclidean = new(Class = AnnoyEuclidean, ndim),
-    hamming = new(Class = AnnoyHamming, ndim),
-    stop("BUG: unknown Annoy metric '", name, "'")
-  ))
-}
-
 #' Sanitize feature names for \code{\link[shiny]{selectInput}}
 #'
 #' \code{\link[shiny]{selectInput}} has some limitiations with biological
@@ -244,74 +220,6 @@ RenderDiffExp <- function(
     )
   )
   return(diff.exp)
-}
-
-#' Manage tabs with \pkg{shinyjs}
-#'
-#' Quickly generate JavaScript IDs for Shiny tab panels. Also build a function
-#' to hide Shiny tab panels in JavaScript using \pkg{shinyjs}
-#'
-#' @param id ID of a \code{\link[shiny]{tabsetPanel}}
-#' @param values One or more values of a \code{\link[shiny]{tabPanel}}
-#' (see the \code{value} parameter)
-#' @param fxn Name of JavaScript call function
-#'
-#' @return \code{TabJSHide}: a string with a JavaScript function to hide a set
-#' of tabs
-#'
-#' @name TabJS
-#' @rdname TabJS
-#'
-#' @keywords internal
-#'
-#' @note These functions are designed to run custom JavaScript code using
-#' \code{\link[shinyjs]{extendShinyJS}}; use of custom JavaScript code requires
-#' the \pkg{V8} package. \pkg{V8} requires a local install of either the
-#' \href{https://chromium.googlesource.com/v8/v8}{V8} JavaScript Engine or
-#' \href{https://nodejs.org/en/}{Node.js}
-#'
-#' @seealso \code{\link[shinyjs]{extendShinyJS}} \code{\link[shiny]{tabPanel}}
-#'
-#' @examples
-#' \dontrun{
-#' TabJSHide('tabs', values = c('mapped', 'fexplorer'))
-#' }
-#'
-TabJSHide <- function(id, values, fxn = 'hide') {
-  keys <- paste0(
-    '$(',
-    sQuote(x = TabJSKey(id = id, values = values), q = FALSE),
-    ').hide()',
-    collapse = '; '
-  )
-  return(paste0(
-    'shinyjs.',
-    fxn,
-    ' = function() {',
-    keys,
-    ';}'
-  ))
-}
-
-#' @rdname TabJS
-#'
-#' @return \code{TabJSKey}: a string with the JavaScript ID for a given
-#' set of tabs
-#'
-#' @examples
-#' \dontrun{
-#' TabJSKey('tabs', values = 'mapped')
-#' }
-#'
-
-TabJSKey <- function(id, values) {
-  return(paste0(
-    "#",
-    id,
-    " li a[data-value=",
-    dQuote(x = values, q = FALSE),
-    "]"
-  ))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
