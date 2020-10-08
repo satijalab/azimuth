@@ -1587,7 +1587,7 @@ server <- function(input, output, session) {
     content = function(file) {
       template <- readLines(con = system.file(
         file.path('resources', 'template.R'),
-        package = 'SeuratMapper'
+        package = 'Azimuth'
       ))
       template <- paste(template, collapse = '\n')
       e <- new.env()
@@ -1663,7 +1663,7 @@ server <- function(input, output, session) {
 #'
 #' @export
 #'
-#' @seealso \code{\link{SeuratMapper-package}}
+#' @seealso \code{\link{Azimuth-package}}
 #'
 AzimuthApp <- function(
   mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
