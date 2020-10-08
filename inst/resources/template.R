@@ -117,7 +117,6 @@ query <- IntegrateEmbeddings(
   reference = reference$map,
   query = query,
   reductions = "pcaproject",
-  anchorset.reduction = TRUE,
   reuse.weights.matrix = TRUE
 )
 
@@ -125,7 +124,7 @@ query <- IntegrateEmbeddings(
 # with respect to the integrated embeddings
 query[["query_ref.nn"]] <- FindNeighbors(
   object = Embeddings(reference$map[["spca"]]),
-  query = Embeddings(query[["integrated_pcaproject"]]),
+  query = Embeddings(query[["integrated_dr"]]),
   return.neighbor = TRUE,
   l2.norm = TRUE
 )
