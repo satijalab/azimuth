@@ -265,7 +265,6 @@ ui <- tagList(
       tabName = "tab_download",
       box(
         title = "Analysis script template ",
-        verbatimTextOutput(outputId = "text.dlscript", placeholder = TRUE),
         disabled(downloadButton(
           outputId = 'dlscript',
           label = 'Download'
