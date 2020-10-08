@@ -82,7 +82,7 @@ anchors <- FindTransferAnchors(
   query = query,
   k.filter = NA,
   reference.neighbors = "spca.annoy.neighbors",
-  reference.assay = "RNA",
+  reference.assay = "SCT",
   query.assay = "SCT",
   reference.reduction = "spca",
   normalization.method = "SCT",
