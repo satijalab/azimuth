@@ -25,4 +25,4 @@ RUN R -e "remotes::install_local('/root/seurat-mapper')"
 
 EXPOSE 3838
 
-CMD ["R", "-e", "SeuratMapper::AzimuthApp(reference='/reference-data')"]
+CMD ["R", "-e", "Azimuth::AzimuthApp(reference='/reference-data')"]
