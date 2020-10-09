@@ -384,7 +384,7 @@ server <- function(input, output, session) {
       setProgress(value = 1)
     }
   )
-  set.seed(26)
+  set.seed(seed = getOption(x = "Azimuth.app.plotseed"))
   plotlevels <- sample(x = levels(as.factor(refs$plot$id)), size = length(levels(as.factor(refs$plot$id))))
   # React to events
   observeEvent( # Load the data
@@ -1665,6 +1665,9 @@ server <- function(input, output, session) {
 #'  \item{\code{Azimuth.app.default.adt}}{
 #'   ADT to select by default in feature/violin plot
 #'  }
+#'  \item{\code{Azimuth.app.plotseed}}{
+#'   Seed to shuffle colors for cell types
+#'  }
 #' }
 #'
 #' @return None, launches the mapping Shiny app
@@ -1710,6 +1713,10 @@ AzimuthApp <- function(
   default.adt = getOption(
     x = 'Azimuth.app.default.adt',
     default = "CD3-1"
+  ),
+  plotseed = getOption(
+    x = 'Azimuth.app.plotseed',
+    default = 0
   )
 ) {
   useShinyjs()
@@ -1723,7 +1730,8 @@ AzimuthApp <- function(
     Azimuth.app.default.adt = default.adt,
     Azimuth.app.googlesheet = googlesheet,
     Azimuth.app.googletoken = googletoken,
-    Azimuth.app.googletokenemail = googletokenemail
+    Azimuth.app.googletokenemail = googletokenemail,
+    Azimuth.app.plotseed = plotseed
   )
   with_options(
     new = opts,
