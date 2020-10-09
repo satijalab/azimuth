@@ -1,11 +1,11 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# Azimuth v0.0.0.9007
+# Azimuth v0.1.0
 
 <!-- badges: start -->
 
-[![Lifecycle](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://github.com/mojaveazure/seurat-mapper)
+[![Lifecycle](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://github.com/mojaveazure/seurat-mapper)
 <!-- badges: end -->
 
 Azimuth is a Shiny app demonstrating a query-reference mapping algorithm
