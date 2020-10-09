@@ -28,6 +28,10 @@ users can configure these with \code{\link[base]{options}}:
   Minimum number of anchors that must be found to complete mapping.
   Defaults to \code{50}
  }
+ \item{\code{Azimuth.map.ntrees}}{
+  Annoy (approximate nearest neighbor) n.trees parameter
+  Defaults to \code{20}
+ }
  \item{\code{Azimuth.map.pbcorthresh}}{
   Only proceed to mapping if query dataset meets or exceeds this threshold in
   pseudobulk correlation test.

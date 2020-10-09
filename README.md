@@ -5,7 +5,7 @@
 
 <!-- badges: start -->
 
-[![Lifecycle](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://github.com/mojaveazure/seurat-mapper)
+[![Lifecycle](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://github.com/satijalab/azimuth)
 <!-- badges: end -->
 
 Azimuth is a Shiny app demonstrating a query-reference mapping algorithm
@@ -14,11 +14,11 @@ algorithms used are described in the publication “Integrated analysis of
 multimodal single-cell data” (Y. Hao, S. Hao, et al., bioRxiv 2020).
 
 We have made an instance of the app available for public use, [described
-here](satijalab.org/azimuth).
+here](https://satijalab.org/azimuth).
 
 All the analysis and visualization functionality available in the app -
 and much more - is available in version 4 of the the [Seurat R
-package](satijalab.org/seurat).
+package](https://satijalab.org/seurat).
 
 ## Installation
 
@@ -46,6 +46,13 @@ reference files at `/path/to/reference`, specify it as:
 ``` r
 Azimuth::AzimuthApp(reference = '/path/to/reference')
 ```
+
+### Downloading the PBMC reference
+
+You can download the PBMC reference files that would be automatically
+loaded by default using the following command:
+
+    wget -m -R 'index.html*' -P pbmc -nd https://seurat.nygenome.org/references/pbmc/
 
 ### Specifying options
 
@@ -102,17 +109,18 @@ interactive R session and set options as desired:
 ## Support
 
 We do not actively support users running the app themselves and suggest
-you use version 4 of the [Seurat package](satijalab.org/seurat) to run
-the reference mapping workflow and related visualizations on your local
-system. Please see the [Seurat mapping
-vignette](satijalab.org/seurat/reference_mapping.html) for an example of
-how to use Seurat for reference mapping. If you use the instance of the
-app we are hosting on the web, you can download a Seurat v4 R script
-once your analysis is complete that will guide you in reproducing the
-analysis. You do not need Azimuth to reproduce the analysis.
+you use version 4 of the [Seurat package](https://satijalab.org/seurat)
+to run the reference mapping workflow and related visualizations on your
+local system. Please see the [Seurat mapping
+vignette](https://satijalab.org/seurat/reference_mapping.html) for an
+example of how to use Seurat for reference mapping. If you use the
+instance of the app we are hosting on the web, you can download a Seurat
+v4 R script once your analysis is complete that will guide you in
+reproducing the analysis. You do not need Azimuth to reproduce the
+analysis.
 
 If you would like to help us improve the app, and you believe a dataset
 meets the requirements and it is publicly available for us to use for
 debugging but the app doesn’t work, please file a Github issue linking
 to the dataset and describing the problem on [the issues
-page](github.com/satijalab/azimuth/issues).
+page](https://github.com/satijalab/azimuth/issues).

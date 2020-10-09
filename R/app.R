@@ -341,6 +341,7 @@ server <- function(input, output, session) {
   mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
   adt.key <- 'impADT'
   scores.key <- "scores"
+  n.trees <- getOption(x = "Azimuth.map.ntrees")
   app.env <- reactiveValues(
     object = NULL,
     default.assay = NULL,
@@ -744,6 +745,7 @@ server <- function(input, output, session) {
                 normalization.method = 'SCT',
                 features = intersect(rownames(x = refs$map), VariableFeatures(object = app.env$object)),
                 dims = 1:50,
+                n.trees = n.trees,
                 verbose = TRUE,
                 mapping.score.k = 100
               )
@@ -760,6 +762,7 @@ server <- function(input, output, session) {
                     object = refs$map[['ADT']],
                     slot = 'data'
                 )),
+                n.trees = n.trees,
                 store.weights = TRUE
               )
               app.env$object <- IntegrateEmbeddings(
@@ -816,7 +819,8 @@ server <- function(input, output, session) {
                     query.weights = Tool(object = app.env$object, slot = "TransferData")$weights.matrix,
                     query.embeddings = Embeddings(object = spca),
                     ref.embeddings = Embeddings(object = spca.ref),
-                    nn.method = "annoy"
+                    nn.method = "annoy",
+                    n.trees = n.trees
                   )
                 }
               )
@@ -832,7 +836,8 @@ server <- function(input, output, session) {
                 object = Embeddings(refs$map[["spca"]]),
                 query = Embeddings(app.env$object[["integrated_dr"]]),
                 return.neighbor = TRUE,
-                l2.norm = TRUE
+                l2.norm = TRUE,
+                n.trees = n.trees
               )
               app.env$object <- NNTransform(
                 object = app.env$object,
