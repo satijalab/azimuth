@@ -1,9 +1,9 @@
 #' @include zzz.R
 #' @include seurat.R
-#' @import V8
+#' @include helpers.R
 #' @importFrom DT DTOutput
 #' @importFrom htmltools tagList h4 hr h3 tags HTML p div
-#' @importFrom shinyjs useShinyjs extendShinyjs disabled
+#' @importFrom shinyjs useShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectizeInput downloadButton mainPanel tabsetPanel tabPanel
 #' plotOutput tableOutput verbatimTextOutput numericInput icon fluidRow
@@ -264,7 +264,6 @@ ui <- tagList(
       tabName = "tab_download",
       box(
         title = "Analysis script template ",
-        verbatimTextOutput(outputId = "text.dlscript", placeholder = TRUE),
         disabled(downloadButton(
           outputId = 'dlscript',
           label = 'Download'
@@ -315,13 +314,14 @@ ui <- tagList(
 #' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
 #' theme_void
 #' @importFrom presto wilcoxauc
+#' @importFrom stringr str_interp
 #' @importFrom shinyjs show hide enable disable
 #' @importFrom Seurat DefaultAssay PercentageFeatureSet SCTransform
 #' VariableFeatures Idents GetAssayData RunUMAP CreateAssayObject
 #' CreateDimReducObject Embeddings AddMetaData SetAssayData Key
 #' VlnPlot DimPlot Reductions FeaturePlot Assays NoLegend Idents<- Cells
-#' FindTransferAnchors MapQueryData Misc Key<- RenameCells MappingScore
-#' GetIntegrationData
+#' FindTransferAnchors Misc Key<- RenameCells MappingScore
+#' GetIntegrationData TransferData IntegrateEmbeddings FindNeighbors Tool
 #' @importFrom shiny reactiveValues safeError appendTab observeEvent
 #' withProgress setProgress updateNumericInput updateSliderInput renderText
 #' updateSelectizeInput updateTabsetPanel renderPlot renderTable downloadHandler
@@ -736,32 +736,38 @@ server <- function(input, output, session) {
               anchors <- FindTransferAnchors(
                 reference = refs$map,
                 query = app.env$object,
-                mapping = TRUE,
+                k.filter = NA,
                 reference.neighbors = "spca.annoy.neighbors",
-                reference.assay = "RNA",
+                reference.assay = "SCT",
                 query.assay = 'SCT',
                 reference.reduction = 'spca',
                 normalization.method = 'SCT',
-                features = rownames(x = refs$map),
+                features = intersect(rownames(x = refs$map), VariableFeatures(object = app.env$object)),
                 dims = 1:50,
-                nn.method = "annoy",
                 verbose = TRUE,
                 mapping.score.k = 100
               )
               # TODO fail if not enough anchors (Azimuth.map.nanchors)
               setProgress(value = 0.5, message = 'Mapping cells')
-              app.env$object <- MapQueryData(
+              app.env$object <- TransferData(
                 reference = refs$map,
                 query = app.env$object,
                 dims = 1:50,
                 anchorset = anchors,
-                reference.neighbors = "spca.annoy.neighbors",
-                transfer.labels = list(id = Idents(object = refs$map)),
-                transfer.expression = list(impADT = GetAssayData(
-                  object = refs$map[['ADT']],
-                  slot = 'data'
+                refdata = list(
+                  id = Idents(object = refs$map),
+                  impADT = GetAssayData(
+                    object = refs$map[['ADT']],
+                    slot = 'data'
                 )),
-                return.intermediate = TRUE
+                store.weights = TRUE
+              )
+              app.env$object <- IntegrateEmbeddings(
+                anchorset = anchors,
+                reference = refs$map,
+                query = app.env$object,
+                reductions = "pcaproject",
+                reuse.weights.matrix = TRUE
               )
               setProgress(value = 0.7, message = "Calculating mapping score")
               spca <- subset(
@@ -807,11 +813,7 @@ server <- function(input, output, session) {
                     anchors = anchors@anchors,
                     combined.object = anchors@object.list[[1]],
                     query.neighbors =  slot(object = anchors, name = "neighbors")[["query.neighbors"]],
-                    query.weights = GetIntegrationData(
-                      object = app.env$object,
-                      integration.name = "integrated",
-                      slot = "weights"
-                    ),
+                    query.weights = Tool(object = app.env$object, slot = "TransferData")$weights.matrix,
                     query.embeddings = Embeddings(object = spca),
                     ref.embeddings = Embeddings(object = spca.ref),
                     nn.method = "annoy"
@@ -826,6 +828,12 @@ server <- function(input, output, session) {
               rm(anchors, spca)
               gc(verbose = FALSE)
               setProgress(value = 0.8, message = "Running UMAP transform")
+              app.env$object[["query_ref.nn"]] <- FindNeighbors(
+                object = Embeddings(refs$map[["spca"]]),
+                query = Embeddings(app.env$object[["integrated_dr"]]),
+                return.neighbor = TRUE,
+                l2.norm = TRUE
+              )
               app.env$object <- NNTransform(
                 object = app.env$object,
                 meta.data = refs$map[[]]
@@ -1020,6 +1028,7 @@ server <- function(input, output, session) {
               enable(id = 'dlumap')
               enable(id = 'dladt')
               enable(id = 'dlpred')
+              enable(id = 'dlscript')
               output$menu2 <- renderMenu(expr = {
                 sidebarMenu(
                   menuItem(
@@ -1573,6 +1582,33 @@ server <- function(input, output, session) {
       }
     }
   )
+  output$dlscript <- downloadHandler(
+    filename = paste0(tolower(x = app.title), '_analysis.R'),
+    content = function(file) {
+      template <- readLines(con = system.file(
+        file.path('resources', 'template.R'),
+        package = 'Azimuth'
+      ))
+      template <- paste(template, collapse = '\n')
+      e <- new.env()
+      e$ref.uri <- 'https://seurat.nygenome.org/references/pbmc/'
+      e$path <- input$file$name
+      e$mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
+      e$mito.key <- mt.key
+      e$ncount.max <- input$num.ncountmax
+      e$ncount.min <- input$num.ncountmin
+      e$nfeature.max <- input$num.nfeaturemax
+      e$nfeature.min <- input$num.nfeaturemin
+      e$mito.max <- input$num.mtmax
+      e$mito.min <- input$num.mtmin
+      e$sct.ncells <- getOption(x = 'Azimuth.sct.ncells')
+      e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
+      e$adt.key <- adt.key
+      e$plotgene <- getOption(x = 'Azimuth.app.default.gene')
+      e$plotadt <- getOption(x = 'Azimuth.app.default.adt')
+      writeLines(text = str_interp(string = template, env = e), con = file)
+    }
+  )
 }
 
 #' Launch the mapping app
@@ -1627,13 +1663,13 @@ server <- function(input, output, session) {
 #'
 #' @export
 #'
-#' @seealso \code{\link{SeuratMapper-package}}
+#' @seealso \code{\link{Azimuth-package}}
 #'
 AzimuthApp <- function(
   mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
   reference = getOption(
     x = 'Azimuth.app.reference',
-    default = 'http://satijalab04.nygenome.org/pbmc'
+    default = 'https://seurat.nygenome.org/references/pbmc'
   ),
   googlesheet = getOption(
     x = 'Azimuth.app.googlesheet',

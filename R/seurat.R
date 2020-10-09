@@ -196,38 +196,6 @@ MinimalMatchingCells <- function(reference, query, match = TRUE, seed = NULL) {
   return(cells)
 }
 
-#' Transform an NN index
-#'
-#' @param object Seurat object
-#' @param meta.data Metadata
-#' @param neighbor.slot Name of Neighbor slot
-#' @param key Column of metadata to use
-#'
-#' @return \code{object} with transfomed neighbor.slot
-#'
-#' @importFrom Seurat Indices
-#'
-#' @keywords internal
-#'
-NNTransform <- function(
-  object,
-  meta.data,
-  neighbor.slot = "query_ref.nn",
-  key = 'ori.index'
-) {
-  on.exit(expr = gc(verbose = FALSE))
-  ind <- Indices(object[[neighbor.slot]])
-  ori.index <- t(x = sapply(
-    X = 1:nrow(x = ind),
-    FUN = function(i) {
-      return(meta.data[ind[i, ], key])
-    }
-  ))
-  rownames(x = ori.index) <- rownames(x = ind)
-  slot(object = object[[neighbor.slot]], name = "nn.idx") <- ori.index
-  return(object)
-}
-
 #' Pseudobulk correlation test of query against reference
 #'
 #' Computes the correlation between a pseudobulk of the query object and the
@@ -250,7 +218,7 @@ NNTransform <- function(
 #'
 #' @importFrom stats cor
 #' @importFrom Seurat AverageExpression Idents<-
-#' @importFrom ggplot2 ggplot aes geom_point xlab ylab ggtitle theme_bw
+#' @importFrom ggplot2 ggplot aes_string geom_point xlab ylab ggtitle theme_bw
 #'
 #' @keywords internal
 #'
@@ -273,7 +241,7 @@ PBCorTest <- function(object, ref, min.features = 250) {
   )
   cor.data <- data.frame(log1p(x = avg[features, ]), log1p(x = ref[features, ]))
   colnames(cor.data) <- c("q", "r")
-  plot <- ggplot(cor.data, aes(q, r)) +
+  plot <- ggplot(cor.data, aes_string(x = "q", y = "r")) +
     geom_point() +
     xlab("Query average expression") +
     ylab("Reference average expression") +
