@@ -1,5 +1,3 @@
-data-raw/*
-inst/*
 man/*
 .dockerignore
 .Rbuildignore
