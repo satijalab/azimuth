@@ -7,7 +7,7 @@
 AzimuthApp(
   mito = getOption(x = "Azimuth.app.mito", default = "^MT-"),
   reference = getOption(x = "Azimuth.app.reference", default =
-    "http://satijalab04.nygenome.org/pbmc"),
+    "https://seurat.nygenome.org/references/pbmc"),
   googlesheet = getOption(x = "Azimuth.app.googlesheet", default = NULL),
   googletoken = getOption(x = "Azimuth.app.googletoken", default = NULL),
   googletokenemail = getOption(x = "Azimuth.app.googletokenemail", default = NULL),
