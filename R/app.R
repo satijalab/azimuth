@@ -1591,7 +1591,7 @@ server <- function(input, output, session) {
       ))
       template <- paste(template, collapse = '\n')
       e <- new.env()
-      e$ref.uri <- getOption(x = 'Azimuth.app.reference')
+      e$ref.uri <- 'https://seurat.nygenome.org/references/pbmc/'
       e$path <- input$file$name
       e$mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
       e$mito.key <- mt.key
@@ -1669,7 +1669,7 @@ AzimuthApp <- function(
   mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
   reference = getOption(
     x = 'Azimuth.app.reference',
-    default = 'http://satijalab04.nygenome.org/pbmc'
+    default = 'https://seurat.nygenome.org/references/pbmc'
   ),
   googlesheet = getOption(
     x = 'Azimuth.app.googlesheet',
