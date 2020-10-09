@@ -384,7 +384,7 @@ server <- function(input, output, session) {
       setProgress(value = 1)
     }
   )
-  set.seed(0)
+  set.seed(26)
   plotlevels <- sample(x = levels(as.factor(refs$plot$id)), size = length(levels(as.factor(refs$plot$id))))
   # React to events
   observeEvent( # Load the data
