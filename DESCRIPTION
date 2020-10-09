@@ -11,8 +11,8 @@ Authors@R: c(
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463'))
   )
 Description: What the package does (one paragraph).
-URL: https://github.com/mojaveazure/seurat-mapper
-BugReports: https://github.com/mojaveazure/seurat-mapper/issues
+URL: https://github.com/satijalab/azimuth
+BugReports: https://github.com/satijalab/azimuth/issues
 License: GPL-3 | file LICENSE
 Encoding: UTF-8
 LazyData: true
