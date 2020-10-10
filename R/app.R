@@ -360,16 +360,23 @@ server <- function(input, output, session) {
   if (!is.null(getOption(x = "Azimuth.app.googlesheet")) &&
       !is.null(getOption(x = "Azimuth.app.googletoken")) &&
       !is.null(getOption(x = "Azimuth.app.googletokenemail"))) {
-    gs4_auth(email = getOption(x = "Azimuth.app.googletokenemail"),
-             cache = getOption(x = "Azimuth.app.googletoken"))
-    googlesheet <- gs4_get(ss = getOption(x = "Azimuth.app.googlesheet"))
-    app_start_time <- Sys.time()
-    onStop(fun = function() sheet_append(ss = googlesheet, data = data.frame("SESSIONLENGTH", Sys.info()[["nodename"]], as.numeric(Sys.time() - app_start_time, units = "mins"))))
+    tryCatch(
+      expr = {
+        gs4_auth(email = getOption(x = "Azimuth.app.googletokenemail"),
+                 cache = getOption(x = "Azimuth.app.googletoken"))
+        googlesheet <- gs4_get(ss = getOption(x = "Azimuth.app.googlesheet"))
+        app_start_time <- Sys.time()
+        onStop(fun = function() try(sheet_append(ss = googlesheet, data = data.frame("SESSIONLENGTH", Sys.info()[["nodename"]], as.numeric(Sys.time() - app_start_time, units = "mins")))))
+      },
+      error = function(e) {
+        googlesheet <- NULL
+      }
+    )
   } else {
     googlesheet <- NULL
   }
   if (!is.null(googlesheet)) {
-    sheet_append(ss = googlesheet, data = data.frame("STARTUPTIME", Sys.info()[["nodename"]], Sys.time()))
+    try(sheet_append(ss = googlesheet, data = data.frame("STARTUPTIME", Sys.info()[["nodename"]], Sys.time())))
   }
   withProgress(
     message = "Loading reference",
@@ -550,7 +557,7 @@ server <- function(input, output, session) {
             ))
             enable(id = 'map')
             if (!is.null(googlesheet)) {
-              sheet_append(ss = googlesheet, data = data.frame("CELLSUPLOAD", Sys.info()[["nodename"]], ncellsupload))
+              try(sheet_append(ss = googlesheet, data = data.frame("CELLSUPLOAD", Sys.info()[["nodename"]], ncellsupload)))
             }
           }
         }
@@ -678,7 +685,7 @@ server <- function(input, output, session) {
               color = "green"
             ))
             if (!is.null(googlesheet)) {
-              sheet_append(ss = googlesheet, data = data.frame("CELLSPREPROC", Sys.info()[["nodename"]], ncellspreproc))
+              try(sheet_append(ss = googlesheet, data = data.frame("CELLSPREPROC", Sys.info()[["nodename"]], ncellspreproc)))
             }
             app.env$object <- app.env$object[, cells.use]
             # Pseudobulk correlation test
@@ -687,7 +694,7 @@ server <- function(input, output, session) {
               ref = refs$avg
             )
             if (!is.null(googlesheet)) {
-              sheet_append(ss = googlesheet, data = data.frame("PBCOR", Sys.info()[["nodename"]], pbcor[["cor.res"]]))
+              try(sheet_append(ss = googlesheet, data = data.frame("PBCOR", Sys.info()[["nodename"]], pbcor[["cor.res"]])))
             }
             if (pbcor[["cor.res"]] < getOption(x = 'Azimuth.map.pbcorthresh')) {
               output$valuebox.mapped <- renderValueBox(expr = valueBox(
@@ -1081,7 +1088,7 @@ server <- function(input, output, session) {
                 time.fmt
               )
               if (!is.null(googlesheet)) {
-                sheet_append(ss = googlesheet, data = data.frame("MAPPINGTIME", Sys.info()[["nodename"]], as.numeric(maptime.diff, units="secs")))
+                try(sheet_append(ss = googlesheet, data = data.frame("MAPPINGTIME", Sys.info()[["nodename"]], as.numeric(maptime.diff, units="secs"))))
               }
             }
           }
