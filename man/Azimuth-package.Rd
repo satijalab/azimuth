@@ -91,14 +91,17 @@ can configure these either \link[base:options]{globally} or via arguments to
  \item{\code{Azimuth.app.default.adt}}{
   ADT to select by default in feature/violin plot
  }
+ \item{\code{Azimuth.app.plotseed}}{
+  Seed to shuffle colors for cell types
+ }
 }
 }
 
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/mojaveazure/seurat-mapper}
-  \item Report bugs at \url{https://github.com/mojaveazure/seurat-mapper/issues}
+  \item \url{https://github.com/satijalab/azimuth}
+  \item Report bugs at \url{https://github.com/satijalab/azimuth/issues}
 }
 
 }
