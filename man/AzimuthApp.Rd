@@ -14,7 +14,8 @@ AzimuthApp(
   max.upload.mb = getOption(x = "Azimuth.app.max.upload.mb", default = 500),
   max.cells = getOption(x = "Azimuth.app.max.cells", default = 50000),
   default.gene = getOption(x = "Azimuth.app.default.gene", default = "GNLY"),
-  default.adt = getOption(x = "Azimuth.app.default.adt", default = "CD3-1")
+  default.adt = getOption(x = "Azimuth.app.default.adt", default = "CD3-1"),
+  plotseed = getOption(x = "Azimuth.app.plotseed", default = 0)
 )
 }
 \arguments{
@@ -64,6 +65,9 @@ can configure these either \link[base:options]{globally} or via arguments to
  }
  \item{\code{Azimuth.app.default.adt}}{
   ADT to select by default in feature/violin plot
+ }
+ \item{\code{Azimuth.app.plotseed}}{
+  Seed to shuffle colors for cell types
  }
 }
 }
