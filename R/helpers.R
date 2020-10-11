@@ -281,7 +281,7 @@ LoadH5AD <- function(path) {
 #' @examples
 #' \dontrun{
 #' # Load from a URL
-#' ref <- LoadReference("http://saucyx220.nygenome.org")
+#' ref <- LoadReference("https://seurat.nygenome.org/references/pbmc")
 #' # Load from a directory
 #' ref2 <- LoadReference("/var/www/html")
 #' }
@@ -296,7 +296,7 @@ LoadReference <- function(path, seconds = 10L) {
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
   }
-  uri <- build_url(url = parse_url(url = path))
+  uri <- httr::build_url(url = httr::parse_url(url = path))
   if (grepl(pattern = '^://', x = uri)) {
     if (!dir.exists(paths = path)) {
       stop("Cannot find directory ", path, call. = FALSE)
@@ -322,7 +322,10 @@ LoadReference <- function(path, seconds = 10L) {
         comp <- Negate(f = identical)
       }
       return(comp(
-        x = status_code(x = GET(url = url, timeout(seconds = seconds))),
+        x = httr::status_code(x = httr::GET(
+          url = url,
+          httr::timeout(seconds = seconds
+        ))),
         y = code
       ))
     }
