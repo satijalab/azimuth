@@ -98,6 +98,12 @@ All the analysis and visualization functionality available in the app - and much
 
 ## Installation
 
+**Note**: you may need to update some packcages prior to installing `r pkg`; from a fresh R session run:
+
+```{r upgrade, eval=FALSE}
+update.packages(oldPkgs = c("withr", "rlang"))
+```
+
 You can install `r pkg` from GitHub with:
 
 ```{r devel.install, echo=FALSE, results="asis"}

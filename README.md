@@ -22,6 +22,13 @@ package](https://satijalab.org/seurat).
 
 ## Installation
 
+**Note**: you may need to update some packcages prior to installing
+Azimuth; from a fresh R session run:
+
+``` r
+update.packages(oldPkgs = c("withr", "rlang"))
+```
+
 You can install Azimuth from GitHub with:
 
 ``` r
