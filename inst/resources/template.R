@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Ensure Seurat v4.0 or higher is installed
-if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9000")) {
+if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9002")) {
   stop("Mapping datasets requires Seurat v4 or higher", call. = FALSE)
 }
 
