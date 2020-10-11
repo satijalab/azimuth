@@ -5,6 +5,13 @@ if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9000")) {
   stop("Mapping datasets requires Seurat v4 or higher", call. = FALSE)
 }
 
+# Ensure glmGamPoi is installed
+if (!requireNamespace("glmGamPoi", quietly = TRUE)) {
+  if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    BiocManager::install("glmGamPoi")
+  }
+}
+
 library(Seurat)
 
 # Load helper functions from Azimuth
@@ -69,6 +76,7 @@ query <- SCTransform(
   object = query,
   assay = "RNA",
   residual.features = rownames(x = reference$map),
+  method = 'glmGamPoi',
   ncells = ${sct.ncells},
   n_genes = ${sct.nfeats},
   do.correct.umi = FALSE,
@@ -88,6 +96,7 @@ anchors <- FindTransferAnchors(
   normalization.method = "SCT",
   features = intersect(rownames(x = reference$map), VariableFeatures(object = query)),
   dims = 1:50,
+  n.trees = ${ntrees},
   mapping.score.k = 100
 )
 

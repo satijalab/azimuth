@@ -1622,6 +1622,7 @@ server <- function(input, output, session) {
       e$mito.min <- input$num.mtmin
       e$sct.ncells <- getOption(x = 'Azimuth.sct.ncells')
       e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
+      e$ntrees <- getOption(x = 'Azimuth.map.ntrees')
       e$adt.key <- adt.key
       e$plotgene <- getOption(x = 'Azimuth.app.default.gene')
       e$plotadt <- getOption(x = 'Azimuth.app.default.adt')
