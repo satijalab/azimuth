@@ -39,7 +39,7 @@ there must be the following files:
 \examples{
 \dontrun{
 # Load from a URL
-ref <- LoadReference("http://saucyx220.nygenome.org")
+ref <- LoadReference("https://seurat.nygenome.org/references/pbmc")
 # Load from a directory
 ref2 <- LoadReference("/var/www/html")
 }
