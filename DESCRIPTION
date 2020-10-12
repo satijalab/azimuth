@@ -37,7 +37,6 @@ Imports:
   methods,
   patchwork (>= 1.0.1),
   presto,
-  rdist (>= 0.0.5),
   rlang (>= 0.4.8),
   Seurat (>= 3.9.9),
   SeuratDisk,
