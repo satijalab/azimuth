@@ -10,8 +10,9 @@
 
 Azimuth is a Shiny app demonstrating a query-reference mapping algorithm
 for single-cell data. The reference data accompanying the app and the
-algorithms used are described in the publication “Integrated analysis of
-multimodal single-cell data” (Y. Hao, S. Hao, et al., bioRxiv 2020).
+algorithms used are described in the publication [“Integrated analysis
+of multimodal single-cell data” (Y. Hao, S. Hao, et al., bioRxiv
+2020)](https://satijalab.org/v4preprint).
 
 We have made an instance of the app available for public use, [described
 here](https://satijalab.org/azimuth).
