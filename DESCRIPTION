@@ -22,7 +22,7 @@ Remotes:
   immunogenomics/presto,
   jlmelville/uwot,
   mojaveazure/seurat-disk,
-  url::http://satijalab04.nygenome.org/src/contrib/Seurat_3.9.9.9002.tar.gz
+  satijalab/seurat@release/4.0.0
 Depends:
   R (>= 3.6.0)
 Imports:
