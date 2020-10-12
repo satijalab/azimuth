@@ -850,27 +850,17 @@ server <- function(input, output, session) {
                 object = app.env$object,
                 meta.data = refs$map[[]]
               )
-              # app.env$object <- AddPredictions(
-              #   object = app.env$object,
-              #   preds = Misc(object = ingested, slot = "predictions"),
-              #   preds.levels = levels(x = refs$map),
-              #   preds.drop = TRUE
-              # )
               app.env$object[['umap.proj']] <- RunUMAP(
                 object = app.env$object[['query_ref.nn']],
                 reduction.model = refs$map[['jumap']],
                 reduction.key = 'UMAP_'
               )
-              # suppressWarnings(expr = app.env$object[[adt.key]] <- CreateAssayObject(
-              #   data = ingested[['transfer']][, cells]
-              # ))
               app.env$object <- SetAssayData(
                 object = app.env$object,
                 assay = 'SCT',
                 slot = 'scale.data',
                 new.data = new(Class = 'matrix')
               )
-              # rm(ingested)
               gc(verbose = FALSE)
               app.env$messages <- c(
                 app.env$messages,
@@ -1012,7 +1002,6 @@ server <- function(input, output, session) {
               ))
               allowed.clusters <- factor(
                 x = allowed.clusters,
-                # levels = levels(x = app.env$object)
                 levels = unique(x = as.vector(x = app.env$object$predicted.id))
               )
               allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(
