@@ -302,16 +302,30 @@ ui <- tagList(
   )
 )))
 
-doMapping <- function(app.env,
-                      refs,
-                      session,
-                      output,
-                      googlesheet,
-                      mt.key,
-                      mito.pattern,
-                      adt.key,
-                      scores.key,
-                      n.trees){
+
+#' Set up uploaded or demo file for QC
+#'
+#' @param app.env App environment
+#' @param refs Reference object as from \code{\link{LoadReference}}
+#' @param session Shiny app session
+#' @param output Shiny app output
+#' @param googlesheet Google sheet object as from \code{googlesheets4::gs4_get()}
+#' @param mt.key String identifier for mitochondrial content
+#' @param mito.pattern String pattern for identifying mitochondrial genes
+#'
+#' @importFrom Seurat DefaultAssay PercentageFeatureSet AddMetaData Cells
+#' @importFrom shiny withProgress setProgress updateNumericInput
+#' @importFrom shinydashboard renderValueBox valueBox renderMenu
+#' @importFrom googlesheets4 sheet_append
+#'
+initQC <- function(app.env,
+                   refs,
+                   session,
+                   output,
+                   googlesheet,
+                   mt.key,
+                   mito.pattern){
+  n.trees <- getOption(x = "Azimuth.map.ntrees")
   if (!is.null(app.env$object)) {
     # Validate that there are genes in common with the reference
     genes.common <- intersect(
@@ -447,12 +461,14 @@ doMapping <- function(app.env,
         ))
         enable(id = 'map')
         if (!is.null(googlesheet)) {
-          try(sheet_append(ss = googlesheet, data = data.frame("CELLSUPLOAD", Sys.info()[["nodename"]], ncellsupload)))
+          try(sheet_append(ss = googlesheet,
+                           data = data.frame("CELLSUPLOAD", Sys.info()[["nodename"]], ncellsupload)))
         }
       }
     }
   }
 }
+
 #' Server function for the mapping app
 #'
 #' @param input,output,session Required Shiny app server parameters
@@ -492,8 +508,6 @@ server <- function(input, output, session) {
   mt.key <- 'percent.mt'
   mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
   adt.key <- 'impADT'
-  scores.key <- "scores"
-  demo_input <- "~/azimuth_reference/pbmc3k_RAW_counts.h5ad"
   n.trees <- getOption(x = "Azimuth.map.ntrees")
   app.env <- reactiveValues(
     object = NULL,
@@ -575,33 +589,42 @@ server <- function(input, output, session) {
           setProgress(value = 1)
         }
       )
-      doMapping(app.env,
-                refs,
-                session,
-                output,
-                googlesheet,
-                mt.key,
-                mito.pattern,
-                adt.key,
-                scores.key,
-                n.trees)
+      initQC(app.env = app.env,
+             refs = refs,
+             session = session,
+             output = output,
+             googlesheet = googlesheet,
+             mt.key = mt.key,
+             mito.pattern = mito.pattern)
     }
   )
   observeEvent(eventExpr = input$triggerdemo,
                handlerExpr = {
-                 app.env$object <- LoadFileInput(path = demo_input)
-                 app.env$object$query <- 'query'
-                 Idents(app.env$object) <- 'query'
-                 doMapping(app.env,
-                           refs,
-                           session,
-                           output,
-                           googlesheet,
-                           mt.key,
-                           mito.pattern,
-                           adt.key,
-                           scores.key,
-                           n.trees)
+                 withProgress(
+                   message = "Reading input",
+                   expr = {
+                     setProgress(value = 0)
+                     tryCatch(
+                       expr = {
+                         demodataset <- getOption(x = "Azimuth.app.demodataset")
+                         app.env$object <- LoadFileInput(path = demodataset)
+                         app.env$object$query <- 'query'
+                         Idents(app.env$object) <- 'query'
+                       },
+                       error = function(e) {
+                         app.env$messages <- e$message
+                       }
+                     )
+                     setProgress(value = 1)
+                   }
+                 )
+                 initQC(app.env = app.env,
+                        refs = refs,
+                        session = session,
+                        output = output,
+                        googlesheet = googlesheet,
+                        mt.key = mt.key,
+                        mito.pattern = mito.pattern)
                  }
                )
   observeEvent( # Map data
@@ -1723,6 +1746,10 @@ AzimuthApp <- function(
     x = 'Azimuth.app.reference',
     default = 'https://seurat.nygenome.org/references/pbmc'
   ),
+  demodataset = getOption(
+    x = 'Azimuth.app.demodataset',
+    default = '~/azimuth_reference/pbmc3k_RAW_counts.h5ad'
+  ),
   googlesheet = getOption(
     x = 'Azimuth.app.googlesheet',
     default = NULL
@@ -1762,6 +1789,7 @@ AzimuthApp <- function(
     future.globals.maxSize = max.cells * 320000,
     Azimuth.app.mito = mito,
     Azimuth.app.reference = reference,
+    Azimuth.app.demodataset = demodataset,
     Azimuth.app.max.cells = max.cells,
     Azimuth.app.default.gene = default.gene,
     Azimuth.app.default.adt = default.adt,
