@@ -625,6 +625,7 @@ server <- function(input, output, session) {
                         googlesheet = googlesheet,
                         mt.key = mt.key,
                         mito.pattern = mito.pattern)
+                 hide(selector = ".rowhide")
                  }
                )
   observeEvent( # Map data
