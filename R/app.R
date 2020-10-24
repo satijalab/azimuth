@@ -600,6 +600,14 @@ server <- function(input, output, session) {
   )
   observeEvent(eventExpr = input$triggerdemo,
                handlerExpr = {
+                 # In case this is a re-upload, reset some elements
+                 app.env$messages <- ""
+                 output$valuebox.upload <- NULL
+                 output$valuebox.preproc <- NULL
+                 output$valuebox.mapped <- NULL
+                 output$menu2 <- NULL
+                 disable(id = "map")
+                 hide(selector = ".rowhide")
                  withProgress(
                    message = "Reading input",
                    expr = {
