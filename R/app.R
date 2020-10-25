@@ -45,7 +45,7 @@ ui <- tagList(
       trigger = "focus",
       options = list(container = "body")
     ),
-    actionButton(inputId = "triggerdemo", label = "Load a demo"),
+    actionButton(inputId = "triggerdemo", label = "Load demo dataset"),
     htmlOutput(outputId = "message", inline = FALSE),
     sidebarMenu(
       menuItem(
