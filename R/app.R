@@ -45,7 +45,7 @@ ui <- tagList(
       trigger = "focus",
       options = list(container = "body")
     ),
-    actionButton("triggerdemo", "Show me a demo"),
+    actionButton(inputId = "triggerdemo", label = "Load a demo"),
     htmlOutput(outputId = "message", inline = FALSE),
     sidebarMenu(
       menuItem(
@@ -505,6 +505,10 @@ initQC <- function(app.env,
 #' @keywords internal
 #'
 server <- function(input, output, session) {
+  # hide demo dataset button if required
+  if (is.null(getOption(x = 'Azimuth.app.demodataset'))){
+    hide(id="triggerdemo")
+  }
   mt.key <- 'percent.mt'
   mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
   adt.key <- 'impADT'
@@ -606,7 +610,8 @@ server <- function(input, output, session) {
                  output$valuebox.preproc <- NULL
                  output$valuebox.mapped <- NULL
                  output$menu2 <- NULL
-                 disable(id = "map")
+                 disable(id = 'map')
+                 disable(id = 'triggerdemo')
                  hide(selector = ".rowhide")
                  withProgress(
                    message = "Reading input",
@@ -626,6 +631,7 @@ server <- function(input, output, session) {
                      setProgress(value = 1)
                    }
                  )
+                 enable(id = 'triggerdemo')
                  initQC(app.env = app.env,
                         refs = refs,
                         session = session,
@@ -640,6 +646,7 @@ server <- function(input, output, session) {
     eventExpr = input$map,
     handlerExpr = {
       maptime.start <- Sys.time()
+
       disable(id = 'map')
       disable(id = 'num.ncountmin')
       disable(id = 'num.ncountmax')
@@ -1757,7 +1764,7 @@ AzimuthApp <- function(
   ),
   demodataset = getOption(
     x = 'Azimuth.app.demodataset',
-    default = '~/azimuth_reference/pbmc3k_RAW_counts.h5ad'
+    default = NULL
   ),
   googlesheet = getOption(
     x = 'Azimuth.app.googlesheet',
