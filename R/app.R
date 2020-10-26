@@ -2,7 +2,7 @@
 #' @include seurat.R
 #' @include helpers.R
 #' @importFrom DT DTOutput
-#' @importFrom htmltools tagList h4 hr h3 tags HTML p div
+#' @importFrom htmltools tagList h4 hr h3 tags HTML p div a
 #' @importFrom shinyjs useShinyjs disabled
 #' @importFrom shiny fluidPage sidebarLayout sidebarPanel fileInput sliderInput
 #' actionButton selectizeInput downloadButton mainPanel tabsetPanel tabPanel
@@ -66,6 +66,15 @@ ui <- tagList(
       tabName = "tab_welcome",
       box(
         h3("Please upload a dataset to map to the Multimodal PBMC reference"),
+        "Upload a counts matrix from an scRNA-seq dataset of human PBMC in one
+        of the following formats: hdf5, rds, h5ad, h5seurat. For testing, we
+        also provide a demo dataset of 11,769 human PBMC from 10x Genomics,
+        which is loaded automatically with the 'Load demo dataset' button
+        or available for download ",
+        a("here",
+          href="https://www.dropbox.com/s/cmbvq2og93lnl9z/pbmc_10k_v3_filtered_feature_bc_matrix.h5?dl=0",
+          target="_blank"), # open in new browser tab
+        ".",
         width = 12
       )
     ),
