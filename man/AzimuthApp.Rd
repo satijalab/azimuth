@@ -5,6 +5,7 @@
 \title{Launch the mapping app}
 \usage{
 AzimuthApp(
+  config = getOption(x = "Azimuth.app.config", default = NULL),
   mito = getOption(x = "Azimuth.app.mito", default = "^MT-"),
   reference = getOption(x = "Azimuth.app.reference", default =
     "https://seurat.nygenome.org/references/pbmc"),
@@ -36,6 +37,12 @@ can configure these either \link[base:options]{globally} or via arguments to
 \code{\link{AzimuthApp}} (omitting the \dQuote{Azimuth.app} prefix):
 
 \describe{
+ \item{\code{Azimuth.app.config}}{
+  Path to JSON-formatted configuration file. Options must be specified using
+  the full name (e.g. Azimuth.app.[option]). If the same option is specified
+  in a provided config file and as an argument to the function, the value
+  in the config file overwrites the argument provided to the function.
+ }
  \item{\code{Azimuth.app.mito}}{
   Regular expression pattern indicating mitochondrial features in query object
  }

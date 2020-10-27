@@ -1719,6 +1719,12 @@ server <- function(input, output, session) {
 #' \code{\link{AzimuthApp}} (omitting the \dQuote{Azimuth.app} prefix):
 #'
 #' \describe{
+#'  \item{\code{Azimuth.app.config}}{
+#'   Path to JSON-formatted configuration file. Options must be specified using
+#'   the full name (e.g. Azimuth.app.[option]). If the same option is specified
+#'   in a provided config file and as an argument to the function, the value
+#'   in the config file overwrites the argument provided to the function.
+#'  }
 #'  \item{\code{Azimuth.app.mito}}{
 #'   Regular expression pattern indicating mitochondrial features in query object
 #'  }
@@ -1760,12 +1766,14 @@ server <- function(input, output, session) {
 #' @importFrom shiny runApp shinyApp
 #' @importFrom withr with_options
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
+#' @importFrom jsonlite read_json
 #'
 #' @export
 #'
 #' @seealso \code{\link{Azimuth-package}}
 #'
 AzimuthApp <- function(
+  config = getOption(x = 'Azimuth.app.config', default = NULL),
   mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
   reference = getOption(
     x = 'Azimuth.app.reference',
@@ -1823,6 +1831,13 @@ AzimuthApp <- function(
     Azimuth.app.googletokenemail = googletokenemail,
     Azimuth.app.plotseed = plotseed
   )
+  # If multiple items have the same name in the named list, with_options sets
+  # the option to the last entry with that name in the list. Therefore, putting
+  # the config file options at the end of the list overwrites options specified
+  # as arguments or defaults.
+  if (!is.null(config)) {
+    opts <- c(opts, read_json(path = config, simplifyVector = TRUE))
+  }
   with_options(
     new = opts,
     code = runApp(appDir = shinyApp(ui = ui, server = server))
