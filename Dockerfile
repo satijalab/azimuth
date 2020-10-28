@@ -16,8 +16,6 @@ ENV HDF5_PLUGIN_PATH=/lzf
 
 RUN R --no-echo -e "install.packages('remotes')"
 
-RUN wget https://raw.githubusercontent.com/pshved/timeout/master/timeout && chmod +x timeout
-
 COPY Rprofile.site /usr/lib/R/etc/
 RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr', 'BiocManager'), repo='https://cloud.r-project.org')"
 RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'jlmelville/uwot', 'mojaveazure/seurat-disk', 'satijalab/seurat@release/4.0.0'))"
