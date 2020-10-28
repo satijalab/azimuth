@@ -100,6 +100,12 @@ can configure these either \link[base:options]{globally} or via arguments to
  \item{\code{Azimuth.app.plotseed}}{
   Seed to shuffle colors for cell types
  }
+ \item{\code{Azimuth.app.welcomebox}}{
+  Provide (as a string) the code to render the box on the welcome page
+  (quotes escaped). Example:
+  \code{ box(h3(\"Header\"), \"body text\", a(\"link\",
+  href=\"www.satijalab.org\", target=\"_blank\"), width = 12) }
+ }
 }
 }
 

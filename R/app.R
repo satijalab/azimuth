@@ -64,19 +64,7 @@ ui <- tagList(
     # Welcome tab
     tabItem(
       tabName = "tab_welcome",
-      box(
-        h3("Please upload a dataset to map to the Multimodal PBMC reference"),
-        "Upload a counts matrix from an scRNA-seq dataset of human PBMC in one
-        of the following formats: hdf5, rds, h5ad, h5seurat. For testing, we
-        also provide a demo dataset of 11,769 human PBMC from 10x Genomics,
-        which is loaded automatically with the 'Load demo dataset' button
-        or available for download ",
-        a("here",
-          href="https://www.dropbox.com/s/cmbvq2og93lnl9z/pbmc_10k_v3_filtered_feature_bc_matrix.h5?dl=0",
-          target="_blank"), # open in new browser tab
-        ".",
-        width = 12
-      )
+      htmlOutput(outputId = "welcomebox")
     ),
     # Preprocessing + QC Tab
     tabItem(
@@ -1706,6 +1694,8 @@ server <- function(input, output, session) {
       writeLines(text = str_interp(string = template, env = e), con = file)
     }
   )
+  # render UI elements that depend on arguments
+  output$welcomebox <- renderUI(expr = eval(parse(text = getOption(x = "Azimuth.app.welcomebox"))))
 }
 
 #' Launch the mapping app
@@ -1758,6 +1748,12 @@ server <- function(input, output, session) {
 #'  }
 #'  \item{\code{Azimuth.app.plotseed}}{
 #'   Seed to shuffle colors for cell types
+#'  }
+#'  \item{\code{Azimuth.app.welcomebox}}{
+#'   Provide (as a string) the code to render the box on the welcome page
+#'   (quotes escaped). Example:
+#'   \code{ box(h3(\"Header\"), \"body text\", a(\"link\",
+#'   href=\"www.satijalab.org\", target=\"_blank\"), width = 12) }
 #'  }
 #' }
 #'
@@ -1814,6 +1810,10 @@ AzimuthApp <- function(
   plotseed = getOption(
     x = 'Azimuth.app.plotseed',
     default = 0
+  ),
+  welcomebox = getOption(
+    x = 'Azimuth.app.welcomebox',
+    default = ""
   )
 ) {
   useShinyjs()
@@ -1829,7 +1829,8 @@ AzimuthApp <- function(
     Azimuth.app.googlesheet = googlesheet,
     Azimuth.app.googletoken = googletoken,
     Azimuth.app.googletokenemail = googletokenemail,
-    Azimuth.app.plotseed = plotseed
+    Azimuth.app.plotseed = plotseed,
+    Azimuth.app.welcomebox = welcomebox
   )
   # If multiple items have the same name in the named list, with_options sets
   # the option to the last entry with that name in the list. Therefore, putting

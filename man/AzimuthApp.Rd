@@ -17,7 +17,8 @@ AzimuthApp(
   max.cells = getOption(x = "Azimuth.app.max.cells", default = 50000),
   default.gene = getOption(x = "Azimuth.app.default.gene", default = "GNLY"),
   default.adt = getOption(x = "Azimuth.app.default.adt", default = "CD3-1"),
-  plotseed = getOption(x = "Azimuth.app.plotseed", default = 0)
+  plotseed = getOption(x = "Azimuth.app.plotseed", default = 0),
+  welcomebox = getOption(x = "Azimuth.app.welcomebox", default = "")
 )
 }
 \arguments{
@@ -76,6 +77,12 @@ can configure these either \link[base:options]{globally} or via arguments to
  }
  \item{\code{Azimuth.app.plotseed}}{
   Seed to shuffle colors for cell types
+ }
+ \item{\code{Azimuth.app.welcomebox}}{
+  Provide (as a string) the code to render the box on the welcome page
+  (quotes escaped). Example:
+  \code{ box(h3(\"Header\"), \"body text\", a(\"link\",
+  href=\"www.satijalab.org\", target=\"_blank\"), width = 12) }
  }
 }
 }
