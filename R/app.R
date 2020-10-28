@@ -1602,7 +1602,7 @@ server <- function(input, output, session) {
       }
     },
     selection = 'single',
-    options = list(dom = 't', ordering = FALSE)
+    options = list(dom = 't')
   )
   output$adtbio <- renderDT(
     expr = {
@@ -1614,7 +1614,7 @@ server <- function(input, output, session) {
       }
     },
     selection = 'single',
-    options = list(dom = 't', ordering = FALSE)
+    options = list(dom = 't')
   )
   output$table.metadata <- renderTable(
     expr = {
