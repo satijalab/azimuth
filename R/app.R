@@ -1201,7 +1201,8 @@ server <- function(input, output, session) {
         }
         table.check <- input$feature %in% rownames(x = RenderDiffExp(
           diff.exp = app.env$diff.expr[[app.env$default.assay]],
-          groups.use = input$select.biomarkers
+          groups.use = input$select.biomarkers,
+          n = Inf
         ))
         tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, !table.check)]
         for (tab in tables.clear) {
@@ -1233,7 +1234,8 @@ server <- function(input, output, session) {
         }
         table.check <- input$adtfeature %in% rownames(x = RenderDiffExp(
           diff.exp = app.env$diff.expr[[adt.key]],
-          groups.use = input$select.biomarkers
+          groups.use = input$select.biomarkers,
+          n = Inf
         ))
         tables.clear <- list(rna.proxy, adt.proxy)[c(TRUE, !table.check)]
         for (tab in tables.clear) {
@@ -1281,7 +1283,8 @@ server <- function(input, output, session) {
           choices = app.env$features,
           selected = rownames(x = RenderDiffExp(
             diff.exp = app.env$diff.expr[[app.env$default.assay]],
-            groups.use = input$select.biomarkers
+            groups.use = input$select.biomarkers,
+            n = Inf
           ))[input$biomarkers_rows_selected],
           server = TRUE,
           options = selectize.opts
@@ -1299,7 +1302,8 @@ server <- function(input, output, session) {
           choices = app.env$adt.features,
           selected = rownames(x = RenderDiffExp(
             diff.exp = app.env$diff.expr[[adt.key]],
-            groups.use = input$select.biomarkers
+            groups.use = input$select.biomarkers,
+            n = Inf
           ))[input$adtbio_rows_selected],
           server = TRUE,
           options = selectize.opts
@@ -1597,7 +1601,8 @@ server <- function(input, output, session) {
       if (!is.null(x = app.env$diff.expr[[app.env$default.assay]])) {
         RenderDiffExp(
           diff.exp = app.env$diff.expr[[app.env$default.assay]],
-          groups.use = input$select.biomarkers
+          groups.use = input$select.biomarkers,
+          n = Inf
         )
       }
     },
@@ -1609,7 +1614,8 @@ server <- function(input, output, session) {
       if (!is.null(x = app.env$diff.expr[[adt.key]])) {
         RenderDiffExp(
           diff.exp = app.env$diff.expr[[adt.key]],
-          groups.use = input$select.biomarkers
+          groups.use = input$select.biomarkers,
+          n = Inf
         )
       }
     },
@@ -1810,6 +1816,7 @@ AzimuthApp <- function(
 ) {
   useShinyjs()
   opts <- list(
+    DT.options = list(pageLength = 10L),
     shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
     future.globals.maxSize = max.cells * 320000,
     Azimuth.app.mito = mito,
