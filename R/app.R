@@ -245,7 +245,7 @@ ui <- tagList(
         bsPopover(
           id = "q3",
           title = "Biomarkers Table",
-          content = "Only available for clusters with at least 15 cells. avgExpr: mean value of feature for cells in cluster; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
+          content = "Only available for clusters with at least 15 cells. logFC: log fold-change between cells in the cluster specified and other cells; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
           placement = "right",
           trigger = "focus",
           options = list(container = "body")
