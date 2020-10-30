@@ -1739,6 +1739,13 @@ AzimuthApp <- function(
     # only add named elements
     opts <- c(opts, list(...)[names(x = list(...)) != ""])
   }
+  # if any arguments from dots or command line have no "." character,
+  # prepend the "Azimuth.app" namespace
+  for (i in seq_along(along.with = opts)) {
+    if (!grepl(pattern = '\\.', x = names(x = opts)[i])) {
+      names(x = opts)[i] <- paste0('Azimuth.app.', names(x = opts)[i])
+    }
+  }
   # Add hardcoded options
   opts <- c(
     opts,
