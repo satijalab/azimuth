@@ -1,0 +1,19 @@
+{
+  "Azimuth.app.default.adt": "CD3-1",
+  "Azimuth.app.default.gene": "GNLY",
+  "Azimuth.app.max.cells": 50000,
+  "Azimuth.app.max.upload.mb": 500,
+  "Azimuth.app.mito": "^MT-",
+  "Azimuth.app.plotseed": 0,
+  "Azimuth.app.reference": "https://seurat.nygenome.org/references/pbmc",
+  "Azimuth.app.welcomebox": "",
+  "Azimuth.de.digits": 3,
+  "Azimuth.de.mincells": 15,
+  "Azimuth.map.ncells": 100,
+  "Azimuth.map.ngenes": 250,
+  "Azimuth.map.nanchors": 50,
+  "Azimuth.map.ntrees": 20,
+  "Azimuth.map.pbcorthresh": 0.75,
+  "Azimuth.sct.ncells": 2000,
+  "Azimuth.sct.nfeats": 2000
+}

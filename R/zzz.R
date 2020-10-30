@@ -2,11 +2,58 @@
 #'
 #' @section Package options:
 #'
-#' SeuratMapper uses the following options to control the behaviour of the app,
-#' users can configure these with \code{\link[base]{options}}:
+#' Azimuth uses the following options to control the behaviour of the app.
+#' Users can provide these as named arguments to AzimuthApp through dots (...),
+#' specify these in the config file, or configure these with
+#' \code{\link[base]{options}}.
 #'
 #' \describe{
-#' \item{\code{Azimuth.map.ncells}}{
+#' \item{\code{Azimuth.app.default.adt}}{
+#'   ADT to select by default in feature/violin plot
+#'  }
+#'  \item{\code{Azimuth.app.default.gene}}{
+#'   Gene to select by default in feature/violin plot
+#'  }
+#'  \item{\code{Azimuth.app.demodataset}}{
+#'   Path to data file (in any Azimuth-supported format) to automatically load
+#'   when the user clicks a button. The button is only available in the UI
+#'   if this option is set.
+#'  }
+#'  \item{\code{Azimuth.app.googlesheet}}{
+#'   Google Sheet identifier (appropriate for use with \code{googlesheets4::gs4_get()})
+#'   to write log records. Logging is only enabled if this option is set.
+#'  }
+#'  \item{\code{Azimuth.app.googletoken}}{
+#'   Path to directory containing Google Authentication token file.
+#'   Logging is only enabled if this option is set.
+#'  }
+#'  \item{\code{Azimuth.app.googletokenemail}}{
+#'   Email address corresponding to the Google Authentication token file.
+#'   Logging is only enabled if this option is set.
+#'  }
+#'  \item{\code{Azimuth.app.max.cells}}{
+#'   Maximum number of cells allowed to upload
+#'  }
+#'  \item{\code{Azimuth.app.max.upload.mb}}{
+#'   Maximum file size (in MB) allowed to upload
+#'  }
+#'  \item{\code{Azimuth.app.mito}}{
+#'   Regular expression pattern indicating mitochondrial features in query object
+#'  }
+#'  \item{\code{Azimuth.app.plotseed}}{
+#'   Seed to shuffle colors for cell types
+#'  }
+#'  \item{\code{Azimuth.app.reference}}{
+#'   URL or directory path to reference dataset; see \code{\link{LoadReference}}
+#'   for more details
+#'  }
+#'  \item{\code{Azimuth.app.welcomebox}}{
+#'   Provide (as a string) the code to render the box on the welcome page
+#'   (quotes escaped). Example:
+#'   \code{ box(h3(\"Header\"), \"body text\", a(\"link\",
+#'   href=\"www.satijalab.org\", target=\"_blank\"), width = 12) }
+#'  }
+#'  \item{\code{Azimuth.map.ncells}}{
 #'   Minimum number of cells required to accept uploaded file.
 #'   Defaults to \code{100}
 #'  }
@@ -16,6 +63,7 @@
 #'  }
 #'  \item{\code{Azimuth.map.nanchors}}{
 #'   Minimum number of anchors that must be found to complete mapping.
+#'   [NOT CURRENTLY USED]
 #'   Defaults to \code{50}
 #'  }
 #'  \item{\code{Azimuth.map.ntrees}}{
@@ -49,6 +97,14 @@
 "_PACKAGE"
 
 default.options <- list(
+  Azimuth.app.default.adt = "CD3-1",
+  Azimuth.app.default.gene = "GNLY",
+  Azimuth.app.max.cells = 50000,
+  Azimuth.app.max.upload.mb = 500,
+  Azimuth.app.mito = '^MT-',
+  Azimuth.app.plotseed = 0,
+  Azimuth.app.reference = 'https://seurat.nygenome.org/references/pbmc',
+  Azimuth.app.welcomebox = "",
   Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,

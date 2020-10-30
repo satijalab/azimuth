@@ -1700,68 +1700,20 @@ server <- function(input, output, session) {
 
 #' Launch the mapping app
 #'
-#' @param reference,mito,max.upload.mb,max.cells,default.gene,default.adt See \strong{App options} for more details
+#' @param config Path to JSON-formatted configuration file specifying options.
+#' @param ... Options to set
 #'
-#' @section App options:
-#'
-#' The following options are used for passing information into the app; users
-#' can configure these either \link[base:options]{globally} or via arguments to
-#' \code{\link{AzimuthApp}} (omitting the \dQuote{Azimuth.app} prefix):
-#'
-#' \describe{
-#'  \item{\code{Azimuth.app.config}}{
-#'   Path to JSON-formatted configuration file. Options must be specified using
-#'   the full name (e.g. Azimuth.app.[option]). If the same option is specified
-#'   in a provided config file and as an argument to the function, the value
-#'   in the config file overwrites the argument provided to the function.
-#'  }
-#'  \item{\code{Azimuth.app.mito}}{
-#'   Regular expression pattern indicating mitochondrial features in query object
-#'  }
-#'  \item{\code{Azimuth.app.reference}}{
-#'   URL or directory path to reference dataset; see \code{\link{LoadReference}}
-#'   for more details
-#'  }
-#'  \item{\code{Azimuth.app.googlesheet}}{
-#'   Google Sheet identifier (appropriate for use with \code{googlesheets4::gs4_get()})
-#'   to write log records. Logging is only enabled if this parameter is specified.
-#'  }
-#'  \item{\code{Azimuth.app.googletoken}}{
-#'   Path to directory containing Google Authentication token file.
-#'   Logging is only enabled if this parameter is specified.
-#'  }
-#'  \item{\code{Azimuth.app.googletokenemail}}{
-#'   Email address corresponding to the Google Authentication token file.
-#'   Logging is only enabled if this parameter is specified.
-#'  }
-#'  \item{\code{Azimuth.app.max.upload.mb}}{
-#'   Maximum file size (in MB) allowed to upload
-#'  }
-#'  \item{\code{Azimuth.app.max.cells}}{
-#'   Maximum number of cells allowed to upload
-#'  }
-#'  \item{\code{Azimuth.app.default.gene}}{
-#'   Gene to select by default in feature/violin plot
-#'  }
-#'  \item{\code{Azimuth.app.default.adt}}{
-#'   ADT to select by default in feature/violin plot
-#'  }
-#'  \item{\code{Azimuth.app.plotseed}}{
-#'   Seed to shuffle colors for cell types
-#'  }
-#'  \item{\code{Azimuth.app.welcomebox}}{
-#'   Provide (as a string) the code to render the box on the welcome page
-#'   (quotes escaped). Example:
-#'   \code{ box(h3(\"Header\"), \"body text\", a(\"link\",
-#'   href=\"www.satijalab.org\", target=\"_blank\"), width = 12) }
-#'  }
-#' }
+#' @section Specifying options
+#' R options can be provided as named arguments to AzimuthApp through dots (...),
+#' set in a config file, or set globally. Arguments provided to AzimuthApp
+#' through dots take precedence if the same option is provided in a config file.
+#' Options provided through dots or a config file take precedence if the same
+#' option was set globally.
 #'
 #' @return None, launches the mapping Shiny app
 #'
 #' @importFrom shiny runApp shinyApp
 #' @importFrom withr with_options
-#' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom jsonlite read_json
 #'
 #' @export
@@ -1769,76 +1721,32 @@ server <- function(input, output, session) {
 #' @seealso \code{\link{Azimuth-package}}
 #'
 AzimuthApp <- function(
-  config = getOption(x = 'Azimuth.app.config', default = NULL),
-  mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
-  reference = getOption(
-    x = 'Azimuth.app.reference',
-    default = 'https://seurat.nygenome.org/references/pbmc'
-  ),
-  demodataset = getOption(
-    x = 'Azimuth.app.demodataset',
-    default = NULL
-  ),
-  googlesheet = getOption(
-    x = 'Azimuth.app.googlesheet',
-    default = NULL
-  ),
-  googletoken = getOption(
-    x = 'Azimuth.app.googletoken',
-    default = NULL
-  ),
-  googletokenemail = getOption(
-    x = 'Azimuth.app.googletokenemail',
-    default = NULL
-  ),
-  max.upload.mb = getOption(
-    x = 'Azimuth.app.max.upload.mb',
-    default = 500
-  ),
-  max.cells = getOption(
-    x = 'Azimuth.app.max.cells',
-    default = 50000
-  ),
-  default.gene = getOption(
-    x = 'Azimuth.app.default.gene',
-    default = "GNLY"
-  ),
-  default.adt = getOption(
-    x = 'Azimuth.app.default.adt',
-    default = "CD3-1"
-  ),
-  plotseed = getOption(
-    x = 'Azimuth.app.plotseed',
-    default = 0
-  ),
-  welcomebox = getOption(
-    x = 'Azimuth.app.welcomebox',
-    default = ""
-  )
+  config = NULL,
+  ...
 ) {
   useShinyjs()
-  opts <- list(
-    shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
-    future.globals.maxSize = max.cells * 320000,
-    Azimuth.app.mito = mito,
-    Azimuth.app.reference = reference,
-    Azimuth.app.demodataset = demodataset,
-    Azimuth.app.max.cells = max.cells,
-    Azimuth.app.default.gene = default.gene,
-    Azimuth.app.default.adt = default.adt,
-    Azimuth.app.googlesheet = googlesheet,
-    Azimuth.app.googletoken = googletoken,
-    Azimuth.app.googletokenemail = googletokenemail,
-    Azimuth.app.plotseed = plotseed,
-    Azimuth.app.welcomebox = welcomebox
-  )
   # If multiple items have the same name in the named list, with_options sets
   # the option to the last entry with that name in the list. Therefore, putting
-  # the config file options at the end of the list overwrites options specified
-  # as arguments or defaults.
+  # the config file options first, followed by options set in dots, followed by
+  # hardcoded options, achieves the desired precedence.
+  opts <- list()
+  # Add options set through config file
   if (!is.null(config)) {
     opts <- c(opts, read_json(path = config, simplifyVector = TRUE))
   }
+  # Add options set through named arguments in dots
+  if (length(x = list(...)) > 0 & !is.null(x = names(x = list(...)))) {
+    # only add named elements
+    opts <- c(opts, list(...)[names(x = list(...)) != ""])
+  }
+  # Add hardcoded options
+  opts <- c(
+    opts,
+    list(
+      shiny.maxRequestSize = getOption(x = "Azimuth.app.max.upload.mb") * (1024 ^ 2),
+      future.globals.maxSize = getOption(x = "Azimuth.app.max.cells") * 320000
+    )
+  )
   with_options(
     new = opts,
     code = runApp(appDir = shinyApp(ui = ui, server = server))
