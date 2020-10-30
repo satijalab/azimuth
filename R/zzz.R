@@ -258,7 +258,7 @@ RenderDiffExp <- function(
   n = 10L,
   logfc.thresh = 0L
 ) {
-  cols.keep <- c('avgExpr', 'auc', 'padj', 'pct_in', 'pct_out')
+  cols.keep <- c('logFC', 'auc', 'padj', 'pct_in', 'pct_out')
   groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
   diff.exp <- lapply(
     X = groups.use,

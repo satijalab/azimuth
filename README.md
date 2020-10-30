@@ -98,6 +98,16 @@ port NNNN on the host to port 3838 on the container. The container runs
 the command `R -e "Azimuth::AzimuthApp(reference = '/reference-data')"`
 by default.
 
+### Rebuilding the Docker image more quickly in certain cases
+
+The docker image takes about 20 minutes to build from scratch. To save
+time, adding the argument `--build-arg SEURAT_VER=$(date +%s)` to the
+`docker build` command will use cached layers of the image (if
+available) and only reinstall Seurat and Azimuth (and not any of the
+dependencies), which takes less than a minute. Alternatively, to only
+reinstall Azimuth (and not Seurat or other dependencies) use the
+argument `--build-arg AZIMUTH_VER=$(date +%s)`.
+
 ### Specifying options
 
 You can set options by passing a parameter to the `AzimuthApp` function:

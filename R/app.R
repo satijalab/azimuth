@@ -233,7 +233,7 @@ ui <- tagList(
         bsPopover(
           id = "q3",
           title = "Biomarkers Table",
-          content = "Only available for clusters with at least 15 cells. avgExpr: mean value of feature for cells in cluster; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
+          content = "Only available for clusters with at least 15 cells. logFC: log fold-change between cells in the cluster specified and other cells; auc: area under ROC; padj: Benjamini-Hochberg adjusted p value; pct_in: percent of cells in the cluster with nonzero feature value; pct_out: percent of cells out of the cluster with nonzero feature value",
           placement = "right",
           trigger = "focus",
           options = list(container = "body")
@@ -1189,7 +1189,8 @@ server <- function(input, output, session) {
         }
         table.check <- input$feature %in% rownames(x = RenderDiffExp(
           diff.exp = app.env$diff.expr[[app.env$default.assay]],
-          groups.use = input$select.biomarkers
+          groups.use = input$select.biomarkers,
+          n = Inf
         ))
         tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, !table.check)]
         for (tab in tables.clear) {
@@ -1221,7 +1222,8 @@ server <- function(input, output, session) {
         }
         table.check <- input$adtfeature %in% rownames(x = RenderDiffExp(
           diff.exp = app.env$diff.expr[[adt.key]],
-          groups.use = input$select.biomarkers
+          groups.use = input$select.biomarkers,
+          n = Inf
         ))
         tables.clear <- list(rna.proxy, adt.proxy)[c(TRUE, !table.check)]
         for (tab in tables.clear) {
@@ -1269,7 +1271,8 @@ server <- function(input, output, session) {
           choices = app.env$features,
           selected = rownames(x = RenderDiffExp(
             diff.exp = app.env$diff.expr[[app.env$default.assay]],
-            groups.use = input$select.biomarkers
+            groups.use = input$select.biomarkers,
+            n = Inf
           ))[input$biomarkers_rows_selected],
           server = TRUE,
           options = selectize.opts
@@ -1287,7 +1290,8 @@ server <- function(input, output, session) {
           choices = app.env$adt.features,
           selected = rownames(x = RenderDiffExp(
             diff.exp = app.env$diff.expr[[adt.key]],
-            groups.use = input$select.biomarkers
+            groups.use = input$select.biomarkers,
+            n = Inf
           ))[input$adtbio_rows_selected],
           server = TRUE,
           options = selectize.opts
@@ -1585,24 +1589,26 @@ server <- function(input, output, session) {
       if (!is.null(x = app.env$diff.expr[[app.env$default.assay]])) {
         RenderDiffExp(
           diff.exp = app.env$diff.expr[[app.env$default.assay]],
-          groups.use = input$select.biomarkers
+          groups.use = input$select.biomarkers,
+          n = Inf
         )
       }
     },
     selection = 'single',
-    options = list(dom = 't', ordering = FALSE)
+    options = list(dom = 't')
   )
   output$adtbio <- renderDT(
     expr = {
       if (!is.null(x = app.env$diff.expr[[adt.key]])) {
         RenderDiffExp(
           diff.exp = app.env$diff.expr[[adt.key]],
-          groups.use = input$select.biomarkers
+          groups.use = input$select.biomarkers,
+          n = Inf
         )
       }
     },
     selection = 'single',
-    options = list(dom = 't', ordering = FALSE)
+    options = list(dom = 't')
   )
   output$table.metadata <- renderTable(
     expr = {
@@ -1750,6 +1756,7 @@ AzimuthApp <- function(
   opts <- c(
     opts,
     list(
+      DT.options = list(pageLength = 10L),
       shiny.maxRequestSize = getOption(x = "Azimuth.app.max.upload.mb") * (1024 ^ 2),
       future.globals.maxSize = getOption(x = "Azimuth.app.max.cells") * 320000
     )
