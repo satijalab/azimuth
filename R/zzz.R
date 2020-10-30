@@ -89,8 +89,6 @@
 #'  }
 #' }
 #'
-#' @inheritSection AzimuthApp App options
-#'
 #'
 #' @aliases SeuratMapper
 #'

@@ -1703,7 +1703,7 @@ server <- function(input, output, session) {
 #' @param config Path to JSON-formatted configuration file specifying options.
 #' @param ... Options to set
 #'
-#' @section Specifying options
+#' @section Specifying options:
 #' R options can be provided as named arguments to AzimuthApp through dots (...),
 #' set in a config file, or set globally. Arguments provided to AzimuthApp
 #' through dots take precedence if the same option is provided in a config file.
