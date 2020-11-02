@@ -24,7 +24,7 @@ NULL
 #' }
 #'
 #' @importFrom stats cor
-#' @importFrom Seurat AverageExpression Idents<-
+#' @importFrom Seurat AverageExpression Idents<- NormalizeData
 #' @importFrom ggplot2 ggplot aes_string geom_point xlab ylab ggtitle theme_bw
 #'
 #' @keywords internal
@@ -36,6 +36,7 @@ PBCorTest <- function(object, ref, min.features = 250) {
   if (length(x = features) < 250) {
     return(0)
   }
+  object <- NormalizeData(object = object, assay = "RNA", verbose = FALSE)
   avg <- AverageExpression(
     object = object,
     features = rownames(x = object),
