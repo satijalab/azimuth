@@ -335,7 +335,7 @@ initQC <- function(app.env,
       app.env$messages <- "Not enough genes in common with reference. Try another dataset."
     }
     # Validate that there aren't too many cells
-    else if (length(Cells(app.env$object)) > getOption(x = "Azimuth.app.max.cells")) {
+    else if (length(Cells(app.env$object)) > getOption(x = "Azimuth.app.max_cells")) {
       app.env$object <- NULL
       gc(verbose = FALSE)
       app.env$messages <- "Too many cells. Try another dataset."
@@ -951,8 +951,8 @@ server <- function(input, output, session) {
               # Enable the feature explorer
               enable(id = 'feature')
               app.env$default.feature <- ifelse(
-                test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
-                yes = getOption(x = 'Azimuth.app.default.gene'),
+                test = getOption(x = 'Azimuth.app.default_gene') %in% rownames(x = app.env$object),
+                yes = getOption(x = 'Azimuth.app.default_gene'),
                 no = VariableFeatures(object = app.env$object)[1]
               )
               app.env$features <- FilterFeatures(
@@ -973,8 +973,8 @@ server <- function(input, output, session) {
                 x = app.env$object[[adt.key]]
               )))
               app.env$default.adt <- ifelse(
-                test = getOption(x = 'Azimuth.app.default.adt') %in% app.env$adt.features,
-                yes = getOption(x = 'Azimuth.app.default.adt'),
+                test = getOption(x = 'Azimuth.app.default_adt') %in% app.env$adt.features,
+                yes = getOption(x = 'Azimuth.app.default_adt'),
                 no = app.env$adt.features[1]
               )
               updateSelectizeInput(
@@ -1695,8 +1695,8 @@ server <- function(input, output, session) {
       e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
       e$ntrees <- getOption(x = 'Azimuth.map.ntrees')
       e$adt.key <- adt.key
-      e$plotgene <- getOption(x = 'Azimuth.app.default.gene')
-      e$plotadt <- getOption(x = 'Azimuth.app.default.adt')
+      e$plotgene <- getOption(x = 'Azimuth.app.default_gene')
+      e$plotadt <- getOption(x = 'Azimuth.app.default_adt')
       writeLines(text = str_interp(string = template, env = e), con = file)
     }
   )
@@ -1766,7 +1766,7 @@ AzimuthApp <- function(config = NULL, ...) {
   # Set future.globals.maxSize; this is not user-configurable
   maxcells <- with_options(
     new = opts,
-    code = getOption(x = 'Azimuth.app.max.cells')
+    code = getOption(x = 'Azimuth.app.max_cells')
   )
   opts$future.globals.maxSize <- maxcells * 320000
   # Launch the app

@@ -2,103 +2,136 @@
 #'
 #' @section Package options:
 #'
-#' Azimuth uses the following options to control the behaviour of the app.
-#' Users can provide these as named arguments to AzimuthApp through dots (...),
-#' specify these in the config file, or configure these with
+#' \pkg{Azimuth} uses the following options to control the behavior of the app.
+#' Users can provide these as named arguments to \code{\link{AzimuthApp}}
+#' through dots (...), specify these in the config file, or configure these with
 #' \code{\link[base]{options}}.
 #'
-#' \describe{
-#' \item{\code{Azimuth.app.default.adt}}{
-#'   ADT to select by default in feature/violin plot
-#'  }
-#'  \item{\code{Azimuth.app.default.gene}}{
-#'   Gene to select by default in feature/violin plot
-#'  }
-#'  \item{\code{Azimuth.app.demodataset}}{
-#'   Path to data file (in any Azimuth-supported format) to automatically load
-#'   when the user clicks a button. The button is only available in the UI
-#'   if this option is set.
-#'  }
-#'  \item{\code{Azimuth.app.googlesheet}}{
-#'   Google Sheet identifier (appropriate for use with \code{googlesheets4::gs4_get()})
-#'   to write log records. Logging is only enabled if this option is set.
-#'  }
-#'  \item{\code{Azimuth.app.googletoken}}{
-#'   Path to directory containing Google Authentication token file.
-#'   Logging is only enabled if this option is set.
-#'  }
-#'  \item{\code{Azimuth.app.googletokenemail}}{
-#'   Email address corresponding to the Google Authentication token file.
-#'   Logging is only enabled if this option is set.
-#'  }
-#'  \item{\code{Azimuth.app.max.cells}}{
-#'   Maximum number of cells allowed to upload
-#'  }
-#'  \item{\code{Azimuth.app.max.upload.mb}}{
-#'   Maximum file size (in MB) allowed to upload
-#'  }
-#'  \item{\code{Azimuth.app.mito}}{
-#'   Regular expression pattern indicating mitochondrial features in query object
-#'  }
-#'  \item{\code{Azimuth.app.plotseed}}{
-#'   Seed to shuffle colors for cell types
-#'  }
-#'  \item{\code{Azimuth.app.reference}}{
-#'   URL or directory path to reference dataset; see \code{\link{LoadReference}}
-#'   for more details
-#'  }
-#'  \item{\code{Azimuth.app.welcomebox}}{
-#'   Provide (as a string) the code to render the box on the welcome page
-#'   (quotes escaped). Example:
-#'   \code{ box(h3(\"Header\"), \"body text\", a(\"link\",
-#'   href=\"www.satijalab.org\", target=\"_blank\"), width = 12) }
-#'  }
-#'  \item{\code{Azimuth.map.ncells}}{
-#'   Minimum number of cells required to accept uploaded file.
-#'   Defaults to \code{100}
-#'  }
-#'  \item{\code{Azimuth.map.ngenes}}{
-#'   Minimum number of genes in common with reference to accept uploaded file.
-#'   Defaults to \code{250}
-#'  }
-#'  \item{\code{Azimuth.map.nanchors}}{
-#'   Minimum number of anchors that must be found to complete mapping.
-#'   [NOT CURRENTLY USED]
-#'   Defaults to \code{50}
-#'  }
-#'  \item{\code{Azimuth.map.ntrees}}{
-#'   Annoy (approximate nearest neighbor) n.trees parameter
-#'   Defaults to \code{20}
-#'  }
-#'  \item{\code{Azimuth.map.pbcorthresh}}{
-#'   Only proceed to mapping if query dataset meets or exceeds this threshold in
-#'   pseudobulk correlation test.
-#'  }
-#'  \item{\code{Azimuth.de.mincells}}{
-#'   Minimum number of cells per cluster for differential expression; defaults
-#'   to \code{15}
-#'  }
-#'  \item{\code{Azimuth.de.digits}}{
-#'   Number of digits to round differential expression table to; defaults to
-#'   \code{3}
-#'  }
-#'  \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
-#'   Number of cells and features to use for
-#'   \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{2000}
-#'   for each
+#' \subsection{App options}{
+#'  The following options control app behavior
+#'  \describe{
+#'   \item{\code{Azimuth.app.default_adt}}{
+#'    ADT to select by default in feature/violin plot
+#'   }
+#'   \item{\code{Azimuth.app.default_gene}}{
+#'    Gene to select by default in feature/violin plot
+#'   }
+#'   \item{\code{Azimuth.app.demodataset}}{
+#'    Path to data file (in any Azimuth-supported format) to automatically load
+#'    when the user clicks a button. The button is only available in the UI
+#'    if this option is set
+#'   }
+#'   \item{\code{Azimuth.app.googlesheet}}{
+#'    Google Sheet identifier (appropriate for use with
+#'    \code{\link[googlesheets4:gs4_get]{googlesheets4:gs4_get}}) to write log
+#'    records. Logging is only enabled if this and other \code{goole*} options
+#'    are set
+#'   }
+#'   \item{\code{Azimuth.app.googletoken}}{
+#'    Path to directory containing Google Authentication token file.
+#'    Logging is only enabled if this and other \code{goole*} options are set
+#'   }
+#'   \item{\code{Azimuth.app.googletokenemail}}{
+#'    Email address corresponding to the Google Authentication token file.
+#'    Logging is only enabled if this and other \code{goole*} options are set
+#'   }
+#'   \item{\code{Azimuth.app.max_cells}}{
+#'    Maximum number of cells allowed to upload
+#'   }
+#'   \item{\code{Azimuth.app.mito}}{
+#'    Regular expression pattern indicating mitochondrial features in query
+#'    object
+#'   }
+#'   \item{\code{Azimuth.app.plotseed}}{
+#'    Seed to shuffle colors for cell types
+#'   }
+#'   \item{\code{Azimuth.app.reference}}{
+#'    URL or directory path to reference dataset; see
+#'    \code{\link{LoadReference}} for more details
+#'   }
+#'   \item{\code{Azimuth.app.welcomebox}}{
+#'    Provide (as a string) the code to render the box on the welcome page
+#'    (quotes escaped). Example:
+#'    ```
+#'    box(
+#'      h3(\"Header\"),
+#'      \"body text\",
+#'      a(\"link\", href=\"www.satijalab.org\", target=\"_blank\"),
+#'      width = 12
+#'    )
+#'    ```
+#'   }
 #'  }
 #' }
 #'
+#' \subsection{Control options}{
+#'  These options control mapping and analysis behavior
+#'  \describe{
+#'   \item{\code{Azimuth.map.ncells}}{
+#'    Minimum number of cells required to accept uploaded file.
+#'    Defaults to \code{100}
+#'   }
+#'   \item{\code{Azimuth.map.ngenes}}{
+#'    Minimum number of genes in common with reference to accept uploaded file.
+#'    Defaults to \code{250}
+#'   }
+#'   \item{\code{Azimuth.map.nanchors}}{
+#'    \strong{NOT CURRENTLY USED}
+#'    Minimum number of anchors that must be found to complete mapping.
+#'    Defaults to \code{50}
+#'   }
+#'   \item{\code{Azimuth.map.ntrees}}{
+#'    Annoy (approximate nearest neighbor) n.trees parameter
+#'    Defaults to \code{20}
+#'   }
+#'   \item{\code{Azimuth.map.pbcorthresh}}{
+#'    Only proceed to mapping if query dataset meets or exceeds this threshold
+#'    in pseudobulk correlation test.
+#'   }
+#'   \item{\code{Azimuth.de.mincells}}{
+#'    Minimum number of cells per cluster for differential expression; defaults
+#'    to \code{15}
+#'   }
+#'   \item{\code{Azimuth.de.digits}}{
+#'    Number of digits to round differential expression table to; defaults to
+#'    \code{3}
+#'   }
+#'   \item{\code{Azimuth.sct.ncells}, \code{Azimuth.sct.nfeats}}{
+#'    Number of cells and features to use for
+#'    \code{\link[Seurat]{SCTransform}}, respectively. Defaults to \code{2000}
+#'    for each
+#'   }
+#'  }
+#' }
 #'
-#' @aliases SeuratMapper
+#' \subsection{External options}{
+#'  The following options are used by external dependencies that have an effect
+#'  on \pkg{Azimuth}'s behavior. Refer to original package documentation for
+#'  more details
+#'  \describe{
+#'   \item{\code{\link[shiny:shiny-options]{shiny.maxRequestSize}}}{
+#'    User-configurable; used for controlling the maximum file size of uploaded
+#'    datasets. Defaults to 500 Mb
+#'   }
+#'   \item{\code{\link[DT:datatable]{DT.options}}}{
+#'   User-confiburable; used for controlling biomarker table outputs.
+#'   Defaults to setting \code{pageLength} to \code{10}
+#'   }
+#'   \item{\code{\link[future:future.options]{future.globals.maxSize}}}{
+#'    \strong{Non-configurable}; used for parallelization. Defaults to
+#'    \code{Azimuth.app.max_cells * 320000}
+#'   }
+#'  }
+#' }
+#'
+#' @md
 #'
 "_PACKAGE"
 
 default.options <- list(
-  Azimuth.app.default.adt = "CD3-1",
-  Azimuth.app.default.gene = "GNLY",
-  Azimuth.app.max.cells = 50000,
-  Azimuth.app.max.upload.mb = 500,
+  Azimuth.app.default_adt = "CD3-1",
+  Azimuth.app.default_gene = "GNLY",
+  Azimuth.app.max_cells = 50000,
   Azimuth.app.mito = '^MT-',
   Azimuth.app.plotseed = 0,
   Azimuth.app.reference = 'https://seurat.nygenome.org/references/pbmc',
@@ -289,8 +322,6 @@ RenderDiffExp <- function(
   # Attach deps
   AttachDeps()
   op <- options()
-  # TODO: replace this
-  options(shiny.maxRequestSize = 100 * (1024 ^ 2))
   # Set some default options
   toset <- !names(x = default.options) %in% names(x = op)
   if (any(toset)) {
