@@ -1726,10 +1726,7 @@ server <- function(input, output, session) {
 #'
 #' @seealso \code{\link{Azimuth-package}}
 #'
-AzimuthApp <- function(
-  config = NULL,
-  ...
-) {
+AzimuthApp <- function(config = NULL, ...) {
   useShinyjs()
   # If multiple items have the same name in the named list, with_options sets
   # the option to the last entry with that name in the list. Therefore, putting
@@ -1737,7 +1734,7 @@ AzimuthApp <- function(
   # hardcoded options, achieves the desired precedence.
   opts <- list()
   # Add options set through config file
-  if (!is.null(config)) {
+  if (!is.null(x = config)) {
     opts <- c(opts, read_json(path = config, simplifyVector = TRUE))
   }
   # Add options set through named arguments in dots
