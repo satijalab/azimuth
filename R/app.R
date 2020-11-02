@@ -1738,9 +1738,10 @@ AzimuthApp <- function(config = NULL, ...) {
     opts <- c(opts, read_json(path = config, simplifyVector = TRUE))
   }
   # Add options set through named arguments in dots
-  if (length(x = list(...)) > 0 & !is.null(x = names(x = list(...)))) {
+  args <- list(...)
+  if (length(x = args) && !is.null(x = names(x = args))) {
     # only add named elements
-    opts <- c(opts, list(...)[names(x = list(...)) != ""])
+    opts <- c(opts, args[names(x = args) != ""])
   }
   # if any arguments from dots or command line have no "." character,
   # prepend the "Azimuth.app" namespace
@@ -1749,17 +1750,26 @@ AzimuthApp <- function(config = NULL, ...) {
       names(x = opts)[i] <- paste0('Azimuth.app.', names(x = opts)[i])
     }
   }
-  # Add hardcoded options
-  uploadmb <- with_options(new = opts, code = getOption(x = "Azimuth.app.max.upload.mb"))
-  maxcells <- with_options(new = opts, code = getOption(x = "Azimuth.app.max.cells"))
-  opts <- c(
-    opts,
-    list(
-      DT.options = list(pageLength = 10L),
-      shiny.maxRequestSize = uploadmb * (1024 ^ 2),
-      future.globals.maxSize = maxcells * 320000
-    )
+  # Add sensible defaults
+  # Shiny doesn't set shiny.maxRequestSize on load
+  if (!'shiny.maxRequestSize' %in% opts && is.null(x = getOption(x = 'shiny.maxRequestSize'))) {
+    opts$shiny.maxRequestSize <- 500 * (1024 ^ 2)
+  }
+  # Add pageLength to jQuery DataTables options
+  opts$DT.options <- as.list(x = c(
+    opts$DT.options,
+    getOption(x = 'DT.options')
+  ))
+  if (!'pageLength' %in% names(x = opts$DT.options)) {
+    opts$DT.options$pageLength <- 10L
+  }
+  # Set future.globals.maxSize; this is not user-configurable
+  maxcells <- with_options(
+    new = opts,
+    code = getOption(x = 'Azimuth.app.max.cells')
   )
+  opts$future.globals.maxSize <- maxcells * 320000
+  # Launch the app
   with_options(
     new = opts,
     code = runApp(appDir = shinyApp(ui = ui, server = server))
