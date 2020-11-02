@@ -1706,15 +1706,24 @@ server <- function(input, output, session) {
 
 #' Launch the mapping app
 #'
-#' @param config Path to JSON-formatted configuration file specifying options.
-#' @param ... Options to set
+#' @param config Path to JSON-formatted configuration file specifying options;
+#' for an example config file, see
+#' \code{system.file("resources", "config.json", package = "Azimuth")}
+#' @param ... Options to set, see \code{?`\link{Azimuth-package}`} for details
+#' on \pkg{Azimuth}-provided options
 #'
 #' @section Specifying options:
-#' R options can be provided as named arguments to AzimuthApp through dots (...),
-#' set in a config file, or set globally. Arguments provided to AzimuthApp
-#' through dots take precedence if the same option is provided in a config file.
-#' Options provided through dots or a config file take precedence if the same
-#' option was set globally.
+#' R options can be provided as named arguments to \code{AzimuthApp} through
+#' dots (...), set in a config file, or set globally. Arguments provided to
+#' \code{AzimuthApp} through dots take precedence if the same option is provided
+#' in a config file. Options provided through dots or a config file take
+#' precedence if the same option was set globally.
+#'
+#' Options in the \code{\link[Azimuth:Azimuth-package]{Azimuth.app}} namespace
+#' can be specified using a shorthand notation in both the config file and as
+#' arguments to \code{AzimuthApp}. For example, the option
+#' \code{Azimuth.app.reference} can be shortened to \code{reference} in the
+#' config file or as an argument to \code{AzimuthApp}
 #'
 #' @return None, launches the mapping Shiny app
 #'
@@ -1725,6 +1734,11 @@ server <- function(input, output, session) {
 #' @export
 #'
 #' @seealso \code{\link{Azimuth-package}}
+#'
+#' @examples
+#' if (interactive()) {
+#'   AzimuthApp(system.file("resources", "config.json", package = "Azimuth"))
+#' }
 #'
 AzimuthApp <- function(config = NULL, ...) {
   useShinyjs()
