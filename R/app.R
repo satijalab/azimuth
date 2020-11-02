@@ -1753,12 +1753,14 @@ AzimuthApp <- function(
     }
   }
   # Add hardcoded options
+  uploadmb <- with_options(new = opts, code = getOption(x = "Azimuth.app.max.upload.mb"))
+  maxcells <- with_options(new = opts, code = getOption(x = "Azimuth.app.max.cells"))
   opts <- c(
     opts,
     list(
       DT.options = list(pageLength = 10L),
-      shiny.maxRequestSize = getOption(x = "Azimuth.app.max.upload.mb") * (1024 ^ 2),
-      future.globals.maxSize = getOption(x = "Azimuth.app.max.cells") * 320000
+      shiny.maxRequestSize = uploadmb * (1024 ^ 2),
+      future.globals.maxSize = maxcells * 320000
     )
   )
   with_options(
