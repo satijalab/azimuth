@@ -65,14 +65,14 @@ loaded by default using the following command:
 ### Specifying options
 
 You can set options by passing a parameter to the `AzimuthApp` function.
-Options in the Azimuth.app namespace (e.g. `max.cells` as shown in the
+Options in the `Azimuth.app` namespace (e.g. `max_cells` as shown in the
 example below) can omit the “Azimuth.app.” prefix. Options in other
 namespaces (e.g. `Azimuth.map.pbcorthresh` as shown in the example
 below) including non-Azimuth namespaces, must be specified using their
 full name.
 
 ``` r
-Azimuth::AzimuthApp(max.cells = 100000)
+Azimuth::AzimuthApp(max_cells = 100000)
 
 
 Azimuth::AzimuthApp('Azimuth.map.pbcorthresh' = 0.5)
@@ -135,13 +135,13 @@ argument `--build-arg AZIMUTH_VER=$(date +%s)`.
 
 You can set options by passing a parameter to the `AzimuthApp` function:
 
-    docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro azimuth R -e "Azimuth::AzimuthApp(reference = '/reference-data', max.cells = 100000)"
+    docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro azimuth R -e "Azimuth::AzimuthApp(reference = '/reference-data', max_cells = 100000)"
 
 or providing the path to a config file (in this example, for
 convenience, the config file is assumed to be in the reference directory
 that is bind mounted to the container):
 
-    docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro azimuth R -e "Azimuth::AzimuthApp(config = '/reference-data/config.json', max.cells = 100000)"
+    docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro azimuth R -e "Azimuth::AzimuthApp(config = '/reference-data/config.json', max_cells = 100000)"
 
 or setting the option in R:
 
