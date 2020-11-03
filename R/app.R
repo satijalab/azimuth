@@ -64,19 +64,7 @@ ui <- tagList(
     # Welcome tab
     tabItem(
       tabName = "tab_welcome",
-      box(
-        h3("Please upload a dataset to map to the Multimodal PBMC reference"),
-        "Upload a counts matrix from an scRNA-seq dataset of human PBMC in one
-        of the following formats: hdf5, rds, h5ad, h5seurat. For testing, we
-        also provide a demo dataset of 11,769 human PBMC from 10x Genomics,
-        which is loaded automatically with the 'Load demo dataset' button
-        or available for download ",
-        a("here",
-          href="https://www.dropbox.com/s/cmbvq2og93lnl9z/pbmc_10k_v3_filtered_feature_bc_matrix.h5?dl=0",
-          target="_blank"), # open in new browser tab
-        ".",
-        width = 12
-      )
+      htmlOutput(outputId = "welcomebox")
     ),
     # Preprocessing + QC Tab
     tabItem(
@@ -348,7 +336,7 @@ initQC <- function(app.env,
       app.env$messages <- "Not enough genes in common with reference. Try another dataset."
     }
     # Validate that there aren't too many cells
-    else if (length(Cells(app.env$object)) > getOption(x = "Azimuth.app.max.cells")) {
+    else if (length(Cells(app.env$object)) > getOption(x = "Azimuth.app.max_cells")) {
       app.env$object <- NULL
       gc(verbose = FALSE)
       app.env$messages <- "Too many cells. Try another dataset."
@@ -964,8 +952,8 @@ server <- function(input, output, session) {
               # Enable the feature explorer
               enable(id = 'feature')
               app.env$default.feature <- ifelse(
-                test = getOption(x = 'Azimuth.app.default.gene') %in% rownames(x = app.env$object),
-                yes = getOption(x = 'Azimuth.app.default.gene'),
+                test = getOption(x = 'Azimuth.app.default_gene') %in% rownames(x = app.env$object),
+                yes = getOption(x = 'Azimuth.app.default_gene'),
                 no = VariableFeatures(object = app.env$object)[1]
               )
               app.env$features <- FilterFeatures(
@@ -986,8 +974,8 @@ server <- function(input, output, session) {
                 x = app.env$object[[adt.key]]
               )))
               app.env$default.adt <- ifelse(
-                test = getOption(x = 'Azimuth.app.default.adt') %in% app.env$adt.features,
-                yes = getOption(x = 'Azimuth.app.default.adt'),
+                test = getOption(x = 'Azimuth.app.default_adt') %in% app.env$adt.features,
+                yes = getOption(x = 'Azimuth.app.default_adt'),
                 no = app.env$adt.features[1]
               )
               updateSelectizeInput(
@@ -1708,129 +1696,95 @@ server <- function(input, output, session) {
       e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
       e$ntrees <- getOption(x = 'Azimuth.map.ntrees')
       e$adt.key <- adt.key
-      e$plotgene <- getOption(x = 'Azimuth.app.default.gene')
-      e$plotadt <- getOption(x = 'Azimuth.app.default.adt')
+      e$plotgene <- getOption(x = 'Azimuth.app.default_gene')
+      e$plotadt <- getOption(x = 'Azimuth.app.default_adt')
       writeLines(text = str_interp(string = template, env = e), con = file)
     }
   )
+  # render UI elements that depend on arguments
+  output$welcomebox <- renderUI(expr = eval(parse(text = getOption(x = "Azimuth.app.welcomebox"))))
 }
 
 #' Launch the mapping app
 #'
-#' @param reference,mito,max.upload.mb,max.cells,default.gene,default.adt See \strong{App options} for more details
+#' @param config Path to JSON-formatted configuration file specifying options;
+#' for an example config file, see
+#' \code{system.file("resources", "config.json", package = "Azimuth")}
+#' @param ... Options to set, see \code{?`\link{Azimuth-package}`} for details
+#' on \pkg{Azimuth}-provided options
 #'
-#' @section App options:
+#' @section Specifying options:
+#' R options can be provided as named arguments to \code{AzimuthApp} through
+#' dots (...), set in a config file, or set globally. Arguments provided to
+#' \code{AzimuthApp} through dots take precedence if the same option is provided
+#' in a config file. Options provided through dots or a config file take
+#' precedence if the same option was set globally.
 #'
-#' The following options are used for passing information into the app; users
-#' can configure these either \link[base:options]{globally} or via arguments to
-#' \code{\link{AzimuthApp}} (omitting the \dQuote{Azimuth.app} prefix):
-#'
-#' \describe{
-#'  \item{\code{Azimuth.app.mito}}{
-#'   Regular expression pattern indicating mitochondrial features in query object
-#'  }
-#'  \item{\code{Azimuth.app.reference}}{
-#'   URL or directory path to reference dataset; see \code{\link{LoadReference}}
-#'   for more details
-#'  }
-#'  \item{\code{Azimuth.app.googlesheet}}{
-#'   Google Sheet identifier (appropriate for use with \code{googlesheets4::gs4_get()})
-#'   to write log records. Logging is only enabled if this parameter is specified.
-#'  }
-#'  \item{\code{Azimuth.app.googletoken}}{
-#'   Path to directory containing Google Authentication token file.
-#'   Logging is only enabled if this parameter is specified.
-#'  }
-#'  \item{\code{Azimuth.app.googletokenemail}}{
-#'   Email address corresponding to the Google Authentication token file.
-#'   Logging is only enabled if this parameter is specified.
-#'  }
-#'  \item{\code{Azimuth.app.max.upload.mb}}{
-#'   Maximum file size (in MB) allowed to upload
-#'  }
-#'  \item{\code{Azimuth.app.max.cells}}{
-#'   Maximum number of cells allowed to upload
-#'  }
-#'  \item{\code{Azimuth.app.default.gene}}{
-#'   Gene to select by default in feature/violin plot
-#'  }
-#'  \item{\code{Azimuth.app.default.adt}}{
-#'   ADT to select by default in feature/violin plot
-#'  }
-#'  \item{\code{Azimuth.app.plotseed}}{
-#'   Seed to shuffle colors for cell types
-#'  }
-#' }
+#' Options in the \code{\link[Azimuth:Azimuth-package]{Azimuth.app}} namespace
+#' can be specified using a shorthand notation in both the config file and as
+#' arguments to \code{AzimuthApp}. For example, the option
+#' \code{Azimuth.app.reference} can be shortened to \code{reference} in the
+#' config file or as an argument to \code{AzimuthApp}
 #'
 #' @return None, launches the mapping Shiny app
 #'
 #' @importFrom shiny runApp shinyApp
 #' @importFrom withr with_options
-#' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
+#' @importFrom jsonlite read_json
 #'
 #' @export
 #'
 #' @seealso \code{\link{Azimuth-package}}
 #'
-AzimuthApp <- function(
-  mito = getOption(x = 'Azimuth.app.mito', default = '^MT-'),
-  reference = getOption(
-    x = 'Azimuth.app.reference',
-    default = 'https://seurat.nygenome.org/references/pbmc'
-  ),
-  demodataset = getOption(
-    x = 'Azimuth.app.demodataset',
-    default = NULL
-  ),
-  googlesheet = getOption(
-    x = 'Azimuth.app.googlesheet',
-    default = NULL
-  ),
-  googletoken = getOption(
-    x = 'Azimuth.app.googletoken',
-    default = NULL
-  ),
-  googletokenemail = getOption(
-    x = 'Azimuth.app.googletokenemail',
-    default = NULL
-  ),
-  max.upload.mb = getOption(
-    x = 'Azimuth.app.max.upload.mb',
-    default = 500
-  ),
-  max.cells = getOption(
-    x = 'Azimuth.app.max.cells',
-    default = 50000
-  ),
-  default.gene = getOption(
-    x = 'Azimuth.app.default.gene',
-    default = "GNLY"
-  ),
-  default.adt = getOption(
-    x = 'Azimuth.app.default.adt',
-    default = "CD3-1"
-  ),
-  plotseed = getOption(
-    x = 'Azimuth.app.plotseed',
-    default = 0
-  )
-) {
+#' @examples
+#' if (interactive()) {
+#'   AzimuthApp(system.file("resources", "config.json", package = "Azimuth"))
+#' }
+#'
+AzimuthApp <- function(config = NULL, ...) {
   useShinyjs()
-  opts <- list(
-    DT.options = list(pageLength = 10L),
-    shiny.maxRequestSize = max.upload.mb * (1024 ^ 2),
-    future.globals.maxSize = max.cells * 320000,
-    Azimuth.app.mito = mito,
-    Azimuth.app.reference = reference,
-    Azimuth.app.demodataset = demodataset,
-    Azimuth.app.max.cells = max.cells,
-    Azimuth.app.default.gene = default.gene,
-    Azimuth.app.default.adt = default.adt,
-    Azimuth.app.googlesheet = googlesheet,
-    Azimuth.app.googletoken = googletoken,
-    Azimuth.app.googletokenemail = googletokenemail,
-    Azimuth.app.plotseed = plotseed
+  # If multiple items have the same name in the named list, with_options sets
+  # the option to the last entry with that name in the list. Therefore, putting
+  # the config file options first, followed by options set in dots, followed by
+  # hardcoded options, achieves the desired precedence.
+  opts <- list()
+  # Add options set through config file
+  if (!is.null(x = config)) {
+    opts <- c(opts, read_json(path = config, simplifyVector = TRUE))
+  }
+  # Add options set through named arguments in dots
+  args <- list(...)
+  if (length(x = args) && !is.null(x = names(x = args))) {
+    # only add named elements
+    opts <- c(opts, args[names(x = args) != ""])
+  }
+  # if any arguments from dots or config file have no "." character,
+  # prepend the "Azimuth.app" namespace
+  for (i in seq_along(along.with = opts)) {
+    if (!grepl(pattern = '\\.', x = names(x = opts)[i])) {
+      names(x = opts)[i] <- paste0('Azimuth.app.', names(x = opts)[i])
+    }
+  }
+  # Add sensible defaults
+  # Shiny doesn't set shiny.maxRequestSize on load
+  if (!'shiny.maxRequestSize' %in% names(x = opts) && is.null(x = getOption(x = 'shiny.maxRequestSize'))) {
+    opts$shiny.maxRequestSize <- 500 * (1024 ^ 2)
+  }
+  # Add pageLength to jQuery DataTables options
+  opts$DT.options <- as.list(x = c(
+    opts$DT.options,
+    getOption(x = 'DT.options')
+  ))
+  if (!'pageLength' %in% names(x = opts$DT.options)) {
+    opts$DT.options$pageLength <- 10L
+  }
+  # Set future.globals.maxSize; this is not user-configurable
+  maxcells <- with_options(
+    new = opts,
+    code = getOption(x = 'Azimuth.app.max_cells')
   )
+  opts$future.globals.maxSize <- maxcells * 320000
+  # Launch the app
   with_options(
     new = opts,
     code = runApp(appDir = shinyApp(ui = ui, server = server))

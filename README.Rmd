@@ -98,7 +98,7 @@ All the analysis and visualization functionality available in the app - and much
 
 ## Installation
 
-**Note**: you may need to update some packcages prior to installing `r pkg`; from a fresh R session run:
+**Note**: you may need to update some packages prior to installing `r pkg`; from a fresh R session run:
 
 ```{r upgrade, eval=FALSE}
 update.packages(oldPkgs = c("withr", "rlang"))
@@ -141,20 +141,27 @@ You can download the PBMC reference files that would be automatically loaded by 
 wget -m -R 'index.html*' -P pbmc -nd https://seurat.nygenome.org/references/pbmc/
 ```
 
-
 ### Specifying options
 
-You can set options by passing a parameter to the `AzimuthApp` function:
+You can set options by passing a parameter to the `AzimuthApp` function. Options in the `Azimuth.app` namespace (e.g. `max_cells` as shown in the example below) can omit the "Azimuth.app." prefix. Options in other namespaces (e.g. `Azimuth.map.pbcorthresh` as shown in the example below) including non-Azimuth namespaces, must be specified using their full name. 
 
 ```{r launch.param, echo=FALSE, results="asis"}
-cat(mdemit(launchcmd("maxcells = 100000")))
+cat(mdemit(launchcmd("max_cells = 100000"), "\n", launchcmd("'Azimuth.map.pbcorthresh' = 0.5")))
 ```
 
-or setting the option in R (e.g. if it is not a parameter to the `AzimuthApp` function):
+We also support reading options from a JSON-formatted config file. Provide the path to the config file as the parameter `config` to `AzimuthApp`. [Example config file](inst/resources/config.json). As described above regarding setting options through parameters, the "Azimuth.app." prefix may be omitted.
+
+```{r launch.config, echo=FALSE, results="asis"}
+cat(mdemit(launchcmd("config = 'config.json'")))
+```
+
+You can also set Azimuth or other options in R. (The full name must always be specified, even for options in the Azimuth.app namespace.)
 
 ```{r launch.opt, echo=FALSE, results="asis"}
 cat(mdemit("options('Azimuth.map.pbcorthresh' = 0.5)", launchcmd()))
 ```
+
+Options can be set in any of these three ways simultaneously. Please note that options set in R will be overwritten by the same option specified in a config file, which are both overwritten by the same option provided as a parameter to the `AzimuthApp` function.
 
 ## Docker
 
@@ -182,10 +189,16 @@ The docker image takes about 20 minutes to build from scratch. To save time, add
 You can set options by passing a parameter to the `AzimuthApp` function:
 
 ```
-docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro azimuth R -e "Azimuth::AzimuthApp(reference = '/reference-data', max.cells = 100000)"
+docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro azimuth R -e "Azimuth::AzimuthApp(reference = '/reference-data', max_cells = 100000)"
 ```
 
-or setting the option in R (e.g. if it is not a parameter to the `AzimuthApp` function):
+or providing the path to a config file (in this example, for convenience, the config file is assumed to be in the reference directory that is bind mounted to the container):
+
+```
+docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro azimuth R -e "Azimuth::AzimuthApp(config = '/reference-data/config.json', max_cells = 100000)"
+```
+
+or setting the option in R:
 
 ```
 docker run -it -p 3838:3838 -v /path/to/reference:/reference-data:ro azimuth R -e "options('Azimuth.map.pbcorthresh' = 0.5)" -e "Azimuth::AzimuthApp(reference = '/reference-data')"

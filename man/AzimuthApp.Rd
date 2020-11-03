@@ -4,23 +4,15 @@
 \alias{AzimuthApp}
 \title{Launch the mapping app}
 \usage{
-AzimuthApp(
-  mito = getOption(x = "Azimuth.app.mito", default = "^MT-"),
-  reference = getOption(x = "Azimuth.app.reference", default =
-    "https://seurat.nygenome.org/references/pbmc"),
-  demodataset = getOption(x = "Azimuth.app.demodataset", default = NULL),
-  googlesheet = getOption(x = "Azimuth.app.googlesheet", default = NULL),
-  googletoken = getOption(x = "Azimuth.app.googletoken", default = NULL),
-  googletokenemail = getOption(x = "Azimuth.app.googletokenemail", default = NULL),
-  max.upload.mb = getOption(x = "Azimuth.app.max.upload.mb", default = 500),
-  max.cells = getOption(x = "Azimuth.app.max.cells", default = 50000),
-  default.gene = getOption(x = "Azimuth.app.default.gene", default = "GNLY"),
-  default.adt = getOption(x = "Azimuth.app.default.adt", default = "CD3-1"),
-  plotseed = getOption(x = "Azimuth.app.plotseed", default = 0)
-)
+AzimuthApp(config = NULL, ...)
 }
 \arguments{
-\item{reference, mito, max.upload.mb, max.cells, default.gene, default.adt}{See \strong{App options} for more details}
+\item{config}{Path to JSON-formatted configuration file specifying options;
+for an example config file, see
+\code{system.file("resources", "config.json", package = "Azimuth")}}
+
+\item{...}{Options to set, see \code{?`\link{Azimuth-package}`} for details
+on \pkg{Azimuth}-provided options}
 }
 \value{
 None, launches the mapping Shiny app
@@ -28,51 +20,27 @@ None, launches the mapping Shiny app
 \description{
 Launch the mapping app
 }
-\section{App options}{
+\section{Specifying options}{
 
+R options can be provided as named arguments to \code{AzimuthApp} through
+dots (...), set in a config file, or set globally. Arguments provided to
+\code{AzimuthApp} through dots take precedence if the same option is provided
+in a config file. Options provided through dots or a config file take
+precedence if the same option was set globally.
 
-The following options are used for passing information into the app; users
-can configure these either \link[base:options]{globally} or via arguments to
-\code{\link{AzimuthApp}} (omitting the \dQuote{Azimuth.app} prefix):
-
-\describe{
- \item{\code{Azimuth.app.mito}}{
-  Regular expression pattern indicating mitochondrial features in query object
- }
- \item{\code{Azimuth.app.reference}}{
-  URL or directory path to reference dataset; see \code{\link{LoadReference}}
-  for more details
- }
- \item{\code{Azimuth.app.googlesheet}}{
-  Google Sheet identifier (appropriate for use with \code{googlesheets4::gs4_get()})
-  to write log records. Logging is only enabled if this parameter is specified.
- }
- \item{\code{Azimuth.app.googletoken}}{
-  Path to directory containing Google Authentication token file.
-  Logging is only enabled if this parameter is specified.
- }
- \item{\code{Azimuth.app.googletokenemail}}{
-  Email address corresponding to the Google Authentication token file.
-  Logging is only enabled if this parameter is specified.
- }
- \item{\code{Azimuth.app.max.upload.mb}}{
-  Maximum file size (in MB) allowed to upload
- }
- \item{\code{Azimuth.app.max.cells}}{
-  Maximum number of cells allowed to upload
- }
- \item{\code{Azimuth.app.default.gene}}{
-  Gene to select by default in feature/violin plot
- }
- \item{\code{Azimuth.app.default.adt}}{
-  ADT to select by default in feature/violin plot
- }
- \item{\code{Azimuth.app.plotseed}}{
-  Seed to shuffle colors for cell types
- }
-}
+Options in the \code{\link[Azimuth:Azimuth-package]{Azimuth.app}} namespace
+can be specified using a shorthand notation in both the config file and as
+arguments to \code{AzimuthApp}. For example, the option
+\code{Azimuth.app.reference} can be shortened to \code{reference} in the
+config file or as an argument to \code{AzimuthApp}
 }
 
+\examples{
+if (interactive()) {
+  AzimuthApp(system.file("resources", "config.json", package = "Azimuth"))
+}
+
+}
 \seealso{
 \code{\link{Azimuth-package}}
 }
