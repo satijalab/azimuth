@@ -33,16 +33,16 @@ if this option is set
 \item{\code{Azimuth.app.googlesheet}}{
 Google Sheet identifier (appropriate for use with
 \code{\link[googlesheets4:gs4_get]{googlesheets4:gs4_get}}) to write log
-records. Logging is only enabled if this and other \code{goole*} options
+records. Logging is only enabled if this and other \code{google*} options
 are set
 }
 \item{\code{Azimuth.app.googletoken}}{
 Path to directory containing Google Authentication token file.
-Logging is only enabled if this and other \code{goole*} options are set
+Logging is only enabled if this and other \code{google*} options are set
 }
 \item{\code{Azimuth.app.googletokenemail}}{
 Email address corresponding to the Google Authentication token file.
-Logging is only enabled if this and other \code{goole*} options are set
+Logging is only enabled if this and other \code{google*} options are set
 }
 \item{\code{Azimuth.app.max_cells}}{
 Maximum number of cells allowed to upload
@@ -122,7 +122,7 @@ User-configurable; used for controlling the maximum file size of uploaded
 datasets. Defaults to 500 Mb
 }
 \item{\code{\link[DT:datatable]{DT.options}}}{
-User-confiburable; used for controlling biomarker table outputs.
+User-configurable; used for controlling biomarker table outputs.
 Defaults to setting \code{pageLength} to \code{10}
 }
 \item{\code{\link[future:future.options]{future.globals.maxSize}}}{

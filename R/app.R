@@ -1758,7 +1758,7 @@ AzimuthApp <- function(config = NULL, ...) {
     # only add named elements
     opts <- c(opts, args[names(x = args) != ""])
   }
-  # if any arguments from dots or command line have no "." character,
+  # if any arguments from dots or config file have no "." character,
   # prepend the "Azimuth.app" namespace
   for (i in seq_along(along.with = opts)) {
     if (!grepl(pattern = '\\.', x = names(x = opts)[i])) {
