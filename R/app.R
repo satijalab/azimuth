@@ -1767,7 +1767,7 @@ AzimuthApp <- function(config = NULL, ...) {
   }
   # Add sensible defaults
   # Shiny doesn't set shiny.maxRequestSize on load
-  if (!'shiny.maxRequestSize' %in% opts && is.null(x = getOption(x = 'shiny.maxRequestSize'))) {
+  if (!'shiny.maxRequestSize' %in% names(x = opts) && is.null(x = getOption(x = 'shiny.maxRequestSize'))) {
     opts$shiny.maxRequestSize <- 500 * (1024 ^ 2)
   }
   # Add pageLength to jQuery DataTables options
