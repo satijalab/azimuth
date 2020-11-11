@@ -142,6 +142,7 @@ ui <- tagList(
           inputId = 'select.metadata',
           label = 'Metadata to color by',
           choices = '',
+          multiple = TRUE,
           width = "25%"
         )),
         plotOutput(outputId = 'objdim'),
@@ -477,7 +478,7 @@ initQC <- function(app.env,
 #' @rdname AzimuthServer
 #'
 #' @importFrom methods slot<- slot
-#' @importFrom ggplot2 ggtitle scale_colour_hue xlab geom_hline annotate
+#' @importFrom ggplot2 ggtitle scale_color_discrete xlab geom_hline annotate
 #' theme_void
 #' @importFrom presto wilcoxauc
 #' @importFrom stringr str_interp
@@ -561,7 +562,11 @@ server <- function(input, output, session) {
     }
   )
   set.seed(seed = getOption(x = "Azimuth.app.plotseed"))
-  plotlevels <- sample(x = levels(as.factor(refs$plot$id)), size = length(levels(as.factor(refs$plot$id))))
+  plotlevels <- sample(
+    x = levels(x = as.factor(x = refs$plot$id)),
+    size = length(x = levels(x = as.factor(x = refs$plot$id)))
+  )
+  refs$plot$id <- factor(refs$plot$id, levels = plotlevels)
   # React to events
   observeEvent( # Load the data
     eventExpr = input$file,
@@ -938,6 +943,10 @@ server <- function(input, output, session) {
                 slot = 'scale.data',
                 new.data = new(Class = 'matrix')
               )
+              app.env$object$predicted.id <- factor(
+                x = app.env$object$predicted.id,
+                levels = plotlevels
+              )
               gc(verbose = FALSE)
               app.env$messages <- c(
                 app.env$messages,
@@ -1000,7 +1009,7 @@ server <- function(input, output, session) {
                 choices = metadata.choices,
                 selected = 'predicted.id',
                 server = TRUE,
-                options = selectize.opts
+                options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
               )
               updateSelectizeInput(
                 session = session,
@@ -1401,37 +1410,18 @@ server <- function(input, output, session) {
       label = input$labels,
       group.by = "id",
       repel = TRUE
-    ) +
-      scale_colour_hue(
-        limits = plotlevels,
-        breaks = sort(x = levels(x = as.factor(x = refs$plot$id))),
-        drop = FALSE
-      )
+    )
   })
   output$objdim <- renderPlot(expr = {
   if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
-        if (input$select.metadata == "predicted.id") {
-          DimPlot(
-            object = app.env$object,
-            group.by = "predicted.id",
-            label = input$labels,
-            repel = TRUE,
-            reduction = "umap.proj"
-          ) + scale_colour_hue(
-            limits = plotlevels,
-            breaks = sort(x = levels(x = as.factor(x = refs$plot$id))),
-            drop = FALSE
-          )
-        } else {
-          DimPlot(
-            object = app.env$object,
-            group.by = input$select.metadata,
-            label = input$labels,
-            repel = TRUE,
-            reduction = "umap.proj"
-          )
-        }
+        DimPlot(
+          object = app.env$object,
+          group.by = input$select.metadata,
+          label = input$labels,
+          repel = TRUE,
+          reduction = "umap.proj"
+        ) & ggplot2::scale_color_discrete(drop = FALSE)
       }
     }
   })
