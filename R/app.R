@@ -1410,7 +1410,7 @@ server <- function(input, output, session) {
       label = input$labels,
       group.by = "id",
       repel = TRUE
-    )
+    ) + ggtitle(label = NULL)
   })
   output$objdim <- renderPlot(expr = {
   if (!is.null(x = app.env$object)) {
