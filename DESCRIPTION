@@ -39,7 +39,7 @@ Imports:
   patchwork (>= 1.0.1),
   presto,
   rlang (>= 0.4.8),
-  Seurat (>= 3.9.9),
+  Seurat (>= 3.9.9.9010),
   SeuratDisk,
   shiny (>= 1.5.0),
   shinyBS (>= 0.61),
