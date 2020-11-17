@@ -560,8 +560,12 @@ server <- function(input, output, session) {
       setProgress(value = 1)
     }
   )
-  set.seed(seed = getOption(x = "Azimuth.app.plotseed"))
-  plotlevels <- sample(x = levels(as.factor(refs$plot$id)), size = length(levels(as.factor(refs$plot$id))))
+  plotseed <- getOption(x = "Azimuth.app.plotseed")
+  plotcolors <- Misc(object = refs$plot[["refUMAP"]], slot = "colors")
+  if (!is.null(x = plotseed)) {
+    set.seed(seed = plotseed)
+    plotcolors <- sample(x = plotcolors)
+  }
   # React to events
   observeEvent( # Load the data
     eventExpr = input$file,
@@ -822,10 +826,10 @@ server <- function(input, output, session) {
                 reference = refs$map,
                 query = app.env$object,
                 k.filter = NA,
-                reference.neighbors = "spca.annoy.neighbors",
+                reference.neighbors = "refdr.annoy.neighbors",
                 reference.assay = "SCT",
                 query.assay = 'SCT',
-                reference.reduction = 'spca',
+                reference.reduction = 'refDR',
                 normalization.method = 'SCT',
                 features = intersect(rownames(x = refs$map), VariableFeatures(object = app.env$object)),
                 dims = 1:50,
@@ -857,16 +861,16 @@ server <- function(input, output, session) {
                 reuse.weights.matrix = TRUE
               )
               setProgress(value = 0.7, message = "Calculating mapping score")
-              spca <- subset(
+              refdr <- subset(
                 x = anchors@object.list[[1]][["pcaproject.l2"]],
                 cells = paste0(Cells(x = app.env$object), "_query")
               )
-              spca <- RenameCells(object = spca, new.names = Cells(x = app.env$object))
-              spca.ref <- subset(
+              refdr <- RenameCells(object = refdr, new.names = Cells(x = app.env$object))
+              refdr.ref <- subset(
                 x = anchors@object.list[[1]][["pcaproject.l2"]],
                 cells = paste0(Cells(x = refs$map), "_reference")
               )
-              spca.ref <- RenameCells(object = spca.ref, new.names = Cells(x = refs$map))
+              refdr.ref <- RenameCells(object = refdr.ref, new.names = Cells(x = refs$map))
               if (Sys.getenv("RSTUDIO") == "1") {
                 plan("sequential")
               }
@@ -901,8 +905,8 @@ server <- function(input, output, session) {
                     combined.object = anchors@object.list[[1]],
                     query.neighbors =  slot(object = anchors, name = "neighbors")[["query.neighbors"]],
                     query.weights = Tool(object = app.env$object, slot = "TransferData")$weights.matrix,
-                    query.embeddings = Embeddings(object = spca),
-                    ref.embeddings = Embeddings(object = spca.ref),
+                    query.embeddings = Embeddings(object = refdr),
+                    ref.embeddings = Embeddings(object = refdr.ref),
                     nn.method = "annoy",
                     n.trees = n.trees
                   )
@@ -913,11 +917,11 @@ server <- function(input, output, session) {
                 metadata = rep(x = 0, times = ncol(x = app.env$object)),
                 col.name = "mapping.score"
               )
-              rm(anchors, spca)
+              rm(anchors, refdr)
               gc(verbose = FALSE)
               setProgress(value = 0.8, message = "Running UMAP transform")
               app.env$object[["query_ref.nn"]] <- FindNeighbors(
-                object = Embeddings(refs$map[["spca"]]),
+                object = Embeddings(refs$map[["refDR"]]),
                 query = Embeddings(app.env$object[["integrated_dr"]]),
                 return.neighbor = TRUE,
                 l2.norm = TRUE,
@@ -929,7 +933,7 @@ server <- function(input, output, session) {
               )
               app.env$object[['umap.proj']] <- RunUMAP(
                 object = app.env$object[['query_ref.nn']],
-                reduction.model = refs$map[['jumap']],
+                reduction.model = refs$plot[['refUMAP']],
                 reduction.key = 'UMAP_'
               )
               app.env$object <- SetAssayData(
@@ -1400,13 +1404,9 @@ server <- function(input, output, session) {
       object = refs$plot,
       label = input$labels,
       group.by = "id",
+      cols = plotcolors,
       repel = TRUE
-    ) +
-      scale_colour_hue(
-        limits = plotlevels,
-        breaks = sort(x = levels(x = as.factor(x = refs$plot$id))),
-        drop = FALSE
-      )
+    )
   })
   output$objdim <- renderPlot(expr = {
   if (!is.null(x = app.env$object)) {
@@ -1417,11 +1417,8 @@ server <- function(input, output, session) {
             group.by = "predicted.id",
             label = input$labels,
             repel = TRUE,
-            reduction = "umap.proj"
-          ) + scale_colour_hue(
-            limits = plotlevels,
-            breaks = sort(x = levels(x = as.factor(x = refs$plot$id))),
-            drop = FALSE
+            reduction = "umap.proj",
+            cols = plotcolors
           )
         } else {
           DimPlot(

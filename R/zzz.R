@@ -133,7 +133,7 @@ default.options <- list(
   Azimuth.app.default_gene = "GNLY",
   Azimuth.app.max_cells = 50000,
   Azimuth.app.mito = '^MT-',
-  Azimuth.app.plotseed = 0,
+  Azimuth.app.plotseed = NULL,
   Azimuth.app.reference = 'https://seurat.nygenome.org/references/pbmc',
   Azimuth.app.welcomebox = "",
   Azimuth.de.digits = 3L,
