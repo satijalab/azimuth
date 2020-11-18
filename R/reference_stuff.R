@@ -206,13 +206,26 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
   return(colors)
 }
 
+# Helper function to generate ggplot colors
 # From: https://stackoverflow.com/questions/8197559/emulate-ggplot2-default-color-palette
+# @param n Number of colors to generate
+#' @importFrom grDevices hcl
+#'
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
-
+#' Validate aspects of a Seurat object to be used as an Azimuth reference
+#'
+#' @param object Seurat object
+#' @param ad.name Name in the tools slot containing the AzimuthData object.
+#'
+#' @importFrom Seurat Tool Misc Reductions
+#' @return No return value
+#'
+#' @export
+#'
 ValidateAzimuthReference <- function(object, ad.name = "Azimuth") {
   if (!inherits(x = Tool(object = object, slot = ad.name), what = "AzimuthData")) {
     stop ("Reference must contain an AzimuthData object in the tools slot.")
