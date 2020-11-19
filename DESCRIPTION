@@ -50,7 +50,9 @@ Imports:
   utils,
   withr (>= 2.3.0)
 Collate:
-    'helpers.R'
     'zzz.R'
+    'ui.R'
+    'helpers.R'
     'seurat.R'
     'app.R'
+    'server.R'
