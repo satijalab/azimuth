@@ -493,8 +493,8 @@ initQC <- function(app.env,
 #' updateSelectizeInput updateTabsetPanel renderPlot renderTable downloadHandler
 #' renderUI isolate onStop
 #' @importFrom shinydashboard renderValueBox valueBox renderMenu
-#' @importFrom utils write.table
 #' @importFrom patchwork wrap_plots
+#' @importFrom utils packageVersion write.table
 #' @importFrom stats quantile na.omit
 #' @importFrom DT dataTableProxy selectRows renderDT
 #' @importFrom future future plan value resolved
@@ -1526,7 +1526,13 @@ server <- function(input, output, session) {
   output$message <- renderUI(expr = {
     p(HTML(text = paste(app.env$messages, collapse = "<br />")))
   })
-  output$containerid <- renderText(c("debug ID: ", Sys.info()[["nodename"]]))
+  output$containerid <- renderUI(expr = {
+    p(HTML(text = paste(
+      paste("debug ID:", Sys.info()[["nodename"]]),
+      paste('Azimuth version:', packageVersion(pkg = 'Azimuth')),
+      sep = "<br />"
+    )))
+  })
   output$text.cellsremain <- renderText(expr = {
     if (!is.null(x = isolate(app.env$object))) {
       ncount <- paste0('nCount_', DefaultAssay(object = isolate(app.env$object)))
