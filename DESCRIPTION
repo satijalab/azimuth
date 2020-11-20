@@ -54,5 +54,5 @@ Collate:
     'ui.R'
     'helpers.R'
     'seurat.R'
-    'app.R'
+    'azimuth.R'
     'server.R'
