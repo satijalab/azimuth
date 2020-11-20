@@ -1285,7 +1285,13 @@ AzimuthServer <- function(input, output, session) {
   output$message <- renderUI(expr = {
     p(HTML(text = paste(app.env$messages, collapse = "<br />")))
   })
-  output$containerid <- renderText(c("debug ID: ", Sys.info()[["nodename"]]))
+  output$containerid <- renderUI(expr = {
+    p(HTML(text = paste(
+      paste("debug ID:", Sys.info()[["nodename"]]),
+      paste('Azimuth version:', packageVersion(pkg = 'Azimuth')),
+      sep = "<br />"
+    )))
+  })
   output$text.cellsremain <- renderText(expr = {
     if (!is.null(x = isolate(app.env$object))) {
       ncount <- paste0('nCount_', DefaultAssay(object = isolate(app.env$object)))
