@@ -1,11 +1,11 @@
 #' @include zzz.R
 #'
 #' @importFrom DT DTOutput
-#' @importFrom htmltools div h3 HTML includeCSS p tagList
+#' @importFrom htmltools div h3 HTML includeCSS p tagList tags
 #' @importFrom shinyjs disabled useShinyjs
 #' @importFrom shiny actionButton checkboxInput downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
-#' tableOutput textOutput verbatimTextOutput
+#' tableOutput textOutput uiOutput verbatimTextOutput
 #' @importFrom shinyBS bsButton bsPopover
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
@@ -316,40 +316,52 @@ AzimuthUI <- tagList(
         # Downloads tab
         tabItem(
           tabName = 'tab_download',
-          box(
-            title = 'Analysis script template ',
-            downloadButton(
-              outputId = 'dlscript',
-              label = 'Download'
-            ),
-            width = 6
+          div(
+            id = 'scriptdl',
+            box(
+              title = 'Analysis script template ',
+              downloadButton(
+                outputId = 'dlscript',
+                label = 'Download'
+              ),
+              width = 6
+            )
           ),
-          box(
-            title = 'UMAP (Seurat Reduction RDS)',
-            verbatimTextOutput(outputId = 'text.dlumap'),
-            downloadButton(
-              outputId = 'dlumap',
-              label = 'Download'
-            ),
-            width = 6
+          div(
+            id = 'umapdl',
+            box(
+              title = 'UMAP (Seurat Reduction RDS)',
+              verbatimTextOutput(outputId = 'text.dlumap'),
+              downloadButton(
+                outputId = 'dlumap',
+                label = 'Download'
+              ),
+              width = 6
+            )
           ),
-          box(
-            title = 'Imputed protein (Seurat Assay RDS)',
-            verbatimTextOutput(outputId = 'text.dladt'),
-            downloadButton(
-              outputId = 'dladt',
-              label = 'Download'
-            ),
-            width = 6
+          div(
+            id = 'imputeddl',
+            box(
+              title = 'Imputed protein (Seurat Assay RDS)',
+              verbatimTextOutput(outputId = 'text.dladt'),
+              downloadButton(
+                outputId = 'dladt',
+                label = 'Download'
+              ),
+              width = 6
+            )
           ),
-          box(
-            title = 'Predicted cell types and scores (TSV)',
-            verbatimTextOutput(outputId = 'text.dlpred'),
-            downloadButton(
-              outputId = 'dlpred',
-              label = 'Download'
-            ),
-            width = 6
+          div(
+            id = 'predictionsdl',
+            box(
+              title = 'Predicted cell types and scores (TSV)',
+              verbatimTextOutput(outputId = 'text.dlpred'),
+              downloadButton(
+                outputId = 'dlpred',
+                label = 'Download'
+              ),
+              width = 6
+            )
           )
         )
       )

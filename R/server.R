@@ -77,7 +77,7 @@ AzimuthServer <- function(input, output, session) {
   if (isTRUE(x = do.adt)) {
     output$imputedlabel <- renderUI(expr = h3('Imputed protein biomarkers'))
   } else {
-    for (id in c('imputedinput', 'imputedtable')) {
+    for (id in c('imputedinput', 'imputedtable', 'imputeddl')) {
       removeUI(selector = paste0('#', id), immediate = TRUE)
     }
     for (id in c('featureinput', 'scoreinput')) {
