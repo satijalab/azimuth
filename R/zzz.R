@@ -128,6 +128,10 @@
 #'
 "_PACKAGE"
 
+app.title <- 'Azimuth'
+
+css <- system.file('www', 'azimuth.css', package = 'Azimuth')
+
 default.options <- list(
   Azimuth.app.default_adt = "CD3-1",
   Azimuth.app.default_gene = "GNLY",
@@ -145,6 +149,23 @@ default.options <- list(
   Azimuth.map.pbcorthresh = 0.75,
   Azimuth.sct.ncells = 2000L,
   Azimuth.sct.nfeats = 2000L
+)
+
+qc.ids <- c(
+  'map',
+  'num.ncountmin',
+  'num.ncountmax',
+  'num.nfeaturemin',
+  'num.nfeaturemax',
+  'minmt',
+  'maxmt',
+  'check.qcscale',
+  'check.qcpoints'
+)
+
+selectize.opts <- list(
+  maxOptions = 10000L,
+  maxItems = 1L
 )
 
 #' Attach dependent packages
@@ -241,6 +262,33 @@ FilterFeatures <- function(features) {
   )))
 }
 
+#' Format Time Differences
+#'
+#' @param dt A \code{\link[base]{difftime}} object
+#'
+#' @return The time difference in a nice string
+#'
+#' @keywords internal
+#'
+#' @seealso \code{\link[base:difftime]{base::difftime}}
+#'
+FormatDiffTime <- function(dt) {
+  if (!inherits(x = dt, what = 'difftime')) {
+    stop("'df' must be a difftime object")
+  }
+  dtfmt <- ifelse(
+    test = dt < 60,
+    yes = 'in %S seconds',
+    no = 'in %M minutes %S seconds'
+  )
+  return(gsub(
+    pattern = ' 0',
+    replacement = ' ',
+    x = format(x = .POSIXct(xx = dt), format = dtfmt),
+    fixed = TRUE
+  ))
+}
+
 #' Return names of metadata columns in a Seurat object that have an
 #' appropriate number of levels for plotting when converted to a factor
 #'
@@ -320,10 +368,10 @@ RenderDiffExp <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 .onLoad <- function(libname, pkgname) {
-  # Attach deps
+  # Attach dependencies
   AttachDeps()
   op <- options()
-  # Set some default options
+  # Set default options
   toset <- !names(x = default.options) %in% names(x = op)
   if (any(toset)) {
     options(default.options[toset])
