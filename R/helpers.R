@@ -352,7 +352,7 @@ LoadReference <- function(path, seconds = 10L) {
     file = annref
   )
   # Create plotref
-  ad <- Tool(object = map, slot = "Azimuth")
+  ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
   cm <- sparseMatrix(
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),

@@ -56,7 +56,7 @@ GetPlotRef.AzimuthData <- function(object) {
 #' @export
 #' @method GetPlotRef Seurat
 #'
-GetPlotRef.Seurat <- function(object, slot = "Azimuth") {
+GetPlotRef.Seurat <- function(object, slot = "AzimuthReference") {
   return(GetPlotRef(object = Tool(object = object, slot = slot)))
 }
 
@@ -90,7 +90,7 @@ GetAvgRef.AzimuthData <- function(object) {
 #' @export
 #' @method GetAvgRef Seurat
 #'
-GetAvgRef.Seurat <- function(object, slot = "Azimuth") {
+GetAvgRef.Seurat <- function(object, slot = "AzimuthReference") {
   return(GetAvgRef(object = Tool(object = object, slot = slot)))
 }
 
@@ -124,7 +124,7 @@ GetColorMap.AzimuthData <- function(object) {
 #' @export
 #' @method GetColorMap Seurat
 #'
-GetColorMap.Seurat <- function(object, slot = "Azimuth") {
+GetColorMap.Seurat <- function(object, slot = "AzimuthReference") {
   return(GetColorMap(object = Tool(object = object, slot = slot)))
 }
 
@@ -135,7 +135,10 @@ GetColorMap.Seurat <- function(object, slot = "Azimuth") {
 #' Create a Seurat object compatible with Azimuth.
 #'
 #' @inheritParams CreateAzimuthData
-#' @inheritParams FindNeighbors
+#' @param dims Dimensions to use in reference neighbor finding
+#' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param assays Assays to retain for transfer
+#' @param metadata Metadata to retain for transfer
 #' @return Returns a Seurat object with AzimuthData stored in the tools slot for
 #' use with Azimuth.
 #'
@@ -153,6 +156,8 @@ AzimuthReference <- function(
   plotref = "umap",
   plotids = NULL,
   colormap = NULL,
+  assays = NULL,
+  metadata = NULL,
   verbose = FALSE
 ) {
   # Parameter validation
@@ -175,14 +180,9 @@ AzimuthReference <- function(
   if (!all(c("RNA", "SCT") %in% Assays(object = object))) {
     stop("Seurat object provided must have RNA and SCT Assays stored.")
   }
-  if (refUMAP != "refUMAP") {
-    object[["refUMAP"]] <- object[[refUMAP]]
-    object[[refUMAP]] <- NULL
-  }
-  if (refDR != "refDR") {
-    object[["refDR"]] <- object[[refDR]]
-    object[[refDR]] <- NULL
-  }
+  suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
+  suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
+
   # Calculate the Neighbors
   object <- FindNeighbors(
     object = object,
@@ -204,15 +204,21 @@ AzimuthReference <- function(
     message("Computing pseudobulk averages")
   }
   features <- rownames(x = Loadings(object = object[['refDR']]))
-  random.name <- basename(path = tempdir())
+  random.name <- "allcells"
   while (random.name %in% colnames(x = object[[]])) {
-    random.name <- basename(path = tempdir())
+    random.name <- paste0(sample(letters, size = 10), collapse = "")
   }
   Idents(object = object) <- random.name
-  object <- NormalizeData(object = ob, assay = "RNA", verbose = verbose)
-  avg.rna <- AverageExpression(object = ob, assays = "RNA")[[1]][features, , drop = FALSE]
+  object <- NormalizeData(object = object, assay = "RNA", verbose = verbose)
+  avg.rna <- AverageExpression(object = object, assays = "RNA", verbose = verbose)[[1]][features, , drop = FALSE]
   Idents(object = object) <- "id"
-
+  ad <- CreateAzimuthData(
+    object = object,
+    plotref = plotref,
+    plotids = plotids,
+    avgref = avg.rna,
+    colormap = colormap
+  )
   # Subset the features of the RNA assay
   DefaultAssay(object = object) <- "SCT"
   # Preserves DR after DietSeurat
@@ -220,21 +226,22 @@ AzimuthReference <- function(
   object <- DietSeurat(
     object = object,
     counts = FALSE,
-    assays = "SCT",
+    assays = c("SCT", assays),
     features = features,
     dimreducs = c("refDR","refUMAP")
   )
+  metadata <- c(metadata, "id", "ori.index")
+  for (i in colnames(x = object[[]])) {
+    if (!i %in% metadata){
+      object[[i]] <- NULL
+    }
+  }
   object[["SCT"]] <- Seurat:::CreateDummyAssay(assay = object[["SCT"]])
   Misc(object = object[["SCT"]], slot = "vst.set") <- list()
   object$id <- factor(x = object$id, levels = sort(x = unique(x = object$id)))
-  ad <- CreateAzimuthData(
-    object = object,
-    plotref = plotref,
-    plotids = object$id,
-    avgref = avgref,
-    colormap = colormap
-  )
+  plotids <- plotids %||% object$id
   Tool(object = object) <- ad
+  object[['refUMAP']] <- NULL
   ValidateAzimuthReference(object = object)
   return(object)
 }
@@ -358,5 +365,10 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
   if (!all(rownames(x = Loadings(object = object[['refDR']])) %in% rownames(x = avgref))){
     stop("avgref must contain average expression values for all features used ",
          "when computing refDR.")
+  }
+  if (!"ori.index" %in% colnames(x = object[[]])){
+    stop("Seurat object metadata must contain 'ori.index' field, storing the ",
+         "mapping between the index of the cells in the object UMAP was run on ",
+         "and the cell indices in the object here.")
   }
 }

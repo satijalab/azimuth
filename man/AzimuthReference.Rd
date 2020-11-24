@@ -14,11 +14,17 @@ AzimuthReference(
   plotref = "umap",
   plotids = NULL,
   colormap = NULL,
+  assays = NULL,
+  metadata = NULL,
   verbose = FALSE
 )
 }
 \arguments{
 \item{object}{Seurat object}
+
+\item{dims}{Dimensions to use in reference neighbor finding}
+
+\item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
 \item{plotref}{Either the name of the DimReduc in the provided Seurat object
 to use for the plotting reference or the DimReduc object itself.}
@@ -29,6 +35,10 @@ plotref.}
 \item{colormap}{A named and ordered vector specifying the colors and levels
 for the IDs being plotted. See \code{\link{CreateColorMap}} for help
 generating your own.}
+
+\item{assays}{Assays to retain for transfer}
+
+\item{metadata}{Metadata to retain for transfer}
 }
 \value{
 Returns a Seurat object with AzimuthData stored in the tools slot for

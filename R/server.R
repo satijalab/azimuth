@@ -561,19 +561,25 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (isTRUE(x = react.env$map)) {
         react.env$progress$set(value = 0.5, message = 'Mapping cells')
+        refdata <- list(id = Idents(object = refs$map))
+        if (do.adt) {
+          refdata[["impADT"]] <- GetAssayData(
+            object = refs$map[['ADT']],
+            slot = 'data'
+          )
+        }
         app.env$object <- TransferData(
           reference = refs$map,
           query = app.env$object,
           dims = 1:50,
           anchorset = app.env$anchors,
-          refdata = list(
-            id = Idents(object = refs$map),
-            impADT = GetAssayData(
-              object = refs$map[['ADT']],
-              slot = 'data'
-            )),
+          refdata = refdata,
           n.trees = n.trees,
           store.weights = TRUE
+        )
+        app.env$object$predicted.id <- factor(
+          x = app.env$object$predicted.id,
+          levels = levels(x = refs$plot$id)
         )
         app.env$object <- IntegrateEmbeddings(
           anchorset = app.env$anchors,
@@ -1198,13 +1204,18 @@ AzimuthServer <- function(input, output, session) {
           Key(object = app.env$object[["SCT"]]),
           rownames(x = app.env$object)
         ),
-        paste0(
-          Key(object = app.env$object[[adt.key]]),
-          rownames(x = app.env$object[[adt.key]])
-        ),
         colnames(x = app.env$object[[]]),
         rownames(x = app.env$object[["prediction.score.id"]])
       )
+      if (do.adt) {
+        avail <- c(
+          avail,
+          paste0(
+            Key(object = app.env$object[[adt.key]]),
+            rownames(x = app.env$object[[adt.key]])
+          )
+        )
+      }
       if (app.env$feature %in% avail) {
         if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
           ggplot() +
@@ -1236,14 +1247,15 @@ AzimuthServer <- function(input, output, session) {
     if (!is.null(x = app.env$object)) {
       palettes <- list(
         c("lightgrey", "blue"),
-        c('lightgrey', 'darkgreen'),
         c('lightgrey', 'darkred')
       )
       names(x = palettes) <- c(
         Key(object = app.env$object[["SCT"]]),
-        Key(object = app.env$object[[adt.key]]),
         'md_'
       )
+      if (do.adt) {
+        palettes[[Key(object = app.env$object[[adt.key]])]] <-  c('lightgrey', 'darkgreen')
+      }
       md <- c(
         colnames(x = app.env$object[[]]),
         rownames(x = app.env$object[['prediction.score.id']])

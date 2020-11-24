@@ -10,7 +10,7 @@ GetPlotRef(object, ...)
 
 \method{GetPlotRef}{AzimuthData}(object)
 
-\method{GetPlotRef}{Seurat}(object, slot = "Azimuth")
+\method{GetPlotRef}{Seurat}(object, slot = "AzimuthReference")
 }
 \arguments{
 \item{object}{An object}

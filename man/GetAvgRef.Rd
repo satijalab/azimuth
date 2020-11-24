@@ -10,7 +10,7 @@ GetAvgRef(object, ...)
 
 \method{GetAvgRef}{AzimuthData}(object)
 
-\method{GetAvgRef}{Seurat}(object, slot = "Azimuth")
+\method{GetAvgRef}{Seurat}(object, slot = "AzimuthReference")
 }
 \arguments{
 \item{object}{An object}

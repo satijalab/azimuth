@@ -10,7 +10,7 @@ GetColorMap(object, ...)
 
 \method{GetColorMap}{AzimuthData}(object)
 
-\method{GetColorMap}{Seurat}(object, slot = "Azimuth")
+\method{GetColorMap}{Seurat}(object, slot = "AzimuthReference")
 }
 \arguments{
 \item{object}{An object}
