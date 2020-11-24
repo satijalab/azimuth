@@ -130,8 +130,6 @@
 
 app.title <- 'Azimuth'
 
-css <- system.file('www', 'azimuth.css', package = 'Azimuth')
-
 default.options <- list(
   Azimuth.app.default_adt = "CD3-1",
   Azimuth.app.default_gene = "GNLY",
@@ -287,6 +285,12 @@ FormatDiffTime <- function(dt) {
     x = format(x = .POSIXct(xx = dt), format = dtfmt),
     fixed = TRUE
   ))
+}
+
+# Helper fxn to pull css file location
+#
+GetCSS <- function() {
+  css <- system.file('www', 'azimuth.css', package = 'Azimuth')
 }
 
 #' Return names of metadata columns in a Seurat object that have an

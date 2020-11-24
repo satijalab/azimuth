@@ -15,7 +15,7 @@ NULL
 
 AzimuthUI <- tagList(
   useShinyjs(),
-  includeCSS(path = css),
+  includeCSS(path = GetCSS()),
   dashboardPage(
     dashboardHeader(title = app.title),
     dashboardSidebar(
