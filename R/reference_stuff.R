@@ -132,6 +132,113 @@ GetColorMap.Seurat <- function(object, slot = "Azimuth") {
 # AzimuthData helpers
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Create a Seurat object compatible with Azimuth.
+#'
+#' @inheritParams CreateAzimuthData
+#' @inheritParams FindNeighbors
+#' @return Returns a Seurat object with AzimuthData stored in the tools slot for
+#' use with Azimuth.
+#'
+#' @importFrom Seurat Reductions Misc Misc<- Assays FindNeighbors Cells Loadings
+#' Idents NormalizeData AverageExpression DefaultAssay DietSeurat Tool<-
+#' @export
+#'
+AzimuthReference <- function(
+  object,
+  refUMAP = "umap",
+  refDR = "spca",
+  dims = 1:50,
+  k.param = 31,
+  id = NULL,
+  plotref = "umap",
+  plotids = NULL,
+  colormap = NULL,
+  verbose = FALSE
+) {
+  # Parameter validation
+  if (!refUMAP %in% Reductions(object = object)) {
+    stop("refUMAP (", refUMAP, ") not found in Seurat object provided")
+  }
+  if (is.null(x = Misc(object = object[[refUMAP]], slot = "model"))) {
+    stop("refUMAP (", refUMAP, ") does not have the umap model info stored. ",
+         "Please rerun RunUMAP with return.model = TRUE.")
+  }
+  if (!refDR %in% Reductions(object = object)) {
+    stop("refDR (", refDR, ") not found in Seurat object provided")
+  }
+  if (is.null(x = id)) {
+    stop("Please specify the default reference ID (for transfer and plotting).")
+    if (! id %in% colnames(x = object[[]])) {
+      stop("id not found in Seurat object metadata")
+    }
+  }
+  if (!all(c("RNA", "SCT") %in% Assays(object = object))) {
+    stop("Seurat object provided must have RNA and SCT Assays stored.")
+  }
+  if (refUMAP != "refUMAP") {
+    object[["refUMAP"]] <- object[[refUMAP]]
+    object[[refUMAP]] <- NULL
+  }
+  if (refDR != "refDR") {
+    object[["refDR"]] <- object[[refDR]]
+    object[[refDR]] <- NULL
+  }
+  # Calculate the Neighbors
+  object <- FindNeighbors(
+    object = object,
+    reduction = "refDR",
+    dims = dims,
+    graph.name = "refdr.annoy.neighbors",
+    k.param = k.param,
+    nn.method = "annoy",
+    annoy.metric = "cosine",
+    cache.index = TRUE,
+    return.neighbor = TRUE,
+    l2.norm = FALSE,
+    verbose = verbose
+  )
+  object[["id"]] <- object[[id]]
+  # Add the "ori.index" column.
+  object$ori.index <-  match(Cells(x = object), Cells(x = object[["refUMAP"]]))
+  if (verbose) {
+    message("Computing pseudobulk averages")
+  }
+  features <- rownames(x = Loadings(object = object[['refDR']]))
+  random.name <- basename(path = tempdir())
+  while (random.name %in% colnames(x = object[[]])) {
+    random.name <- basename(path = tempdir())
+  }
+  Idents(object = object) <- random.name
+  object <- NormalizeData(object = ob, assay = "RNA", verbose = verbose)
+  avg.rna <- AverageExpression(object = ob, assays = "RNA")[[1]][features, , drop = FALSE]
+  Idents(object = object) <- "id"
+
+  # Subset the features of the RNA assay
+  DefaultAssay(object = object) <- "SCT"
+  # Preserves DR after DietSeurat
+  DefaultAssay(object = object[["refDR"]]) <- "SCT"
+  object <- DietSeurat(
+    object = object,
+    counts = FALSE,
+    assays = "SCT",
+    features = features,
+    dimreducs = c("refDR","refUMAP")
+  )
+  object[["SCT"]] <- Seurat:::CreateDummyAssay(assay = object[["SCT"]])
+  Misc(object = object[["SCT"]], slot = "vst.set") <- list()
+  object$id <- factor(x = object$id, levels = sort(x = unique(x = object$id)))
+  ad <- CreateAzimuthData(
+    object = object,
+    plotref = plotref,
+    plotids = object$id,
+    avgref = avgref,
+    colormap = colormap
+  )
+  Tool(object = object) <- ad
+  ValidateAzimuthReference(object = object)
+  return(object)
+}
+
 #' Create auxiliary AzimuthData object for storing necessary info when generating
 #' an Azimuth reference.
 #'
@@ -143,13 +250,9 @@ GetColorMap.Seurat <- function(object, slot = "Azimuth") {
 #' @param avgref Matrix containing the average RNA expression for the reference,
 #' used in the pseudobulk correlation test.
 #' @param colormap A named and ordered vector specifying the colors and levels
-#' for the IDs being plotted. See \link{\code{CreateColorMap}} for help
+#' for the IDs being plotted. See \code{\link{CreateColorMap}} for help
 #' generating your own.
-#' @param ad.name Name in the tools slot to store the AzimuthData object.
-#' Azimuth is expecting the name "Azimuth", so generally don't modify this.
-#'
-#' @return Returns a Seurat object with the AzimuthData object stored in the
-#' tools slot
+#' @return Returns an AzimuthData object
 #'
 #' @importFrom Seurat Reductions Misc<-
 #' @export
@@ -159,8 +262,7 @@ CreateAzimuthData <- function(
   plotref = "umap",
   plotids = NULL,
   avgref = NULL,
-  colormap = NULL,
-  ad.name = "Azimuth"
+  colormap = NULL
 ) {
   if (inherits(x = plotref, what = "character")) {
     if (plotref %in% Reductions(object = object)) {
@@ -173,13 +275,13 @@ CreateAzimuthData <- function(
   Misc(object = plotref, slot = "ids") <- plotids
   colormap <- colormap %||% CreateColorMap(object = object)
   avgref <- as.matrix(x = avgref)
-  slot(object = object, name = "tools")[[ad.name]] <- AzimuthData(
+  ad <- new(
+    Class = "AzimuthData",
     plotref = plotref,
     avgref = avgref,
     colormap = colormap
   )
-  ValidateAzimuthReference(object = object, ad.name = ad.name)
-  return(object)
+  return(ad)
 }
 
 #' Create mapping between IDs and colors to use with reference plotting in
@@ -226,7 +328,7 @@ gg_color_hue <- function(n) {
 #'
 #' @export
 #'
-ValidateAzimuthReference <- function(object, ad.name = "Azimuth") {
+ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
   if (!inherits(x = Tool(object = object, slot = ad.name), what = "AzimuthData")) {
     stop ("Reference must contain an AzimuthData object in the tools slot.")
   }

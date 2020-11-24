@@ -4,7 +4,7 @@
 \alias{ValidateAzimuthReference}
 \title{Validate aspects of a Seurat object to be used as an Azimuth reference}
 \usage{
-ValidateAzimuthReference(object, ad.name = "Azimuth")
+ValidateAzimuthReference(object, ad.name = "AzimuthReference")
 }
 \arguments{
 \item{object}{Seurat object}
