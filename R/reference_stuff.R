@@ -135,10 +135,17 @@ GetColorMap.Seurat <- function(object, slot = "AzimuthReference") {
 #' Create a Seurat object compatible with Azimuth.
 #'
 #' @inheritParams CreateAzimuthData
+#' @param refUMAP Name of UMAP in reference to use for mapping
+#' @param refDR Name of DimReduc in reference to use for mapping
 #' @param dims Dimensions to use in reference neighbor finding
 #' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param id Default reference ID for transfer/plotting
+#' @param ori.index Index of the cells used in mapping in the original object on
+#' which UMAP was run. Only need to provide if UMAP was run on different set of
+#' cells.
 #' @param assays Assays to retain for transfer
 #' @param metadata Metadata to retain for transfer
+#' @param verbose Display progress/messages
 #' @return Returns a Seurat object with AzimuthData stored in the tools slot for
 #' use with Azimuth.
 #'
@@ -155,6 +162,8 @@ AzimuthReference <- function(
   id = NULL,
   plotref = "umap",
   plotids = NULL,
+  ori.index = NULL,
+  avgref = NULL,
   colormap = NULL,
   assays = NULL,
   metadata = NULL,
@@ -177,9 +186,13 @@ AzimuthReference <- function(
       stop("id not found in Seurat object metadata")
     }
   }
-  if (!all(c("RNA", "SCT") %in% Assays(object = object))) {
-    stop("Seurat object provided must have RNA and SCT Assays stored.")
+  if (!"SCT" %in% Assays(object = object)) {
+    stop("Seurat object provided must have the SCT Assay stored.")
   }
+  if (is.null(x = avgref) && !"RNA" %in% Assays(object = object)) {
+    stop("Please provide either the RNA assay or avgref.")
+  }
+
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
 
@@ -198,36 +211,40 @@ AzimuthReference <- function(
     verbose = verbose
   )
   object[["id"]] <- object[[id]]
-  # Add the "ori.index" column.
-  object$ori.index <-  match(Cells(x = object), Cells(x = object[["refUMAP"]]))
   if (verbose) {
     message("Computing pseudobulk averages")
   }
   features <- rownames(x = Loadings(object = object[['refDR']]))
-  random.name <- "allcells"
-  while (random.name %in% colnames(x = object[[]])) {
-    random.name <- paste0(sample(letters, size = 10), collapse = "")
+  if (is.null(x = avgref)) {
+    random.name <- "allcells"
+    while (random.name %in% colnames(x = object[[]])) {
+      random.name <- paste0(sample(letters, size = 10), collapse = "")
+    }
+    Idents(object = object) <- random.name
+    object <- NormalizeData(object = object, assay = "RNA", verbose = verbose)
+    avgref <- AverageExpression(object = object, assays = "RNA", verbose = verbose)[[1]][features, , drop = FALSE]
+    Idents(object = object) <- "id"
   }
-  Idents(object = object) <- random.name
-  object <- NormalizeData(object = object, assay = "RNA", verbose = verbose)
-  avg.rna <- AverageExpression(object = object, assays = "RNA", verbose = verbose)[[1]][features, , drop = FALSE]
-  Idents(object = object) <- "id"
   ad <- CreateAzimuthData(
     object = object,
     plotref = plotref,
     plotids = plotids,
-    avgref = avg.rna,
+    avgref = avgref,
     colormap = colormap
   )
+  # Add the "ori.index" column.
+  ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
+  object$ori.index <- ori.index
+
   # Subset the features of the RNA assay
   DefaultAssay(object = object) <- "SCT"
+  object[["SCT"]] <- subset(x = object[["SCT"]], features = features)
   # Preserves DR after DietSeurat
   DefaultAssay(object = object[["refDR"]]) <- "SCT"
   object <- DietSeurat(
     object = object,
     counts = FALSE,
     assays = c("SCT", assays),
-    features = features,
     dimreducs = c("refDR","refUMAP")
   )
   metadata <- c(metadata, "id", "ori.index")
@@ -241,7 +258,6 @@ AzimuthReference <- function(
   object$id <- factor(x = object$id, levels = sort(x = unique(x = object$id)))
   plotids <- plotids %||% object$id
   Tool(object = object) <- ad
-  object[['refUMAP']] <- NULL
   ValidateAzimuthReference(object = object)
   return(object)
 }

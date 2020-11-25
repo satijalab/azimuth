@@ -693,7 +693,7 @@ AzimuthServer <- function(input, output, session) {
         )
         app.env$object[['umap.proj']] <- RunUMAP(
           object = app.env$object[['query_ref.nn']],
-          reduction.model = refs$plot[['refUMAP']],
+          reduction.model = refs$map[['refUMAP']],
           reduction.key = 'UMAP_'
         )
         app.env$object <- SetAssayData(
@@ -1177,11 +1177,12 @@ AzimuthServer <- function(input, output, session) {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
         if (input$metacolor == "predicted.id") {
+          colormap <- GetColorMap(object = refs$map)
           DimPlot(
             object = app.env$object,
             group.by = "predicted.id",
             label = input$labels,
-            cols = plotcolors,
+            cols = colormap[names(x = colormap) %in% unique(x = app.env$object$predicted.id)],
             repel = TRUE,
             reduction = "umap.proj"
           )
