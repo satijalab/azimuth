@@ -252,11 +252,7 @@ LoadH5AD <- function(path) {
 #' \itemize{
 #'  \item \dQuote{ref.Rds} for the downsampled reference \code{Seurat}
 #'  object (for mapping)
-#'  \item \dQuote{plotref.Rds} for the reference \code{Seurat}
-#'  object (for plotting)
 #'  \item \dQuote{idx.annoy} for the nearest-neighbor index object
-#'  \item \dQuote{vf_avg_rna.Rds} for the average expression of variable
-#'  features of the reference (for pseudobulk check)
 #' }
 #'
 #' @param path Path or URL to the two RDS files
@@ -275,6 +271,7 @@ LoadH5AD <- function(path) {
 #' @importFrom Seurat Idents<- LoadAnnoyIndex
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
+#' @importFrom Matrix sparseMatrix
 #'
 #' @keywords internal
 #'
@@ -289,9 +286,7 @@ LoadH5AD <- function(path) {
 LoadReference <- function(path, seconds = 10L) {
   ref.names <- list(
     map = 'ref.Rds',
-    plt = 'plotref.Rds',
-    ann = 'idx.annoy',
-    avg = 'vf_avg_rna.Rds'
+    ann = 'idx.annoy'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -302,10 +297,8 @@ LoadReference <- function(path, seconds = 10L) {
       stop("Cannot find directory ", path, call. = FALSE)
     }
     mapref <- file.path(path, ref.names$map)
-    pltref <- file.path(path, ref.names$plt)
     annref <- file.path(path, ref.names$ann)
-    avgref <- file.path(path, ref.names$avg)
-    exists <- file.exists(c(mapref, pltref, annref, avgref))
+    exists <- file.exists(c(mapref, annref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -344,27 +337,36 @@ LoadReference <- function(path, seconds = 10L) {
       )
     }
     mapref <- url(description = ref.uris[['map']])
-    pltref <- url(description = ref.uris[['plt']])
-    avgref <- url(description = ref.uris[['avg']])
     annref <- tempfile()
     download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
     on.exit(expr = {
       close(con = mapref)
-      close(con = pltref)
-      close(con = avgref)
       unlink(x = annref)
     })
   }
   # Load the map reference
   map <- readRDS(file = mapref)
   # Load the annoy index into the Neighbor object in the neighbors slot
-  map[["spca.annoy.neighbors"]] <- LoadAnnoyIndex(
-    object = map[["spca.annoy.neighbors"]],
+  map[["refdr.annoy.neighbors"]] <- LoadAnnoyIndex(
+    object = map[["refdr.annoy.neighbors"]],
     file = annref
   )
-  # Load the other references
-  plot <- readRDS(file = pltref)
-  avg <- readRDS(file = avgref)
+  # Create plotref
+  ad <- Tool(object = map, slot = "AzimuthReference")
+  plotref.dr <- GetPlotRef(object = ad)
+  cm <- sparseMatrix(
+    i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
+    dimnames = list("placeholder", Cells(x = plotref.dr))
+  )
+  plot <- CreateSeuratObject(
+    counts = cm
+  )
+  plot[["refUMAP"]] <- plotref.dr
+  colormap <- GetColorMap(object = map)
+  plot$id <- factor(x = Misc(object = plotref.dr, slot = "ids"), levels = names(x = colormap))
+  Idents(object = plot) <- "id"
+  slot(object = plot[["refUMAP"]], name = "misc")[["colors"]] <- unname(obj = colormap)
+  avg <- GetAvgRef(object = ad)
   id.check <- vapply(
     X = c(map, plot),
     FUN = function(x) {

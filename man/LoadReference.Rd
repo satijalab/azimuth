@@ -29,11 +29,7 @@ there must be the following files:
 \itemize{
  \item \dQuote{ref.Rds} for the downsampled reference \code{Seurat}
  object (for mapping)
- \item \dQuote{plotref.Rds} for the reference \code{Seurat}
- object (for plotting)
  \item \dQuote{idx.annoy} for the nearest-neighbor index object
- \item \dQuote{vf_avg_rna.Rds} for the average expression of variable
- features of the reference (for pseudobulk check)
 }
 }
 \examples{

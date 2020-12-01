@@ -156,8 +156,12 @@ AzimuthServer <- function(input, output, session) {
       setProgress(value = 1)
     }
   )
-  set.seed(seed = getOption(x = "Azimuth.app.plotseed"))
-  plotlevels <- sample(x = levels(as.factor(refs$plot$id)), size = length(levels(as.factor(refs$plot$id))))
+  plotseed <- getOption(x = "Azimuth.app.plotseed")
+  plotcolors <- Misc(object = refs$plot[["refUMAP"]], slot = "colors")
+  if (!is.null(x = plotseed)) {
+    set.seed(seed = plotseed)
+    plotcolors <- sample(x = plotcolors)
+  }
   # React to events
   # Load the data an prepare for QC
   observeEvent(
@@ -532,10 +536,10 @@ AzimuthServer <- function(input, output, session) {
           reference = refs$map,
           query = app.env$object,
           k.filter = NA,
-          reference.neighbors = "spca.annoy.neighbors",
+          reference.neighbors = "refdr.annoy.neighbors",
           reference.assay = "SCT",
           query.assay = 'SCT',
-          reference.reduction = 'spca',
+          reference.reduction = 'refDR',
           normalization.method = 'SCT',
           features = intersect(
             x = rownames(x = refs$map),
@@ -557,19 +561,25 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (isTRUE(x = react.env$map)) {
         react.env$progress$set(value = 0.5, message = 'Mapping cells')
+        refdata <- list(id = Idents(object = refs$map))
+        if (do.adt) {
+          refdata[["impADT"]] <- GetAssayData(
+            object = refs$map[['ADT']],
+            slot = 'data'
+          )
+        }
         app.env$object <- TransferData(
           reference = refs$map,
           query = app.env$object,
           dims = 1:50,
           anchorset = app.env$anchors,
-          refdata = list(
-            id = Idents(object = refs$map),
-            impADT = GetAssayData(
-              object = refs$map[['ADT']],
-              slot = 'data'
-            )),
+          refdata = refdata,
           n.trees = n.trees,
           store.weights = TRUE
+        )
+        app.env$object$predicted.id <- factor(
+          x = app.env$object$predicted.id,
+          levels = levels(x = refs$plot$id)
         )
         app.env$object <- IntegrateEmbeddings(
           anchorset = app.env$anchors,
@@ -591,20 +601,20 @@ AzimuthServer <- function(input, output, session) {
           value = 0.7,
           message = 'Calculating mapping score'
         )
-        spca <- subset(
+        refdr <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = app.env$object), "_query")
         )
-        spca <- RenameCells(
-          object = spca,
+        refdr <- RenameCells(
+          object = refdr,
           new.names = Cells(x = app.env$object)
         )
-        spca.ref <- subset(
+        refdr.ref <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = refs$map), "_reference")
         )
-        spca.ref <- RenameCells(
-          object = spca.ref,
+        refdr.ref <- RenameCells(
+          object = refdr.ref,
           new.names = Cells(x = refs$map)
         )
         if (Sys.getenv("RSTUDIO") == "1") {
@@ -645,8 +655,8 @@ AzimuthServer <- function(input, output, session) {
               combined.object = app.env$anchors@object.list[[1]],
               query.neighbors =  slot(object = app.env$anchors, name = "neighbors")[["query.neighbors"]],
               query.weights = Tool(object = app.env$object, slot = "TransferData")$weights.matrix,
-              query.embeddings = Embeddings(object = spca),
-              ref.embeddings = Embeddings(object = spca.ref),
+              query.embeddings = Embeddings(object = refdr),
+              ref.embeddings = Embeddings(object = refdr.ref),
               nn.method = "annoy",
               n.trees = n.trees
             )
@@ -658,7 +668,7 @@ AzimuthServer <- function(input, output, session) {
           col.name = "mapping.score"
         )
         app.env$anchors <- NULL
-        rm(spca)
+        rm(refdr)
         gc(verbose = FALSE)
         react.env$transform <- TRUE
         react.env$score <- FALSE
@@ -671,7 +681,7 @@ AzimuthServer <- function(input, output, session) {
       if (isTRUE(x = react.env$transform)) {
         react.env$progress$set(value = 0.8, message = 'Running UMAP transform')
         app.env$object[["query_ref.nn"]] <- FindNeighbors(
-          object = Embeddings(refs$map[["spca"]]),
+          object = Embeddings(refs$map[["refDR"]]),
           query = Embeddings(app.env$object[["integrated_dr"]]),
           return.neighbor = TRUE,
           l2.norm = TRUE,
@@ -683,7 +693,7 @@ AzimuthServer <- function(input, output, session) {
         )
         app.env$object[['umap.proj']] <- RunUMAP(
           object = app.env$object[['query_ref.nn']],
-          reduction.model = refs$map[['jumap']],
+          reduction.model = refs$map[['refUMAP']],
           reduction.key = 'UMAP_'
         )
         app.env$object <- SetAssayData(
@@ -1159,28 +1169,22 @@ AzimuthServer <- function(input, output, session) {
       object = refs$plot,
       label = input$labels,
       group.by = "id",
-      repel = TRUE
-    ) +
-      scale_colour_hue(
-        limits = plotlevels,
-        breaks = sort(x = levels(x = as.factor(x = refs$plot$id))),
-        drop = FALSE
-      )
+      cols = plotcolors,
+      repel = TRUE,
+    )
   })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
         if (input$metacolor == "predicted.id") {
+          colormap <- GetColorMap(object = refs$map)
           DimPlot(
             object = app.env$object,
             group.by = "predicted.id",
             label = input$labels,
+            cols = colormap[names(x = colormap) %in% unique(x = app.env$object$predicted.id)],
             repel = TRUE,
             reduction = "umap.proj"
-          ) + scale_colour_hue(
-            limits = plotlevels,
-            breaks = sort(x = levels(x = as.factor(x = refs$plot$id))),
-            drop = FALSE
           )
         } else {
           DimPlot(
@@ -1201,13 +1205,18 @@ AzimuthServer <- function(input, output, session) {
           Key(object = app.env$object[["SCT"]]),
           rownames(x = app.env$object)
         ),
-        paste0(
-          Key(object = app.env$object[[adt.key]]),
-          rownames(x = app.env$object[[adt.key]])
-        ),
         colnames(x = app.env$object[[]]),
         rownames(x = app.env$object[["prediction.score.id"]])
       )
+      if (do.adt) {
+        avail <- c(
+          avail,
+          paste0(
+            Key(object = app.env$object[[adt.key]]),
+            rownames(x = app.env$object[[adt.key]])
+          )
+        )
+      }
       if (app.env$feature %in% avail) {
         if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
           ggplot() +
@@ -1239,14 +1248,15 @@ AzimuthServer <- function(input, output, session) {
     if (!is.null(x = app.env$object)) {
       palettes <- list(
         c("lightgrey", "blue"),
-        c('lightgrey', 'darkgreen'),
         c('lightgrey', 'darkred')
       )
       names(x = palettes) <- c(
         Key(object = app.env$object[["SCT"]]),
-        Key(object = app.env$object[[adt.key]]),
         'md_'
       )
+      if (do.adt) {
+        palettes[[Key(object = app.env$object[[adt.key]])]] <-  c('lightgrey', 'darkgreen')
+      }
       md <- c(
         colnames(x = app.env$object[[]]),
         rownames(x = app.env$object[['prediction.score.id']])

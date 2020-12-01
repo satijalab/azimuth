@@ -130,14 +130,12 @@
 
 app.title <- 'Azimuth'
 
-css <- system.file('www', 'azimuth.css', package = 'Azimuth')
-
 default.options <- list(
   Azimuth.app.default_adt = "CD3-1",
   Azimuth.app.default_gene = "GNLY",
   Azimuth.app.max_cells = 50000,
   Azimuth.app.mito = '^MT-',
-  Azimuth.app.plotseed = 0,
+  Azimuth.app.plotseed = NULL,
   Azimuth.app.reference = 'https://seurat.nygenome.org/references/pbmc',
   Azimuth.app.welcomebox = "",
   Azimuth.de.digits = 3L,
@@ -287,6 +285,18 @@ FormatDiffTime <- function(dt) {
     x = format(x = .POSIXct(xx = dt), format = dtfmt),
     fixed = TRUE
   ))
+}
+
+#' Get Azimuth's CSS file
+#'
+#' Helper function to pull the location of Azimuth's CSS file
+#'
+#' @return The path to Azimuth's CSS file
+#'
+#' @keywords internal
+#'
+GetCSS <- function() {
+  css <- system.file('www', 'azimuth.css', package = 'Azimuth')
 }
 
 #' Return names of metadata columns in a Seurat object that have an
