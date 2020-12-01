@@ -287,8 +287,14 @@ FormatDiffTime <- function(dt) {
   ))
 }
 
-# Helper fxn to pull css file location
-#
+#' Get Azimuth's CSS file
+#'
+#' Helper function to pull the location of Azimuth's CSS file
+#'
+#' @return The path to Azimuth's CSS file
+#'
+#' @keywords internal
+#'
 GetCSS <- function() {
   css <- system.file('www', 'azimuth.css', package = 'Azimuth')
 }

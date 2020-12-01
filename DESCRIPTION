@@ -35,16 +35,19 @@ Imports:
   htmltools (>= 0.5.0),
   httr (>= 1.4.2),
   jsonlite (>= 1.7.0),
+  Matrix (>= 1.2.18),
   methods,
   patchwork (>= 1.0.1),
   presto,
   rlang (>= 0.4.8),
+  scales (>= 1.1.1),
   Seurat (>= 3.9.9),
   SeuratDisk,
   shiny (>= 1.5.0),
   shinyBS (>= 0.61),
   shinydashboard (>= 0.7.1),
   shinyjs (>= 2.0.0),
+  stats,
   stringr (>= 1.4.0),
   tools,
   utils,
@@ -55,5 +58,4 @@ Collate:
     'helpers.R'
     'seurat.R'
     'azimuth.R'
-    'reference_stuff.R'
     'server.R'
