@@ -834,7 +834,7 @@ AzimuthServer <- function(input, output, session) {
             max.levels = 50
           )
         )
-        for (id in c('metacolor.query', 'metarow', 'metacol', 'metagroup')) {
+        for (id in c('metarow', 'metacol', 'metagroup')) {
           updateSelectizeInput(
             session = session,
             inputId = id,
@@ -844,6 +844,14 @@ AzimuthServer <- function(input, output, session) {
             options = selectize.opts
           )
         }
+        updateSelectizeInput(
+          session = session,
+          inputId = 'metacolor.query',
+          choices = metadata.discrete,
+          selected = paste0("predicted.", app.env$default.metadata),
+          server = TRUE,
+          options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
+        )
         # Add the continuous metadata dropdown
         metadata.cont <- sort(x = setdiff(
           x = colnames(x = app.env$object[[]]),
@@ -891,7 +899,7 @@ AzimuthServer <- function(input, output, session) {
           choices = input$metadataxfer,
           selected = app.env$default.metadata,
           server = TRUE,
-          options = selectize.opts
+          options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
         )
         react.env$features <- TRUE
         react.env$metadata <- FALSE
@@ -1322,28 +1330,39 @@ AzimuthServer <- function(input, output, session) {
     }
   })
   output$refdim <- renderPlot(expr = {
-    colormap <- GetColorMap(object = refs$map)[[input$metacolor.ref]]
-    DimPlot(
-      object = refs$plot,
-      label = input$labels,
-      group.by = input$metacolor.ref,
-      cols = colormap,
-      repel = TRUE,
-    )
+    if (!is.null(x = input$metacolor.ref)) {
+      colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
+      plots <- list()
+      for (i in 1:length(x = colormaps)) {
+        plots[[i]] <- DimPlot(
+          object = refs$plot,
+          label = input$labels,
+          group.by = input$metacolor.ref[i],
+          cols = colormaps[[i]],
+          repel = TRUE,
+        )
+      }
+      wrap_plots(plots, nrow = 1)
+    }
   })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
-      if (length(x = Reductions(object = app.env$object))) {
+      if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
         group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query)
-        colormap <- GetColorMap(object = refs$map)[[group.var]]
-        DimPlot(
-          object = app.env$object,
-          group.by = input$metacolor.query,
-          label = input$labels,
-          cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
-          repel = TRUE,
-          reduction = "umap.proj"
-        )
+        colormaps <- GetColorMap(object = refs$map)[group.var]
+        plots <- list()
+        for (i in 1:length(x = colormaps)) {
+          colormap <- colormaps[[i]]
+          plots[[i]] <- DimPlot(
+            object = app.env$object,
+            group.by = input$metacolor.query[i],
+            label = input$labels,
+            cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
+            repel = TRUE,
+            reduction = "umap.proj"
+          )
+        }
+        wrap_plots(plots, nrow = 1)
       }
     }
   })

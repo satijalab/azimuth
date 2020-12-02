@@ -191,7 +191,7 @@ AzimuthUI <- tagList(
               inputId = 'metacolor.ref',
               label = 'Metadata to color by',
               choices = '',
-              width = '25%'
+              multiple = TRUE,
             ),
             plotOutput(outputId = 'refdim'),
             width = 12
@@ -202,7 +202,7 @@ AzimuthUI <- tagList(
               inputId = 'metacolor.query',
               label = 'Metadata to color by',
               choices = '',
-              width = '25%'
+              multiple = TRUE,
             ),
             plotOutput(outputId = 'objdim'),
             width = 12
