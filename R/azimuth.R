@@ -118,7 +118,7 @@ AzimuthData <- setClass(
   slots = c(
     plotref = 'DimReduc',
     avgref = 'matrix',
-    colormap = 'vector'
+    colormap = 'list'
   )
 )
 
@@ -258,7 +258,6 @@ AzimuthReference <- function(
   refDR = "spca",
   dims = 1:50,
   k.param = 31,
-  id = NULL,
   plotref = "umap",
   plotids = NULL,
   ori.index = NULL,
@@ -279,10 +278,18 @@ AzimuthReference <- function(
   if (!refDR %in% Reductions(object = object)) {
     stop("refDR (", refDR, ") not found in Seurat object provided")
   }
-  if (is.null(x = id)) {
-    stop("Please specify the default reference ID (for transfer and plotting).")
-    if (! id %in% colnames(x = object[[]])) {
-      stop("id not found in Seurat object metadata")
+  if (is.null(x = metadata)) {
+    stop("Please specify at least one metadata field (for transfer and plotting).")
+    for(i in metadata) {
+      if (! i %in% colnames(x = object[[]])) {
+        warning(i, " not found in Seurat object metadata")
+        next
+      }
+      if (! is.factor(x = object[[i, drop = TRUE]])) {
+        warning(i, " is not a factor. Converting to factor with alphabetical ",
+                "levels.", call. = FALSE)
+        object[[i]] <- factor(x = object[[i]], levels = sort(x = unique(object[[i]])))
+      }
     }
   }
   if (!"SCT" %in% Assays(object = object)) {
@@ -293,6 +300,7 @@ AzimuthReference <- function(
   }
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
+
   # Calculate the Neighbors
   object <- FindNeighbors(
     object = object,
@@ -307,7 +315,6 @@ AzimuthReference <- function(
     l2.norm = FALSE,
     verbose = verbose
   )
-  object[["id"]] <- object[[id]]
   if (verbose) {
     message("Computing pseudobulk averages")
   }
@@ -348,7 +355,7 @@ AzimuthReference <- function(
     assays = c("SCT", assays),
     dimreducs = c("refDR","refUMAP")
   )
-  metadata <- c(metadata, "id", "ori.index")
+  metadata <- c(metadata, "ori.index")
   for (i in colnames(x = object[[]])) {
     if (!i %in% metadata){
       object[[i]] <- NULL
@@ -356,10 +363,8 @@ AzimuthReference <- function(
   }
   object[["SCT"]] <- Seurat:::CreateDummyAssay(assay = object[["SCT"]])
   Misc(object = object[["SCT"]], slot = "vst.set") <- list()
-  object$id <- factor(x = object$id, levels = sort(x = unique(x = object$id)))
-  plotids <- plotids %||% object$id
   Tool(object = object) <- ad
-  ValidateAzimuthReference(object = object)
+  #ValidateAzimuthReference(object = object)
   return(object)
 }
 
@@ -371,12 +376,12 @@ AzimuthReference <- function(
 #' @param object Seurat object
 #' @param plotref Either the name of the DimReduc in the provided Seurat object
 #' to use for the plotting reference or the DimReduc object itself.
-#' @param plotids Vector of IDs specifying the identities of the cells in the
-#' plotref.
+#' @param plotids A named list of vectors of IDs specifying the identities of
+#' the cells in the plotref.
 #' @param avgref Matrix containing the average RNA expression for the reference,
 #' used in the pseudobulk correlation test.
-#' @param colormap A named and ordered vector specifying the colors and levels
-#' for the IDs being plotted. See \code{\link{CreateColorMap}} for help
+#' @param colormap A list of named and ordered vectors specifying the colors and levels
+#' for the metadata. See \code{\link{CreateColorMap}} for help
 #' generating your own.
 #'
 #' @return Returns an \code{\link{AzimuthData}} object
@@ -399,9 +404,15 @@ CreateAzimuthData <- function(
       stop("The DimReduc ", plotref, " was not found in the provided object.")
     }
   }
-  plotids <- plotids %||% Idents(object = object)
+  plotids <- plotids %||% list(id = Idents(object = object))
   Misc(object = plotref, slot = "ids") <- plotids
   colormap <- colormap %||% CreateColorMap(object = object)
+  for (i in names(x = plotids)) {
+    if (! i %in% names(x = colormap)) {
+      colormap[i] <- list(CreateColorMap(ids = unique(x = plotids[[i]])))
+    }
+  }
+  colormap <- colormap[names(x = plotids)]
   avgref <- as.matrix(x = avgref)
   ad <- new(
     Class = "AzimuthData",
@@ -466,17 +477,19 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
   if (is.null(x = plotids)) {
     stop("plotref in AzimuthData object must contain ids in the misc slot.")
   } else {
-    if (length(x = plotids) != nrow(x = plotref)) {
-      stop(
-        "Length of ids in plotref in the AzimuthData object is not equal to ",
-        "the number of cells in plotref."
-      )
-    }
-    if (!all(sort(x = as.character(unique(x = plotids))) == sort(x = names(x = colormap)))) {
-      stop(
-        "The colormap stored in the AzimuthData object must contain a ",
-        "color-id mapping for every unique id present in the plotting ids."
-      )
+    for (id in names(x = plotids)) {
+      if (length(x = plotids[[id]]) != nrow(x = plotref)) {
+        stop(
+          "Length of ", id, " in plotref in the AzimuthData object is not equal to ",
+          "the number of cells in plotref."
+        )
+      }
+      if (!all(sort(x = as.character(unique(x = plotids[[id]]))) == sort(x = names(x = colormap[[id]])))) {
+        stop(
+          "The colormap stored in the AzimuthData object must contain a ",
+          "color-id mapping for every unique id present in the plotting ids."
+        )
+      }
     }
   }
   if (is.null(x = Misc(object = plotref, slot = "model"))) {
