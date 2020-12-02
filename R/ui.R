@@ -1,7 +1,7 @@
 #' @include zzz.R
 #'
 #' @importFrom DT DTOutput
-#' @importFrom htmltools div h3 HTML includeCSS p tagList tags
+#' @importFrom htmltools div h3 h4 HTML includeCSS p tagList tags
 #' @importFrom shinyjs disabled useShinyjs
 #' @importFrom shiny actionButton checkboxInput downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
@@ -129,6 +129,18 @@ AzimuthUI <- tagList(
                 )
               ),
               textOutput(outputId = 'text.cellsremain'),
+              div(
+                h4("Transfer Options"),
+              ),
+              div(
+                id = 'xferopts',
+                selectizeInput(
+                  inputId = 'metadataxfer',
+                  label = 'Reference Metadata to Transfer',
+                  choices = '',
+                  multiple = TRUE
+                )
+              ),
               disabled(actionButton(
                 inputId = 'map',
                 label = 'Map cells to reference'
@@ -175,13 +187,19 @@ AzimuthUI <- tagList(
           box(
             title = 'Reference',
             checkboxInput(inputId = 'labels', label = 'Show labels'),
+            selectizeInput(
+              inputId = 'metacolor.ref',
+              label = 'Metadata to color by',
+              choices = '',
+              width = '25%'
+            ),
             plotOutput(outputId = 'refdim'),
             width = 12
           ),
           box(
             title = 'Query',
             selectizeInput(
-              inputId = 'metacolor',
+              inputId = 'metacolor.query',
               label = 'Metadata to color by',
               choices = '',
               width = '25%'
@@ -244,11 +262,29 @@ AzimuthUI <- tagList(
               )
             ),
             div(
-              id = 'scoreinput',
+              id = 'continput',
+              class = 'thirds',
+              selectizeInput(
+                inputId = 'metadata.cont',
+                label = 'Continuous Metadata',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'scoregroupinput',
+              class = 'thirds',
+              selectizeInput(
+                inputId = 'scoregroup',
+                label = 'Predicted Metadata',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'scorefeatureinput',
               class = 'thirds',
               selectizeInput(
                 inputId = 'scorefeature',
-                label = 'Prediction Scores and Continuous Metadata',
+                label = 'Prediction Score',
                 choices = ''
               )
             ),
@@ -292,11 +328,23 @@ AzimuthUI <- tagList(
               trigger = 'focus',
               options = list(container = 'body')
             ),
-            selectizeInput(
-              inputId = 'markerclusters',
-              label = 'Predicted cell type',
-              choices = '',
-              width = '25%'
+            div(
+              id = 'markerclustersgroupinput',
+              class = 'halves',
+              selectizeInput(
+                inputId = 'markerclustersgroup',
+                label = 'Metadata group',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'markerclustersgroupinput',
+              class = 'halves',
+              selectizeInput(
+                inputId = 'markerclusters',
+                label = 'Predicted cell type',
+                choices = ''
+              )
             ),
             div(
               id = 'biotable',

@@ -48,12 +48,14 @@ AzimuthServer <- function(input, output, session) {
     anchors = NULL,
     default.assay = NULL,
     default.feature = NULL,
+    default.metadata = NULL,
     diff.exp = list(),
     feature = '',
     features = character(length = 0L),
     mapping.score = NULL,
     messages = 'Upload a file',
     object = NULL,
+    metadata.cont = character(length = 0L),
     scorefeatures = character(length = 0L)
   )
   react.env <- reactiveValues(
@@ -157,11 +159,16 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   plotseed <- getOption(x = "Azimuth.app.plotseed")
-  plotcolors <- Misc(object = refs$plot[["refUMAP"]], slot = "colors")
   if (!is.null(x = plotseed)) {
     set.seed(seed = plotseed)
-    plotcolors <- sample(x = plotcolors)
+    colormap <- GetColorMap(object = refs$map)
+    for (i in names(x = colormap)) {
+      names(x = colormap[[i]]) <- sample(x = names(x = colormap[[i]]))
+    }
+    # TODO: proper setters
+    refs$map@tools$AzimuthReference@colormap <- colormap
   }
+  possible.metadata.transfer <- names(x = GetColorMap(object = refs$map))
   # React to events
   # Load the data an prepare for QC
   observeEvent(
@@ -380,10 +387,19 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           react.env$progress <- NULL
         }
+        updateSelectizeInput(
+          session = session,
+          inputId = 'metadataxfer',
+          choices = possible.metadata.transfer,
+          selected =  getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1]),
+          server = TRUE,
+          options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
+        )
         react.env$qc <- FALSE
       }
     }
   )
+
   # Filter and process the data
   observeEvent(
     eventExpr = input$map,
@@ -392,6 +408,7 @@ AzimuthServer <- function(input, output, session) {
       for (id in qc.ids) {
         try(expr = disable(id = id), silent = TRUE)
       }
+      app.env$object$query <- NULL
       react.env$progress <- Progress$new(style = 'notification')
       react.env$progress$set(
         value = 0,
@@ -561,7 +578,10 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (isTRUE(x = react.env$map)) {
         react.env$progress$set(value = 0.5, message = 'Mapping cells')
-        refdata <- list(id = Idents(object = refs$map))
+        refdata <- lapply(X = input$metadataxfer, function(x) {
+          refs$map[[x, drop = TRUE]]
+        })
+        names(x = refdata) <- input$metadataxfer
         if (do.adt) {
           refdata[["impADT"]] <- GetAssayData(
             object = refs$map[['ADT']],
@@ -577,10 +597,12 @@ AzimuthServer <- function(input, output, session) {
           n.trees = n.trees,
           store.weights = TRUE
         )
-        app.env$object$predicted.id <- factor(
-          x = app.env$object$predicted.id,
-          levels = levels(x = refs$plot$id)
-        )
+        for(i in input$metadataxfer) {
+          app.env$object[[paste0("predicted.", i), drop = TRUE]] <- factor(
+            x = app.env$object[[paste0("predicted.", i), drop = TRUE]],
+            levels = levels(x = refs$map[[i, drop = TRUE]])
+          )
+        }
         app.env$object <- IntegrateEmbeddings(
           anchorset = app.env$anchors,
           reference = refs$map,
@@ -588,6 +610,15 @@ AzimuthServer <- function(input, output, session) {
           reductions = "pcaproject",
           reuse.weights.matrix = TRUE
         )
+        if (is.null(x = getOption(x = "Azimuth.app.default_metadata"))) {
+          app.env$default.metadata <- names(x = refdata)[1]
+        } else {
+          if (getOption(x = "Azimuth.app.default_metadata") %in% names(x = refdata)) {
+            app.env$default.metadata <- getOption(x = "Azimuth.app.default_metadata")
+          } else {
+            app.env$default.metadata <- names(x = refdata)[1]
+          }
+        }
         react.env$score <- TRUE
         react.env$map <- FALSE
       }
@@ -728,20 +759,23 @@ AzimuthServer <- function(input, output, session) {
           value = 0.95,
           message = 'Running differential expression'
         )
-        app.env$diff.expr[[app.env$default.assay]] <- wilcoxauc(
-          X = app.env$object,
-          group_by = 'predicted.id',
-          assay = 'data',
-          seurat_assay = app.env$default.assay
-        )
-        if (isTRUE(x = do.adt)) {
-          app.env$diff.expr[[adt.key]] <- wilcoxauc(
+        for (i in input$metadataxfer) {
+          app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
-            group_by = 'predicted.id',
+            group_by = paste0("predicted.", i),
             assay = 'data',
-            seurat_assay = adt.key
+            seurat_assay = app.env$default.assay
           )
+          if (isTRUE(x = do.adt)) {
+            app.env$diff.expr[[paste(adt.key, i, sep = "_")]] <- wilcoxauc(
+              X = app.env$object,
+              group_by = paste0("predicted.", i),
+              assay = 'data',
+              seurat_assay = adt.key
+            )
+          }
         }
+
         # Finalize the log
         time.fmt <- FormatDiffTime(dt = difftime(
           time1 = Sys.time(),
@@ -793,20 +827,19 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (isTRUE(x = react.env$metadata)) {
         #  Add the discrete metadata dropdowns
-        metadata.discrete <- sort(x = c(
-          "predicted.id",
+        metadata.discrete <- sort(x =
           PlottableMetadataNames(
             object = app.env$object,
             min.levels = 1,
             max.levels = 50
           )
-        ))
-        for (id in c('metacolor', 'metarow', 'metacol', 'metagroup')) {
+        )
+        for (id in c('metacolor.query', 'metarow', 'metacol', 'metagroup')) {
           updateSelectizeInput(
             session = session,
             inputId = id,
             choices = metadata.discrete,
-            selected = 'predicted.id',
+            selected = paste0("predicted.", app.env$default.metadata),
             server = TRUE,
             options = selectize.opts
           )
@@ -823,16 +856,40 @@ AzimuthServer <- function(input, output, session) {
           x = metadata.cont
         )
         # Add prediction scores for all classes to continuous metadata
-        metadata.cont <- sort(x = c(
-          metadata.cont,
-          rownames(x = app.env$object[["prediction.score.id"]])
-        ))
-        app.env$scorefeatures <- metadata.cont
+        metadata.cont <- sort(x = metadata.cont)
+        app.env$metadata.cont <- metadata.cont
         updateSelectizeInput(
           session = session,
-          inputId = 'scorefature',
-          choices = app.env$scorefeatures,
+          inputId = 'metadata.cont',
+          choices = app.env$metadata.cont,
           selected = '',
+          server = TRUE,
+          options = selectize.opts
+        )
+        updateSelectizeInput(
+          session = session,
+          inputId = 'scoregroup',
+          choices = paste0("predicted.", input$metadataxfer),
+          selected = app.env$default.metadata,
+          server = TRUE,
+          options = selectize.opts
+        )
+        if (!input$scoregroup == "") {
+          predscores <- sort(x = rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]]))
+          updateSelectizeInput(
+            session = session,
+            inputId = 'scorefeature',
+            choices = predscores,
+            selected = '',
+            server = TRUE,
+            options = selectize.opts
+          )
+        }
+        updateSelectizeInput(
+          session = session,
+          inputId = 'metacolor.ref',
+          choices = input$metadataxfer,
+          selected = app.env$default.metadata,
           server = TRUE,
           options = selectize.opts
         )
@@ -880,16 +937,17 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
+
   observeEvent(
     eventExpr = react.env$markers,
     handlerExpr = {
       if (isTRUE(x = react.env$markers)) {
         allowed.clusters <- names(x = which(
-          x = table(app.env$object$predicted.id) > getOption(x = 'Azimuth.de.mincells')
+          x = table(app.env$object[[paste0("predicted.", app.env$default.metadata)]]) > getOption(x = 'Azimuth.de.mincells')
         ))
         allowed.clusters <- factor(
           x = allowed.clusters,
-          levels = unique(x = as.vector(x = app.env$object$predicted.id))
+          levels = unique(x = app.env$object[[paste0("predicted.", app.env$default.metadata), drop = TRUE]])
         )
         allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(
           object = allowed.clusters
@@ -902,6 +960,7 @@ AzimuthServer <- function(input, output, session) {
         #   server = TRUE,
         #   options = selectize.opts
         # )
+
         updateSelectizeInput(
           session = session,
           inputId = 'markerclusters',
@@ -910,6 +969,16 @@ AzimuthServer <- function(input, output, session) {
           server = TRUE,
           options = selectize.opts
         )
+
+        updateSelectizeInput(
+          session = session,
+          inputId = 'markerclustersgroup',
+          choices = input$metadataxfer,
+          selected = app.env$default.metadata,
+          server = TRUE,
+          options = selectize.opts
+        )
+
         react.env$markers <- FALSE
       }
     }
@@ -944,13 +1013,15 @@ AzimuthServer <- function(input, output, session) {
           ),
           no = input$feature
         )
-        for (f in c('adtfeature', 'scorefeature')) {
+        for (f in c('adtfeature', 'metadata.cont', 'scoregroup', 'scorefeature')) {
           updateSelectizeInput(
             session = session,
             inputId = f,
             choices = list(
               'adtfeature' = app.env$adt.features,
-              'scorefeature' = app.env$scorefeatures
+              'metadata.cont' = app.env$metadata.cont,
+              'scoregroup' = input$metadataxfer,
+              'scorefeature' = ''
             )[[f]],
             selected = '',
             server = TRUE,
@@ -958,7 +1029,7 @@ AzimuthServer <- function(input, output, session) {
           )
         }
         table.check <- input$feature %in% rownames(x = RenderDiffExp(
-          diff.exp = app.env$diff.expr[[app.env$default.assay]],
+          diff.exp = app.env$diff.expr[[paste(app.env$default.assay, app.env$default.metadata, sep = "_")]],
           groups.use = input$markerclusters,
           n = Inf
         ))
@@ -977,13 +1048,15 @@ AzimuthServer <- function(input, output, session) {
           Key(object = app.env$object[[adt.key]]),
           input$adtfeature
         )
-        for (f in c('feature', 'scorefeature')) {
+        for (f in c('feature', 'metadata.cont', 'scoregroup', 'scorefeature')) {
           updateSelectizeInput(
             session = session,
             inputId = f,
             choices = list(
               'feature' = app.env$features,
-              'scorefeature' = app.env$scorefeatures
+              'metadata.cont' = app.env$metadata.cont,
+              'scoregroup' = input$metadataxfer,
+              'scorefeature' = ''
             )[[f]],
             selected = '',
             server = TRUE,
@@ -991,7 +1064,7 @@ AzimuthServer <- function(input, output, session) {
           )
         }
         table.check <- input$adtfeature %in% rownames(x = RenderDiffExp(
-          diff.exp = app.env$diff.expr[[adt.key]],
+          diff.exp = app.env$diff.expr[[paste(adt.key, input$markerclustersgroup, sep = "_")]],
           groups.use = input$markerclusters,
           n = Inf
         ))
@@ -1002,23 +1075,25 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-  observeEvent( # Prediction score
-    eventExpr = input$scorefeature,
+  observeEvent( # Continuous Metadata
+    eventExpr = input$metadata.cont,
     handlerExpr = {
-      if (nchar(x = input$scorefeature)) {
-        if (input$scorefeature == "mapping.score") {
+      if (nchar(x = input$metadata.cont)) {
+        if (input$metadata.cont == "mapping.score") {
           if (resolved(x = app.env$mapping.score)) {
             app.env$object$mapping.score <- value(app.env$mapping.score)
           }
         }
-        app.env$feature <- input$scorefeature
-        for (f in c('feature', 'adtfeature')) {
+        app.env$feature <- input$metadata.cont
+        for (f in c('feature', 'adtfeature', 'scoregroup', 'scorefeature')) {
           updateSelectizeInput(
             session = session,
             inputId = f,
             choices = list(
               'feature' = app.env$features,
-              'adtfeature' = app.env$adt.features
+              'adtfeature' = app.env$adt.features,
+              'scoregroup' = input$metadataxfer,
+              'scorefeature' = ''
             )[[f]],
             selected = '',
             server = TRUE,
@@ -1031,6 +1106,88 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
+  observeEvent( # Prediction score group
+    eventExpr = input$scoregroup,
+    handlerExpr = {
+      if (nchar(x = input$scoregroup)) {
+        app.env$feature <- ""
+        predscores <- sort(x = rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]]))
+        for (f in c('feature', 'adtfeature', 'metadata.cont', 'scorefeature')) {
+          updateSelectizeInput(
+            session = session,
+            inputId = f,
+            choices = list(
+              'feature' = app.env$features,
+              'adtfeature' = app.env$adt.features,
+              'metadata.cont' = app.env$metadata.cont,
+              'scorefeature' = predscores
+            )[[f]],
+            selected = '',
+            server = TRUE,
+            options = selectize.opts
+          )
+        }
+      }
+      for (tab in list(rna.proxy, adt.proxy)) {
+        selectRows(proxy = tab, selected = NULL)
+      }
+    }
+  )
+  observeEvent( # Prediction score feature
+    eventExpr = input$scorefeature,
+    handlerExpr = {
+      if (nchar(x = input$scorefeature)) {
+        app.env$feature <- paste0(
+          Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
+          input$scorefeature
+        )
+      }
+      for (f in c('feature', 'adtfeature', 'metadata.cont')) {
+        updateSelectizeInput(
+          session = session,
+          inputId = f,
+          choices = list(
+            'feature' = app.env$features,
+            'adtfeature' = app.env$adt.features,
+            'metadata.cont' = app.env$metadata.cont
+          )[[f]],
+          selected = '',
+          server = TRUE,
+          options = selectize.opts
+        )
+      }
+      for (tab in list(rna.proxy, adt.proxy)) {
+        selectRows(proxy = tab, selected = NULL)
+      }
+    }
+  )
+  observeEvent( # Marker clusters group
+    eventExpr = input$markerclustersgroup,
+    handlerExpr = {
+      if (nchar(x = input$markerclustersgroup)) {
+        allowed.clusters <- names(x = which(
+          x = table(app.env$object[[paste0("predicted.", input$markerclustersgroup)]]) > getOption(x = 'Azimuth.de.mincells')
+        ))
+        allowed.clusters <- factor(
+          x = allowed.clusters,
+          levels = unique(x = app.env$object[[paste0("predicted.", input$markerclustersgroup), drop = TRUE]])
+        )
+        allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(
+          object = allowed.clusters
+        ))))
+        app.env$allowedclusters <- allowed.clusters
+        updateSelectizeInput(
+          session = session,
+          inputId = "markerclusters",
+          choices = app.env$allowedclusters,
+          selected = app.env$allowedclusters[1],
+          server = TRUE,
+          options = selectize.opts
+        )
+      }
+    }
+  )
+
   observeEvent( # Select from biomarkers table
     eventExpr = input$biomarkers_rows_selected,
     handlerExpr = {
@@ -1040,7 +1197,7 @@ AzimuthServer <- function(input, output, session) {
           inputId = 'feature',
           choices = app.env$features,
           selected = rownames(x = RenderDiffExp(
-            diff.exp = app.env$diff.expr[[app.env$default.assay]],
+            diff.exp = app.env$diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep = "_")]],
             groups.use = input$markerclusters,
             n = Inf
           ))[input$biomarkers_rows_selected],
@@ -1059,7 +1216,7 @@ AzimuthServer <- function(input, output, session) {
           inputId = 'adtfeature',
           choices = app.env$adt.features,
           selected = rownames(x = RenderDiffExp(
-            diff.exp = app.env$diff.expr[[adt.key]],
+            diff.exp = app.env$diff.expr[[paste(adt.key, input$markerclustersgroup, sep = "_")]],
             groups.use = input$markerclusters,
             n = Inf
           ))[input$adtbio_rows_selected],
@@ -1165,36 +1322,28 @@ AzimuthServer <- function(input, output, session) {
     }
   })
   output$refdim <- renderPlot(expr = {
+    colormap <- GetColorMap(object = refs$map)[[input$metacolor.ref]]
     DimPlot(
       object = refs$plot,
       label = input$labels,
-      group.by = "id",
-      cols = plotcolors,
+      group.by = input$metacolor.ref,
+      cols = colormap,
       repel = TRUE,
     )
   })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object))) {
-        if (input$metacolor == "predicted.id") {
-          colormap <- GetColorMap(object = refs$map)
-          DimPlot(
-            object = app.env$object,
-            group.by = "predicted.id",
-            label = input$labels,
-            cols = colormap[names(x = colormap) %in% unique(x = app.env$object$predicted.id)],
-            repel = TRUE,
-            reduction = "umap.proj"
-          )
-        } else {
-          DimPlot(
-            object = app.env$object,
-            group.by = input$metacolor,
-            label = input$labels,
-            repel = TRUE,
-            reduction = "umap.proj"
-          )
-        }
+        group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query)
+        colormap <- GetColorMap(object = refs$map)[[group.var]]
+        DimPlot(
+          object = app.env$object,
+          group.by = input$metacolor.query,
+          label = input$labels,
+          cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
+          repel = TRUE,
+          reduction = "umap.proj"
+        )
       }
     }
   })
@@ -1205,9 +1354,17 @@ AzimuthServer <- function(input, output, session) {
           Key(object = app.env$object[["SCT"]]),
           rownames(x = app.env$object)
         ),
-        colnames(x = app.env$object[[]]),
-        rownames(x = app.env$object[["prediction.score.id"]])
+        colnames(x = app.env$object[[]])
       )
+      if (nchar(input$scoregroup)) {
+        avail <- c(
+          avail,
+          paste0(
+            Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
+            rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]])
+          )
+        )
+      }
       if (do.adt) {
         avail <- c(
           avail,
@@ -1228,6 +1385,13 @@ AzimuthServer <- function(input, output, session) {
             yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
+          if (nchar(x = input$scoregroup)) {
+            title <- gsub(
+              pattern = Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
+              replacement = 'Prediction Score - ',
+              x = app.env$feature
+            )
+          }
           VlnPlot(
             object = app.env$object,
             features = app.env$feature,
@@ -1257,10 +1421,16 @@ AzimuthServer <- function(input, output, session) {
       if (do.adt) {
         palettes[[Key(object = app.env$object[[adt.key]])]] <-  c('lightgrey', 'darkgreen')
       }
-      md <- c(
-        colnames(x = app.env$object[[]]),
-        rownames(x = app.env$object[['prediction.score.id']])
-      )
+      md <- colnames(x = app.env$object[[]])
+      if (nchar(x = input$scoregroup)) {
+        md <- c(
+          md,
+          paste0(
+            Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
+            rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]])
+          )
+        )
+      }
       feature.key <- if (app.env$feature %in% md) {
         'md_'
       } else {
@@ -1281,6 +1451,13 @@ AzimuthServer <- function(input, output, session) {
             yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
+          if (nchar(x = input$scoregroup)) {
+            title <- gsub(
+              pattern = Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
+              replacement = 'Prediction Score - ',
+              x = app.env$feature
+            )
+          }
           suppressWarnings(expr = FeaturePlot(
             object = app.env$object,
             features = app.env$feature,
@@ -1368,9 +1545,9 @@ AzimuthServer <- function(input, output, session) {
   )
   output$biomarkers <- renderDT(
     expr = {
-      if (!is.null(x = app.env$diff.expr[[app.env$default.assay]])) {
+      if (!is.null(x = app.env$diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep ="_")]])) {
         RenderDiffExp(
-          diff.exp = app.env$diff.expr[[app.env$default.assay]],
+          diff.exp =  app.env$diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep ="_")]],
           groups.use = input$markerclusters,
           n = Inf
         )
@@ -1381,9 +1558,9 @@ AzimuthServer <- function(input, output, session) {
   )
   output$adtbio <- renderDT(
     expr = {
-      if (!is.null(x = app.env$diff.expr[[adt.key]])) {
+      if (!is.null(x = app.env$diff.expr[[paste(adt.key, input$markerclustersgroup, sep = "_")]])) {
         RenderDiffExp(
-          diff.exp = app.env$diff.expr[[adt.key]],
+          diff.exp = app.env$diff.expr[[paste(adt.key, input$markerclustersgroup, sep = "_")]],
           groups.use = input$markerclusters,
           n = Inf
         )

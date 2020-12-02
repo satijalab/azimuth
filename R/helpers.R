@@ -362,21 +362,8 @@ LoadReference <- function(path, seconds = 10L) {
     counts = cm
   )
   plot[["refUMAP"]] <- plotref.dr
-  colormap <- GetColorMap(object = map)
-  plot$id <- factor(x = Misc(object = plotref.dr, slot = "ids"), levels = names(x = colormap))
-  Idents(object = plot) <- "id"
-  slot(object = plot[["refUMAP"]], name = "misc")[["colors"]] <- unname(obj = colormap)
+  plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   avg <- GetAvgRef(object = ad)
-  id.check <- vapply(
-    X = c(map, plot),
-    FUN = function(x) {
-      return('id' %in% colnames(x = x[[]]))
-    },
-    FUN.VALUE = logical(length = 1L)
-  )
-  if (all(id.check)) {
-    Idents(object = map) <- Idents(object = plot) <- 'id'
-  }
   gc(verbose = FALSE)
   return(list(
     map = map,
