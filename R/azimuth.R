@@ -280,16 +280,16 @@ AzimuthReference <- function(
   }
   if (is.null(x = metadata)) {
     stop("Please specify at least one metadata field (for transfer and plotting).")
-    for(i in metadata) {
-      if (! i %in% colnames(x = object[[]])) {
-        warning(i, " not found in Seurat object metadata")
-        next
-      }
-      if (! is.factor(x = object[[i, drop = TRUE]])) {
-        warning(i, " is not a factor. Converting to factor with alphabetical ",
-                "levels.", call. = FALSE)
-        object[[i]] <- factor(x = object[[i]], levels = sort(x = unique(object[[i]])))
-      }
+  }
+  for(i in metadata) {
+    if (! i %in% colnames(x = object[[]])) {
+      warning(i, " not found in Seurat object metadata")
+      next
+    }
+    if (! is.factor(x = object[[i, drop = TRUE]])) {
+      warning(i, " is not a factor. Converting to factor with alphabetical ",
+              "levels.", call. = FALSE)
+      object[[i, drop = TRUE]] <- factor(x = object[[i, drop = TRUE]], levels = sort(x = unique(object[[i, drop = TRUE]])))
     }
   }
   if (!"SCT" %in% Assays(object = object)) {
