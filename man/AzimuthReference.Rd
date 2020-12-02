@@ -10,9 +10,8 @@ AzimuthReference(
   refDR = "spca",
   dims = 1:50,
   k.param = 31,
-  id = NULL,
   plotref = "umap",
-  plotids = NULL,
+  plot.metadata = NULL,
   ori.index = NULL,
   avgref = NULL,
   colormap = NULL,
@@ -32,13 +31,11 @@ AzimuthReference(
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
-\item{id}{Default reference ID for transfer/plotting}
-
 \item{plotref}{Either the name of the DimReduc in the provided Seurat object
 to use for the plotting reference or the DimReduc object itself.}
 
-\item{plotids}{Vector of IDs specifying the identities of the cells in the
-plotref.}
+\item{plot.metadata}{A data.frame of discrete metadata fields for the cells
+in the plotref.}
 
 \item{ori.index}{Index of the cells used in mapping in the original object on
 which UMAP was run. Only need to provide if UMAP was run on different set of
@@ -47,8 +44,8 @@ cells.}
 \item{avgref}{Matrix containing the average RNA expression for the reference,
 used in the pseudobulk correlation test.}
 
-\item{colormap}{A named and ordered vector specifying the colors and levels
-for the IDs being plotted. See \code{\link{CreateColorMap}} for help
+\item{colormap}{A list of named and ordered vectors specifying the colors and levels
+for the metadata. See \code{\link{CreateColorMap}} for help
 generating your own.}
 
 \item{assays}{Assays to retain for transfer}
@@ -56,6 +53,8 @@ generating your own.}
 \item{metadata}{Metadata to retain for transfer}
 
 \item{verbose}{Display progress/messages}
+
+\item{id}{Default reference ID for transfer/plotting}
 }
 \value{
 Returns a Seurat object with AzimuthData stored in the tools slot for

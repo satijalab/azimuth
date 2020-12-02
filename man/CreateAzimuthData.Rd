@@ -7,7 +7,7 @@
 CreateAzimuthData(
   object,
   plotref = "umap",
-  plotids = NULL,
+  plot.metadata = NULL,
   avgref = NULL,
   colormap = NULL
 )
@@ -18,14 +18,14 @@ CreateAzimuthData(
 \item{plotref}{Either the name of the DimReduc in the provided Seurat object
 to use for the plotting reference or the DimReduc object itself.}
 
-\item{plotids}{Vector of IDs specifying the identities of the cells in the
-plotref.}
+\item{plot.metadata}{A data.frame of discrete metadata fields for the cells
+in the plotref.}
 
 \item{avgref}{Matrix containing the average RNA expression for the reference,
 used in the pseudobulk correlation test.}
 
-\item{colormap}{A named and ordered vector specifying the colors and levels
-for the IDs being plotted. See \code{\link{CreateColorMap}} for help
+\item{colormap}{A list of named and ordered vectors specifying the colors and levels
+for the metadata. See \code{\link{CreateColorMap}} for help
 generating your own.}
 }
 \value{
