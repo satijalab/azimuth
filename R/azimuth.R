@@ -405,13 +405,14 @@ CreateAzimuthData <- function(
     }
   }
   plot.metadata <- plot.metadata %||% data.frame(id = Idents(object = object))
-  slot(object = plotref, name = 'misc')[["plot.metadata"]] <- plot.metadata
   colormap <- colormap %||% CreateColorMap(object = object)
   for (i in colnames(x = plot.metadata)) {
     if (! i %in% names(x = colormap)) {
       colormap[i] <- list(CreateColorMap(ids = unique(x = plot.metadata[[i]])))
     }
+    plot.metadata[[i]] <- factor(x = plot.metadata[[i]], levels = names(x = colormap[[i]]))
   }
+  slot(object = plotref, name = 'misc')[["plot.metadata"]] <- plot.metadata
   colormap <- colormap[colnames(x = plot.metadata)]
   avgref <- as.matrix(x = avgref)
   ad <- new(
