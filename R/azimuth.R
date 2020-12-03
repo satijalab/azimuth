@@ -333,6 +333,10 @@ AzimuthReference <- function(
     )[[1]][features, , drop = FALSE]
     Idents(object = object) <- "id"
   }
+  plot.metadata <- plot.metadata %||% object[[metadata]]
+  if (inherits(x = plotref, what = "DimReduc")) {
+    plot.metadata <- plot.metadata[Cells(x = plotref), ]
+  }
   ad <- CreateAzimuthData(
     object = object,
     plotref = plotref,
@@ -405,7 +409,16 @@ CreateAzimuthData <- function(
     }
   }
   plot.metadata <- plot.metadata %||% data.frame(id = Idents(object = object))
-  colormap <- colormap %||% CreateColorMap(object = object)
+  if (is.null(x = colormap)) {
+    colormap <- lapply(X = colnames(x = plot.metadata), FUN = function(x) {
+      if (is.factor(x = plot.metadata[, x])) {
+        return(CreateColorMap(ids = levels(x = plot.metadata[, x])))
+      } else {
+        CreateColorMap(ids = sort(x = unique(x = plot.metadata[, x])))
+      }
+    })
+    names(x = colormap) <- colnames(x = plot.metadata)
+  }
   for (i in colnames(x = plot.metadata)) {
     if (! i %in% names(x = colormap)) {
       colormap[i] <- list(CreateColorMap(ids = unique(x = plot.metadata[[i]])))
