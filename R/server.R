@@ -830,6 +830,7 @@ AzimuthServer <- function(input, output, session) {
         metadata.discrete <- sort(x =
           PlottableMetadataNames(
             object = app.env$object,
+            exceptions = input$metadataxfer,
             min.levels = 1,
             max.levels = 50
           )
@@ -1355,16 +1356,18 @@ AzimuthServer <- function(input, output, session) {
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
-        group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query)
-        colormaps <- GetColorMap(object = refs$map)[group.var]
         plots <- list()
-        for (i in 1:length(x = colormaps)) {
-          colormap <- colormaps[[i]]
+        for (i in 1:length(x = input$metacolor.query)) {
+          group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
+          colormap <- GetColorMap(object = refs$map)[[group.var]]
+          if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
+            colormap <- NULL
+          }
           plots[[i]] <- DimPlot(
             object = app.env$object,
             group.by = input$metacolor.query[i],
             label = input$labels,
-            cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
+            cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
             repel = TRUE,
             reduction = "umap.proj"
           )
