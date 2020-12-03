@@ -888,7 +888,7 @@ AzimuthServer <- function(input, output, session) {
             session = session,
             inputId = 'scorefeature',
             choices = predscores,
-            selected = '',
+            selected = predscores[1],
             server = TRUE,
             options = selectize.opts
           )
@@ -1119,22 +1119,29 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (nchar(x = input$scoregroup)) {
         app.env$feature <- ""
-        predscores <- sort(x = rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]]))
-        for (f in c('feature', 'adtfeature', 'metadata.cont', 'scorefeature')) {
+        for (f in c('feature', 'adtfeature', 'metadata.cont')) {
           updateSelectizeInput(
             session = session,
             inputId = f,
             choices = list(
               'feature' = app.env$features,
               'adtfeature' = app.env$adt.features,
-              'metadata.cont' = app.env$metadata.cont,
-              'scorefeature' = predscores
+              'metadata.cont' = app.env$metadata.cont
             )[[f]],
             selected = '',
             server = TRUE,
             options = selectize.opts
           )
         }
+        predscores <- sort(x = rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]]))
+        updateSelectizeInput(
+          session = session,
+          inputId = 'scorefeature',
+          choices = predscores,
+          selected = predscores[1],
+          server = TRUE,
+          options = selectize.opts
+        )
       }
       for (tab in list(rna.proxy, adt.proxy)) {
         selectRows(proxy = tab, selected = NULL)
