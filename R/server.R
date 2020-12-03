@@ -408,7 +408,6 @@ AzimuthServer <- function(input, output, session) {
       for (id in qc.ids) {
         try(expr = disable(id = id), silent = TRUE)
       }
-      app.env$object$query <- NULL
       react.env$progress <- Progress$new(style = 'notification')
       react.env$progress$set(
         value = 0,
