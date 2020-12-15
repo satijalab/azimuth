@@ -513,9 +513,8 @@ AzimuthServer <- function(input, output, session) {
             app.env$object <- suppressWarnings(expr = SCTransform(
               object = app.env$object,
               residual.features = rownames(x = refs$map),
+              reference.SCT.model = refs$sct.model,
               method = "glmGamPoi",
-              ncells = getOption(x = 'Azimuth.sct.ncells'),
-              n_genes = getOption(x = 'Azimuth.sct.nfeats'),
               do.correct.umi = FALSE,
               do.scale = FALSE,
               do.center = TRUE
@@ -525,9 +524,8 @@ AzimuthServer <- function(input, output, session) {
             app.env$object <- suppressWarnings(expr = SCTransform(
               object = app.env$object,
               residual.features = rownames(x = refs$map),
+              reference.SCT.model = refs$sct.model,
               method = "poisson",
-              ncells = getOption(x = 'Azimuth.sct.ncells'),
-              n_genes = getOption(x = 'Azimuth.sct.nfeats'),
               do.correct.umi = FALSE,
               do.scale = FALSE,
               do.center = TRUE
