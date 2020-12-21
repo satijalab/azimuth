@@ -236,7 +236,6 @@ GetPlotRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
 #' @param refDR Name of DimReduc in reference to use for mapping
 #' @param dims Dimensions to use in reference neighbor finding
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param id Default reference ID for transfer/plotting
 #' @param ori.index Index of the cells used in mapping in the original object on
 #' which UMAP was run. Only need to provide if UMAP was run on different set of
 #' cells.

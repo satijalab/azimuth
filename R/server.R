@@ -13,7 +13,7 @@ NULL
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
 #' theme_void xlab
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
-#' @importFrom methods slot slot<-
+#' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
 #' @importFrom Seurat AddMetaData Assays Cells DimPlot DefaultAssay Embeddings
 #' FeaturePlot FindNeighbors FindTransferAnchors GetAssayData Idents Idents<-
@@ -22,14 +22,15 @@ NULL
 #' VariableFeatures VlnPlot
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
-#' safeError updateNumericInput updateSelectizeInput withProgress
+#' safeError updateNumericInput updateSelectizeInput withProgress renderUI
+#' onStop
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show
 #' @importFrom stringr str_interp
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile
-#' @importFrom utils write.table
+#' @importFrom utils write.table packageVersion
 #'
 #' @keywords internal
 #'
@@ -791,7 +792,7 @@ AzimuthServer <- function(input, output, session) {
             data = data.frame(
               "MAPPINGTIME",
               Sys.info()[["nodename"]],
-              as.numeric(x = maptime.diff, units="secs")
+              as.numeric(x = time.fmt, units = "secs")
             )
           ))
         }
