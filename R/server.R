@@ -166,8 +166,7 @@ AzimuthServer <- function(input, output, session) {
     for (i in names(x = colormap)) {
       names(x = colormap[[i]]) <- sample(x = names(x = colormap[[i]]))
     }
-    # TODO: proper setters
-    refs$map@tools$AzimuthReference@colormap <- colormap
+    refs$map <- SetColorMap(object = refs$map, value = colormap)
   }
   possible.metadata.transfer <- names(x = GetColorMap(object = refs$map))
   # React to events

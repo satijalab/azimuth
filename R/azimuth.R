@@ -173,6 +173,21 @@ GetPlotRef <- function(object, ...) {
   UseMethod(generic = 'GetPlotRef', object = object)
 }
 
+#' Set Azimuth color mapping
+#'
+#' Set ID-color mapping for Azimuth plotting
+#'
+#' @inheritParams GetAvgRef
+#'
+#' @return An object with the colormap slot set
+#'
+#' @rdname SetColorMap
+#' @export SetColorMap
+#'
+SetColorMap <- function(object, ...) {
+  UseMethod(generic = 'SetColorMap', object = object)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -223,6 +238,23 @@ GetPlotRef.AzimuthData <- function(object, ...) {
 #'
 GetPlotRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
   return(GetPlotRef(object = Tool(object = object, slot = slot)))
+}
+
+#' @rdname SetColorMap
+#' @param value New colormap to assign
+#' @export
+#' @method SetColorMap AzimuthData
+#'
+SetColorMap.AzimuthData <- function(object, value, ...) {
+  return(slot(object = object, name = "colormap") <- value)
+}
+
+#' @rdname SetColorMap
+#' @export
+#' @method SetColorMap Seurat
+#'
+SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
+  return(SetColorMap(object = Tool(object = object, slot = slot), value = value, ...))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
