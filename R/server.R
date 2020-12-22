@@ -1634,20 +1634,16 @@ AzimuthServer <- function(input, output, session) {
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
-      req <- c('predicted.id', 'predicted.id.score')
+      req <- paste0("predicted.", c(input$metadataxfer, paste0(input$metadataxfer, ".score")))
       if (resolved(x = app.env$mapping.score)) {
         req <- c(req, 'mapping.score')
       }
       if (all(req %in% colnames(x = app.env$object[[]]))) {
-        pred.df <- data.frame(
-          cell = colnames(x = app.env$object),
-          predicted.id = app.env$object$predicted.id,
-          predicted.score = app.env$object$predicted.id.score,
-          stringsAsFactors = FALSE
-        )
+        pred.df <- app.env$object[[req]]
         if (resolved(x = app.env$mapping.score)) {
           pred.df$mapping.score <- value(app.env$mapping.score)
         }
+        pred.df <- cbind(cell = rownames(x = pred.df), pred.df)
         write.table(
           x = pred.df,
           file = file,
@@ -1682,6 +1678,8 @@ AzimuthServer <- function(input, output, session) {
       e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
       e$ntrees <- getOption(x = 'Azimuth.map.ntrees')
       e$adt.key <- adt.key
+      e$do.adt <- do.adt
+      e$metadataxfer <- input$metadataxfer
       e$plotgene <- getOption(x = 'Azimuth.app.default_gene')
       e$plotadt <- getOption(x = 'Azimuth.app.default_adt')
       writeLines(text = str_interp(string = template, env = e), con = file)
