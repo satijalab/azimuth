@@ -1680,6 +1680,9 @@ AzimuthServer <- function(input, output, session) {
       e$adt.key <- adt.key
       e$do.adt <- do.adt
       e$metadataxfer <- input$metadataxfer
+      if (length(x = e$metadataxfer == 1)) {
+        e$metadataxfer <- paste0("\"", e$metadataxfer, "\"")
+      }
       e$plotgene <- getOption(x = 'Azimuth.app.default_gene')
       e$plotadt <- getOption(x = 'Azimuth.app.default_adt')
       writeLines(text = str_interp(string = template, env = e), con = file)
