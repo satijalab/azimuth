@@ -173,6 +173,21 @@ GetPlotRef <- function(object, ...) {
   UseMethod(generic = 'GetPlotRef', object = object)
 }
 
+#' Set Azimuth color mapping
+#'
+#' Set ID-color mapping for Azimuth plotting
+#'
+#' @inheritParams GetAvgRef
+#'
+#' @return An object with the colormap slot set
+#'
+#' @rdname SetColorMap
+#' @export SetColorMap
+#'
+SetColorMap <- function(object, ...) {
+  UseMethod(generic = 'SetColorMap', object = object)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -225,6 +240,23 @@ GetPlotRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
   return(GetPlotRef(object = Tool(object = object, slot = slot)))
 }
 
+#' @rdname SetColorMap
+#' @param value New colormap to assign
+#' @export
+#' @method SetColorMap AzimuthData
+#'
+SetColorMap.AzimuthData <- function(object, value, ...) {
+  return(slot(object = object, name = "colormap") <- value)
+}
+
+#' @rdname SetColorMap
+#' @export
+#' @method SetColorMap Seurat
+#'
+SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
+  return(SetColorMap(object = Tool(object = object, slot = slot), value = value, ...))
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # AzimuthData Helper Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -236,7 +268,6 @@ GetPlotRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
 #' @param refDR Name of DimReduc in reference to use for mapping
 #' @param dims Dimensions to use in reference neighbor finding
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param id Default reference ID for transfer/plotting
 #' @param ori.index Index of the cells used in mapping in the original object on
 #' which UMAP was run. Only need to provide if UMAP was run on different set of
 #' cells.

@@ -13,7 +13,7 @@ NULL
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
 #' theme_void xlab
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
-#' @importFrom methods slot slot<-
+#' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
 #' @importFrom Seurat AddMetaData Assays Cells DimPlot DefaultAssay Embeddings
 #' FeaturePlot FindNeighbors FindTransferAnchors GetAssayData Idents Idents<-
@@ -22,14 +22,15 @@ NULL
 #' VariableFeatures VlnPlot
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
-#' safeError updateNumericInput updateSelectizeInput withProgress
+#' safeError updateNumericInput updateSelectizeInput withProgress renderUI
+#' onStop
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show
 #' @importFrom stringr str_interp
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile
-#' @importFrom utils write.table
+#' @importFrom utils write.table packageVersion
 #'
 #' @keywords internal
 #'
@@ -165,8 +166,7 @@ AzimuthServer <- function(input, output, session) {
     for (i in names(x = colormap)) {
       names(x = colormap[[i]]) <- sample(x = names(x = colormap[[i]]))
     }
-    # TODO: proper setters
-    refs$map@tools$AzimuthReference@colormap <- colormap
+    refs$map <- SetColorMap(object = refs$map, value = colormap)
   }
   possible.metadata.transfer <- names(x = GetColorMap(object = refs$map))
   # React to events
@@ -789,7 +789,7 @@ AzimuthServer <- function(input, output, session) {
             data = data.frame(
               "MAPPINGTIME",
               Sys.info()[["nodename"]],
-              as.numeric(x = maptime.diff, units="secs")
+              as.numeric(x = time.fmt, units = "secs")
             )
           ))
         }
@@ -1632,20 +1632,16 @@ AzimuthServer <- function(input, output, session) {
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
-      req <- c('predicted.id', 'predicted.id.score')
+      req <- paste0("predicted.", c(input$metadataxfer, paste0(input$metadataxfer, ".score")))
       if (resolved(x = app.env$mapping.score)) {
         req <- c(req, 'mapping.score')
       }
       if (all(req %in% colnames(x = app.env$object[[]]))) {
-        pred.df <- data.frame(
-          cell = colnames(x = app.env$object),
-          predicted.id = app.env$object$predicted.id,
-          predicted.score = app.env$object$predicted.id.score,
-          stringsAsFactors = FALSE
-        )
+        pred.df <- app.env$object[[req]]
         if (resolved(x = app.env$mapping.score)) {
           pred.df$mapping.score <- value(app.env$mapping.score)
         }
+        pred.df <- cbind(cell = rownames(x = pred.df), pred.df)
         write.table(
           x = pred.df,
           file = file,
@@ -1680,6 +1676,8 @@ AzimuthServer <- function(input, output, session) {
       e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
       e$ntrees <- getOption(x = 'Azimuth.map.ntrees')
       e$adt.key <- adt.key
+      e$do.adt <- do.adt
+      e$metadataxfer <- input$metadataxfer
       e$plotgene <- getOption(x = 'Azimuth.app.default_gene')
       e$plotadt <- getOption(x = 'Azimuth.app.default_adt')
       writeLines(text = str_interp(string = template, env = e), con = file)

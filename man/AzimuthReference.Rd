@@ -53,8 +53,6 @@ generating your own.}
 \item{metadata}{Metadata to retain for transfer}
 
 \item{verbose}{Display progress/messages}
-
-\item{id}{Default reference ID for transfer/plotting}
 }
 \value{
 Returns a Seurat object with AzimuthData stored in the tools slot for
