@@ -11,7 +11,7 @@ NULL
 #' @importFrom DT dataTableProxy renderDT selectRows
 #' @importFrom future future plan resolved value
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
-#' theme_void xlab layer_scales
+#' theme_void xlab layer_scales xlim ylim
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
@@ -400,7 +400,7 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-  
+
   # Filter and process the data
   observeEvent(
     eventExpr = input$map,
@@ -773,7 +773,7 @@ AzimuthServer <- function(input, output, session) {
             )
           }
         }
-        
+
         # Finalize the log
         time.fmt <- FormatDiffTime(dt = difftime(
           time1 = Sys.time(),
@@ -944,7 +944,7 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-  
+
   observeEvent(
     eventExpr = react.env$markers,
     handlerExpr = {
@@ -967,7 +967,7 @@ AzimuthServer <- function(input, output, session) {
         #   server = TRUE,
         #   options = selectize.opts
         # )
-        
+
         updateSelectizeInput(
           session = session,
           inputId = 'markerclusters',
@@ -976,7 +976,7 @@ AzimuthServer <- function(input, output, session) {
           server = TRUE,
           options = selectize.opts
         )
-        
+
         updateSelectizeInput(
           session = session,
           inputId = 'markerclustersgroup',
@@ -985,7 +985,7 @@ AzimuthServer <- function(input, output, session) {
           server = TRUE,
           options = selectize.opts
         )
-        
+
         react.env$markers <- FALSE
       }
     }
@@ -995,14 +995,14 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (FALSE) {
         # Enable the feature explorer
-        
+
         # Add the predicted ID and score to the plots
-        
-        
-        
+
+
+
         # Enable downloads
-        
-        
+
+
         react.env$no <- FALSE
       }
     }
@@ -1201,7 +1201,7 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-  
+
   observeEvent( # Select from biomarkers table
     eventExpr = input$biomarkers_rows_selected,
     handlerExpr = {
@@ -1372,7 +1372,7 @@ AzimuthServer <- function(input, output, session) {
             cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
             repel = TRUE,
             reduction = "umap.proj"
-          ) + xlim(app.env$plot.ranges[[1]]) + 
+          ) + xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]])
         }
         wrap_plots(plots, nrow = 1)
