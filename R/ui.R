@@ -171,7 +171,8 @@ AzimuthUI <- tagList(
           fluidRow(
             valueBoxOutput(outputId = 'valuebox.upload', width = 3),
             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
-            valueBoxOutput(outputId = 'valuebox.mapped', width = 3)
+            valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
+            valueBoxOutput(outputId = 'valuebox.score', width = 3)
           ),
           fluidRow(
             class = 'rowhide',

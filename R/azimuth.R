@@ -498,6 +498,34 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
   return(colors)
 }
 
+#' RefDR Dot Product
+#'
+#' Mapping metric based on dot products of projected PCAs
+#'
+#' @param query Query object
+#' @param ref Reference object
+#' @param query.dr Query dimensional reduction
+#' @param grouping.var Grouping variable for the reference
+#'
+#' @importFrom Seurat WhichCells Idents Embeddings Cells
+#' @export
+#'
+RefDRDP <- function(query, ref, query.dr, grouping.var) {
+  query.var <- paste0("predicted.", grouping.var)
+  Idents(object = query) <- query.var
+  Idents(object = ref) <- grouping.var
+  scores <- sapply(X = unique(x = ref[[grouping.var, drop = TRUE]]), FUN = function(y) {
+    ref.cells <- WhichCells(object = ref, idents = y)
+    Embeddings(object = query.dr)[Cells(x = query), , drop = FALSE] %*%
+      Matrix::colMeans(x = Embeddings(object = ref[["refDR"]])[ref.cells, ,drop = FALSE]) /
+      (as.numeric(x = Matrix::colMeans(x = Embeddings(object = ref[["refDR"]])[ref.cells, , drop = FALSE]) %*%
+                    Matrix::colMeans(x = Embeddings(object = ref[["refDR"]])[ref.cells, , drop = FALSE])))
+  })
+  rownames(x = scores) <- Cells(x = query)
+  colnames(x = scores) <- unique(x = ref[[grouping.var, drop = TRUE]])
+  return(scores)
+}
+
 #' Validate References for Azimuth
 #'
 #' Validate aspects of a Seurat object to be used as an Azimuth reference

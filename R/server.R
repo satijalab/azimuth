@@ -96,6 +96,7 @@ AzimuthServer <- function(input, output, session) {
     output$valubox.upload <- NULL
     output$valuebox.preproc <- NULL
     output$valuebox.mapped <- NULL
+    output$valuebox.score <- NULL
     disable(id = 'map')
     hide(selector = '.rowhide')
   }
@@ -630,6 +631,19 @@ AzimuthServer <- function(input, output, session) {
           value = 0.7,
           message = 'Calculating mapping score'
         )
+        # Dot product score
+        query.dr <- slot(object = app.env$anchors, name = "object.list")[[1]][['pcaproject']]
+        query.dr <- RenameCells(
+          object = query.dr,
+          new.names = gsub(pattern = "_query$", replacement = "", x = Cells(x = query.dr))
+        )
+        for (i in input$metadataxfer) {
+          dp.scores <- RefDRDP(query = app.env$object, ref = refs$map, query.dr = query.dr, grouping.var = i)
+          dp.scoremax <- apply(X = dp.scores, MARGIN = 1, FUN = max)
+          colnames(x = dp.scores) <- paste0("dpscore", i, ".", colnames(x = dp.scores))
+          app.env$object <- AddMetaData(object = app.env$object, metadata = as.data.frame(x = dp.scores))
+          app.env$object <- AddMetaData(object = app.env$object, metadata = dp.scoremax, col.name = paste0("dpscoremax.", i))
+        }
         refdr <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = app.env$object), "_query")
@@ -744,6 +758,36 @@ AzimuthServer <- function(input, output, session) {
             color = 'green'
           )
         })
+        score.pass <- TRUE
+        score.subtitle.fail <- "Score threshold failed for: \n"
+        for (i in input$metadataxfer) {
+          flag <- app.env$object[[paste0("dpscoremax.", i), drop = TRUE]] < 0.5 &
+            value(app.env$mapping.score) < 0.5
+          flag <- length(x = which(x = flag)) / length(x = flag) * 100
+          if (flag > 25) {
+            score.pass <- FALSE
+            score.subtitle.fail <- paste0(score.subtitle.fail, i, ": ", round(x = flag, digits = 0), "% \n")
+          }
+        }
+        if (score.pass) {
+          output$valuebox.score <- renderValueBox(expr = {
+            valueBox(
+              value = 'Success',
+              subtitle = 'Scoring threshold passed',
+              icon = icon(name = 'check'),
+              color = 'green'
+            )
+          })
+        } else {
+          output$valuebox.score <- renderValueBox(expr = {
+            valueBox(
+              value = 'Warning',
+              subtitle = score.subtitle.fail,
+              icon = icon(name = 'exclamation-circle'),
+              color = 'yellow'
+            )
+          })
+        }
         react.env$biomarkers <- TRUE
         react.env$transform <- FALSE
       }
