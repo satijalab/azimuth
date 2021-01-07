@@ -39,12 +39,20 @@ AzimuthServer <- function(input, output, session) {
   if (is.null(x = getOption(x = 'Azimuth.app.demodataset'))) {
     hide(id="triggerdemo")
   }
-  mt.key <- 'percent.mt'
+  dims <- getOption(
+    x = 'Azimuth.app.dims',
+    default = 50
+  )
+  dims <- 1:dims
   norm.method <- getOption(
     x = 'Azimuth.norm.method',
     default = 'SCT'
   )
-  print(norm.method)
+  bigref <- getOption(
+    x = 'Azimuth.app.bigref',
+    default = 'FALSE'
+  )
+  mt.key <- 'percent.mt'
   mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
   do.adt <- isTRUE(x = getOption(x = 'Azimuth.app.do_adt', default = TRUE))
   adt.key <- 'impADT'
@@ -587,9 +595,6 @@ AzimuthServer <- function(input, output, session) {
         } else {
           assay <- 'RNA'
         }
-        print(assay)
-        print(app.env$object)
-        print(refs$map)
         app.env$anchors <- FindTransferAnchors(
           reference = refs$map,
           query = app.env$object,
@@ -604,7 +609,7 @@ AzimuthServer <- function(input, output, session) {
               y = VariableFeatures(object = app.env$object)
             ),
           normalization.method = if (norm.method == 'SCT') 'SCT' else 'LogNormalize',
-          dims = 1:100,
+          dims = dims,
           n.trees = n.trees,
           verbose = TRUE,
           mapping.score.k = 100
@@ -633,7 +638,7 @@ AzimuthServer <- function(input, output, session) {
         app.env$object <- TransferData(
           reference = refs$map,
           query = app.env$object,
-          dims = 1:100,
+          dims = dims,
           anchorset = app.env$anchors,
           refdata = refdata,
           n.trees = n.trees,
@@ -1379,6 +1384,15 @@ AzimuthServer <- function(input, output, session) {
       wrap_plots(vlnlist, ncol = length(x = vlnlist))
     }
   })
+  if (bigref == 'TRUE') {
+    updateCheckboxInput(session, "legend", value = FALSE)
+    updateCheckboxInput(session, "labels", value = TRUE)
+    label.size <- 3
+    repel <- FALSE
+  } else {
+    label.size <- 4
+    repel <- TRUE
+  }
   output$refdim <- renderPlot(expr = {
     if (!is.null(x = input$metacolor.ref)) {
       colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
@@ -1387,10 +1401,14 @@ AzimuthServer <- function(input, output, session) {
         plots[[i]] <- DimPlot(
           object = refs$plot,
           label = input$labels,
+          label.size = label.size,
+          repel = repel,
           group.by = input$metacolor.ref[i],
           cols = colormaps[[i]],
-          repel = TRUE,
         )
+        if (!input$legend) {
+          plots[[i]] <- plots[[i]] + NoLegend()
+        }
       }
       app.env$plot.ranges <- list(
         layer_scales(plots[[1]])$x$range$range,
@@ -1398,7 +1416,7 @@ AzimuthServer <- function(input, output, session) {
       )
       wrap_plots(plots, nrow = 1)
     }
-  })
+  }, res = 150)
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
@@ -1413,11 +1431,15 @@ AzimuthServer <- function(input, output, session) {
             object = app.env$object,
             group.by = input$metacolor.query[i],
             label = input$labels,
+            label.size = label.size,
+            repel = repel,
             cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
-            repel = TRUE,
             reduction = "umap.proj"
           ) + xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]])
+          if (!input$legend) {
+            plots[[i]] <- plots[[i]] + NoLegend()
+          }
         }
         wrap_plots(plots, nrow = 1)
       }

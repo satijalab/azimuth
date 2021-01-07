@@ -335,19 +335,22 @@ AzimuthReference <- function(
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
 
   # Calculate the Neighbors
-  object <- FindNeighbors(
-    object = object,
-    reduction = "refDR",
-    dims = dims,
-    graph.name = "refdr.annoy.neighbors",
-    k.param = k.param,
-    nn.method = "annoy",
-    annoy.metric = "cosine",
-    cache.index = TRUE,
-    return.neighbor = TRUE,
-    l2.norm = FALSE,
-    verbose = verbose
-  )
+  if (!('refdr.annoy.neighbors' %in% Neighbors(ref))) {
+    object <- FindNeighbors(
+      object = object,
+      reduction = "refDR",
+      dims = dims,
+      graph.name = "refdr.annoy.neighbors",
+      k.param = k.param,
+      nn.method = "annoy",
+      annoy.metric = "cosine",
+      cache.index = TRUE,
+      return.neighbor = TRUE,
+      l2.norm = FALSE,
+      verbose = verbose
+    )
+  }
+  
   if (verbose) {
     message("Computing pseudobulk averages")
   }

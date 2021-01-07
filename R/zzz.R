@@ -139,6 +139,8 @@ default.options <- list(
   Azimuth.app.default_metadata = NULL,
   Azimuth.app.max_cells = 50000,
   Azimuth.app.mito = '^MT-',
+  Azimuth.app.dims = 50,
+  Azimuth.app.bigref = "FALSE",
   Azimuth.app.plotseed = NULL,
   Azimuth.app.reference = 'https://seurat.nygenome.org/references/pbmc',
   Azimuth.app.welcomebox = "",

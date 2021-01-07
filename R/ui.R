@@ -187,6 +187,7 @@ AzimuthUI <- tagList(
           box(
             title = 'Reference',
             checkboxInput(inputId = 'labels', label = 'Show labels'),
+            checkboxInput(inputId = 'legend', label = 'Show legend'),
             selectizeInput(
               inputId = 'metacolor.ref',
               label = 'Metadata to color by',
