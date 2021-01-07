@@ -149,6 +149,7 @@ default.options <- list(
   Azimuth.map.nanchors = 50L,
   Azimuth.map.ntrees = 20L,
   Azimuth.map.pbcorthresh = 0.75,
+  Azimuth.norm.method = 'SCT',
   Azimuth.sct.ncells = 2000L,
   Azimuth.sct.nfeats = 2000L
 )

@@ -283,7 +283,7 @@ LoadH5AD <- function(path) {
 #' ref2 <- LoadReference("/var/www/html")
 #' }
 #'
-LoadReference <- function(path, seconds = 10L) {
+LoadReference <- function(path, normalization.method, seconds = 10L) {
   ref.names <- list(
     map = 'ref.Rds',
     ann = 'idx.annoy'
@@ -347,12 +347,15 @@ LoadReference <- function(path, seconds = 10L) {
   # Load the map reference
   map <- readRDS(file = mapref)
   # Load the annoy index into the Neighbor object in the neighbors slot
+  
   map[["refdr.annoy.neighbors"]] <- LoadAnnoyIndex(
     object = map[["refdr.annoy.neighbors"]],
     file = annref
   )
-  sct.model <- Misc(object = map[["SCT"]], slot = "vst.set")
-  suppressWarnings(expr = Misc(object = map[["SCT"]], slot = "vst.set") <- list())
+  if (normalization.method == 'SCT') {
+    sct.model <- Misc(object = map[["SCT"]], slot = "vst.set")
+    suppressWarnings(expr = Misc(object = map[["SCT"]], slot = "vst.set") <- list())
+  }
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
@@ -367,12 +370,20 @@ LoadReference <- function(path, seconds = 10L) {
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   avg <- GetAvgRef(object = ad)
   gc(verbose = FALSE)
-  return(list(
-    map = map,
-    sct.model = sct.model,
-    plot = plot,
-    avgexp = avg
-  ))
+  if (normalization.method == 'SCT') {
+    return(list(
+      map = map,
+      sct.model = sct.model,
+      plot = plot,
+      avgexp = avg
+    ))
+  } else {
+    return(list(
+      map = map,
+      plot = plot,
+      avgexp = avg
+    ))
+  }
 }
 
 #' Transform an NN index

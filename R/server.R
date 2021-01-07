@@ -40,6 +40,11 @@ AzimuthServer <- function(input, output, session) {
     hide(id="triggerdemo")
   }
   mt.key <- 'percent.mt'
+  norm.method <- getOption(
+    x = 'Azimuth.norm.method',
+    default = 'SCT'
+  )
+  print(norm.method)
   mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
   do.adt <- isTRUE(x = getOption(x = 'Azimuth.app.do_adt', default = TRUE))
   adt.key <- 'impADT'
@@ -155,7 +160,8 @@ AzimuthServer <- function(input, output, session) {
         path = getOption(
           x = 'Azimuth.app.reference',
           default = stop(safeError(error = "No reference provided"))
-        )
+        ),
+        normalization.method = norm.method
       )
       setProgress(value = 1)
     }
@@ -400,7 +406,7 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-
+  
   # Filter and process the data
   observeEvent(
     eventExpr = input$map,
@@ -495,7 +501,11 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           gc(verbose = FALSE)
         } else {
-          react.env$sctransform <- TRUE
+          if (norm.method == 'SCT') {
+            react.env$sctransform <- TRUE
+          } else {
+            react.env$lognormalize <- TRUE
+          }
         }
         react.env$pbcor <- FALSE
       }
@@ -543,24 +553,58 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   observeEvent(
+    eventExpr = react.env$lognormalize,
+    handlerExpr = {
+      if (isTRUE(x = react.env$lognormalize)) {
+        react.env$progress$set(
+          value = 0.2,
+          message = 'Log Normalizing'
+        )
+        app.env$object <- NormalizeData(object = app.env$object)
+        # VariableFeatures(app.env$object) <- 
+        #   intersect(
+        #     x = rownames(x = app.env$object),
+        #     y = rownames(x = refs$map)
+        #   )
+        app.env$object <- FindVariableFeatures(object = app.env$object)
+        app.env$object <- ScaleData(object = app.env$object)
+        app.env$messages <- c(
+          app.env$messages,
+          paste(ncol(x = app.env$object), "cells preprocessed")
+        )
+        react.env$anchors <- TRUE
+        react.env$lognormalize <- FALSE
+      }
+    }
+  )
+  observeEvent(
     eventExpr = react.env$anchors,
     handlerExpr = {
       if (isTRUE(x = react.env$anchors)) {
         react.env$progress$set(value = 0.3, message = 'Finding anchors')
+        if (norm.method == 'SCT') {
+          assay <- 'SCT'
+        } else {
+          assay <- 'RNA'
+        }
+        print(assay)
+        print(app.env$object)
+        print(refs$map)
         app.env$anchors <- FindTransferAnchors(
           reference = refs$map,
           query = app.env$object,
           k.filter = NA,
           reference.neighbors = "refdr.annoy.neighbors",
-          reference.assay = "SCT",
-          query.assay = 'SCT',
+          reference.assay = assay,
+          query.assay = assay,
           reference.reduction = 'refDR',
-          normalization.method = 'SCT',
-          features = intersect(
-            x = rownames(x = refs$map),
-            y = VariableFeatures(object = app.env$object)
-          ),
-          dims = 1:50,
+          features = 
+            intersect(
+              x = rownames(x = refs$map),
+              y = VariableFeatures(object = app.env$object)
+            ),
+          normalization.method = if (norm.method == 'SCT') 'SCT' else 'LogNormalize',
+          dims = 1:100,
           n.trees = n.trees,
           verbose = TRUE,
           mapping.score.k = 100
@@ -589,7 +633,7 @@ AzimuthServer <- function(input, output, session) {
         app.env$object <- TransferData(
           reference = refs$map,
           query = app.env$object,
-          dims = 1:50,
+          dims = 1:100,
           anchorset = app.env$anchors,
           refdata = refdata,
           n.trees = n.trees,
@@ -727,7 +771,7 @@ AzimuthServer <- function(input, output, session) {
         )
         app.env$object <- SetAssayData(
           object = app.env$object,
-          assay = 'SCT',
+          assay = if (norm.method == 'SCT') norm.method else 'RNA',
           slot = 'scale.data',
           new.data = new(Class = 'matrix')
         )
@@ -773,7 +817,7 @@ AzimuthServer <- function(input, output, session) {
             )
           }
         }
-
+        
         # Finalize the log
         time.fmt <- FormatDiffTime(dt = difftime(
           time1 = Sys.time(),
@@ -944,7 +988,7 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-
+  
   observeEvent(
     eventExpr = react.env$markers,
     handlerExpr = {
@@ -967,7 +1011,7 @@ AzimuthServer <- function(input, output, session) {
         #   server = TRUE,
         #   options = selectize.opts
         # )
-
+        
         updateSelectizeInput(
           session = session,
           inputId = 'markerclusters',
@@ -976,7 +1020,7 @@ AzimuthServer <- function(input, output, session) {
           server = TRUE,
           options = selectize.opts
         )
-
+        
         updateSelectizeInput(
           session = session,
           inputId = 'markerclustersgroup',
@@ -985,7 +1029,7 @@ AzimuthServer <- function(input, output, session) {
           server = TRUE,
           options = selectize.opts
         )
-
+        
         react.env$markers <- FALSE
       }
     }
@@ -995,14 +1039,14 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (FALSE) {
         # Enable the feature explorer
-
+        
         # Add the predicted ID and score to the plots
-
-
-
+        
+        
+        
         # Enable downloads
-
-
+        
+        
         react.env$no <- FALSE
       }
     }
@@ -1015,7 +1059,7 @@ AzimuthServer <- function(input, output, session) {
         app.env$feature <- ifelse(
           test = input$feature %in% rownames(x = app.env$object),
           yes = paste0(
-            Key(object = app.env$object[["SCT"]]),
+            Key(object = app.env$object[[if (norm.method == 'SCT') norm.method else 'RNA']]),
             input$feature
           ),
           no = input$feature
@@ -1201,7 +1245,7 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-
+  
   observeEvent( # Select from biomarkers table
     eventExpr = input$biomarkers_rows_selected,
     handlerExpr = {
@@ -1383,7 +1427,7 @@ AzimuthServer <- function(input, output, session) {
     if (!is.null(x = app.env$object)) {
       avail <- c(
         paste0(
-          Key(object = app.env$object[["SCT"]]),
+          Key(object = app.env$object[[if (norm.method == 'SCT') norm.method else 'RNA']]),
           rownames(x = app.env$object)
         ),
         colnames(x = app.env$object[[]])
@@ -1413,8 +1457,13 @@ AzimuthServer <- function(input, output, session) {
             theme_void()
         } else {
           title <- ifelse(
-            test = grepl(pattern = '^sct_', x = app.env$feature),
-            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            test = grepl(
+              pattern = if (norm.method == 'SCT') "^sct_" else '^rna_', 
+              x = app.env$feature),
+            yes = gsub(
+              pattern = if (norm.method == 'SCT') "^sct_" else '^rna_', 
+              replacement = '', 
+              x = app.env$feature),
             no = app.env$feature
           )
           if (nchar(x = input$scoregroup)) {
@@ -1447,7 +1496,7 @@ AzimuthServer <- function(input, output, session) {
         c('lightgrey', 'darkred')
       )
       names(x = palettes) <- c(
-        Key(object = app.env$object[["SCT"]]),
+        Key(object = app.env$object[[if (norm.method == 'SCT') norm.method else 'RNA']]),
         'md_'
       )
       if (do.adt) {

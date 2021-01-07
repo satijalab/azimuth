@@ -296,7 +296,8 @@ AzimuthReference <- function(
   colormap = NULL,
   assays = NULL,
   metadata = NULL,
-  verbose = FALSE
+  verbose = FALSE,
+  normalization.method = 'SCT'
 ) {
   # Parameter validation
   if (!refUMAP %in% Reductions(object = object)) {
@@ -323,8 +324,9 @@ AzimuthReference <- function(
       object[[i, drop = TRUE]] <- factor(x = object[[i, drop = TRUE]], levels = sort(x = unique(object[[i, drop = TRUE]])))
     }
   }
-  if (!"SCT" %in% Assays(object = object)) {
-    stop("Seurat object provided must have the SCT Assay stored.")
+  
+  if ((normalization.method == 'SCT') & (!"SCT" %in% Assays(object = object))) {
+    stop("Seurat object provided must have the SCT Assay stored if `normalization.method` is set to SCT.")
   }
   if (is.null(x = avgref) && !"RNA" %in% Assays(object = object)) {
     stop("Please provide either the RNA assay or avgref.")
@@ -380,26 +382,29 @@ AzimuthReference <- function(
   object$ori.index <- ori.index
 
   # Subset the features of the RNA assay
-  DefaultAssay(object = object) <- "SCT"
-  object[["SCT"]] <- subset(x = object[["SCT"]], features = features)
+  assay <- if (normalization.method == 'SCT') 'SCT' else 'RNA'
+  DefaultAssay(object = object) <- assay
+  object[[assay]] <- subset(x = object[[assay]], features = features)
   # Preserves DR after DietSeurat
-  DefaultAssay(object = object[["refDR"]]) <- "SCT"
-  object <- DietSeurat(
-    object = object,
-    counts = FALSE,
-    assays = c("SCT", assays),
-    dimreducs = c("refDR","refUMAP")
-  )
+  DefaultAssay(object = object[["refDR"]]) <- assay
+  if (assay == 'SCT') {
+    object <- DietSeurat(
+      object = object,
+      counts = FALSE,
+      assays = c(assay, assays),
+      dimreducs = c("refDR","refUMAP")
+    )
+    object[["SCT"]] <- Seurat:::CreateDummyAssay(assay = object[["SCT"]])
+    Misc(object = object[["SCT"]], slot = "vst.set") <- list()
+  }
   metadata <- c(metadata, "ori.index")
   for (i in colnames(x = object[[]])) {
     if (!i %in% metadata){
       object[[i]] <- NULL
     }
   }
-  object[["SCT"]] <- Seurat:::CreateDummyAssay(assay = object[["SCT"]])
-  Misc(object = object[["SCT"]], slot = "vst.set") <- list()
   Tool(object = object) <- ad
-  ValidateAzimuthReference(object = object)
+  ValidateAzimuthReference(object = object, normalization.method = normalization.method)
   return(object)
 }
 
@@ -511,7 +516,7 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #'
 #' @export
 #'
-ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
+ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference", normalization.method = 'SCT') {
   if (!inherits(x = Tool(object = object, slot = ad.name), what = "AzimuthData")) {
     stop ("Reference must contain an AzimuthData object in the tools slot.")
   }
