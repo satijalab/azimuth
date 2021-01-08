@@ -1390,6 +1390,7 @@ AzimuthServer <- function(input, output, session) {
     label.size <- 3
     repel <- FALSE
   } else {
+    updateCheckboxInput(session, "legend", value = TRUE)
     label.size <- 4
     repel <- TRUE
   }
@@ -1416,7 +1417,7 @@ AzimuthServer <- function(input, output, session) {
       )
       wrap_plots(plots, nrow = 1)
     }
-  }, res = 150)
+  })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {

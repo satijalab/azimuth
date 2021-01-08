@@ -286,7 +286,7 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 AzimuthReference <- function(
   object,
   refUMAP = "umap",
-  refDR = "spca",
+  refDR = "pca",
   dims = 1:50,
   k.param = 31,
   plotref = "umap",
@@ -295,9 +295,9 @@ AzimuthReference <- function(
   avgref = NULL,
   colormap = NULL,
   assays = NULL,
-  metadata = NULL,
+  metadata = c('celltype'),
   verbose = FALSE,
-  normalization.method = 'SCT'
+  normalization.method = 'LogNormalize'
 ) {
   # Parameter validation
   if (!refUMAP %in% Reductions(object = object)) {
