@@ -4,7 +4,11 @@
 \alias{ValidateAzimuthReference}
 \title{Validate References for Azimuth}
 \usage{
-ValidateAzimuthReference(object, ad.name = "AzimuthReference")
+ValidateAzimuthReference(
+  object,
+  ad.name = "AzimuthReference",
+  normalization.method = "SCT"
+)
 }
 \arguments{
 \item{object}{Seurat object}

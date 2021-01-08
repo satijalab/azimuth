@@ -7,7 +7,7 @@
 AzimuthReference(
   object,
   refUMAP = "umap",
-  refDR = "spca",
+  refDR = "pca",
   dims = 1:50,
   k.param = 31,
   plotref = "umap",
@@ -16,8 +16,9 @@ AzimuthReference(
   avgref = NULL,
   colormap = NULL,
   assays = NULL,
-  metadata = NULL,
-  verbose = FALSE
+  metadata = c("celltype"),
+  verbose = FALSE,
+  normalization.method = "LogNormalize"
 )
 }
 \arguments{

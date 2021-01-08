@@ -4,7 +4,7 @@
 \alias{LoadReference}
 \title{Load the reference RDS files}
 \usage{
-LoadReference(path, seconds = 10L)
+LoadReference(path, normalization.method, seconds = 10L)
 }
 \arguments{
 \item{path}{Path or URL to the two RDS files}

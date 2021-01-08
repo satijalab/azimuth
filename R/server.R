@@ -19,11 +19,11 @@ NULL
 #' FeaturePlot FindNeighbors FindTransferAnchors GetAssayData Idents Idents<-
 #' IntegrateEmbeddings Key MappingScore NoLegend PercentageFeatureSet
 #' RenameCells Reductions RunUMAP Tool TransferData SetAssayData SCTransform
-#' VariableFeatures VlnPlot
+#' VariableFeatures VlnPlot NormalizeData ScaleData FindVariableFeatures VariableFeatures
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI
-#' onStop
+#' onStop updateCheckboxInput
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show
