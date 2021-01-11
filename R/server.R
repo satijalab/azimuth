@@ -1508,6 +1508,8 @@ AzimuthServer <- function(input, output, session) {
     p(HTML(text = paste(
       paste("debug ID:", Sys.info()[["nodename"]]),
       paste('Azimuth version:', packageVersion(pkg = 'Azimuth')),
+      paste('Seurat version:', packageVersion(pkg = 'Seurat')),
+      paste('Reference version:', ReferenceVersion(object = refs$map)),
       sep = "<br />"
     )))
   })

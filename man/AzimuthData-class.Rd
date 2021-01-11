@@ -17,5 +17,11 @@ This should also contain the cell IDs in the misc slot}
 \item{\code{avgref}}{Average RNA expression for pseudobulk correlation tests}
 
 \item{\code{colormap}}{Vector of id-color mapping for specifying the plots.}
+
+\item{\code{seurat.version}}{Version of Seurat used in reference construction}
+
+\item{\code{azimuth.version}}{Version of Azimuth used in reference construction}
+
+\item{\code{reference.version}}{Version of the Azimuth reference}
 }}
 
