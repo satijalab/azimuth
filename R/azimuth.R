@@ -108,6 +108,9 @@ AzimuthApp <- function(config = NULL, ...) {
 #' This should also contain the cell IDs in the misc slot
 #' @slot avgref Average RNA expression for pseudobulk correlation tests
 #' @slot colormap Vector of id-color mapping for specifying the plots.
+#' @slot seurat.version Version of Seurat used in reference construction
+#' @slot azimuth.version Version of Azimuth used in reference construction
+#' @slot reference.version Version of the Azimuth reference
 #'
 #' @name AzimuthData-class
 #' @rdname AzimuthData-class
@@ -118,7 +121,10 @@ AzimuthData <- setClass(
   slots = c(
     plotref = 'DimReduc',
     avgref = 'matrix',
-    colormap = 'list'
+    colormap = 'list',
+    seurat.version = 'package_version',
+    azimuth.version = 'package_version',
+    reference.version = 'character'
   )
 )
 
@@ -171,6 +177,19 @@ GetColorMap <- function(object, ...) {
 #'
 GetPlotRef <- function(object, ...) {
   UseMethod(generic = 'GetPlotRef', object = object)
+}
+
+#' Get Azimuth reference version number
+#'
+#' Pull the reference version information
+#'
+#' @return A character string specifying the reference version
+#'
+#' @rdname ReferenceVersion
+#' @export ReferenceVersion
+#'
+ReferenceVersion <- function(object, ...) {
+  UseMethod(generic = 'ReferenceVersion', object = object)
 }
 
 #' Set Azimuth color mapping
@@ -238,6 +257,21 @@ GetPlotRef.AzimuthData <- function(object, ...) {
 #'
 GetPlotRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
   return(GetPlotRef(object = Tool(object = object, slot = slot)))
+}
+
+#' @rdname ReferenceVersion
+#' @export
+#' @method ReferenceVersion AzimuthData
+#'
+ReferenceVersion.AzimuthData <- function(object, ...) {
+  return(slot(object = object, name = "reference.version"))
+}
+
+#' @rdname ReferenceVersion
+#' @export
+#' @method ReferenceVersion Seurat
+ReferenceVersion.Seurat <- function(object, slot = "AzimuthReference", ...) {
+  return(ReferenceVersion(object = Tool(object = object, slot = slot)))
 }
 
 #' @rdname SetColorMap
@@ -418,6 +452,7 @@ AzimuthReference <- function(
 #' @param colormap A list of named and ordered vectors specifying the colors and levels
 #' for the metadata. See \code{\link{CreateColorMap}} for help
 #' generating your own.
+#' @param reference.version Version of the Azimuth reference
 #'
 #' @return Returns an \code{\link{AzimuthData}} object
 #'
@@ -430,7 +465,8 @@ CreateAzimuthData <- function(
   plotref = "umap",
   plot.metadata = NULL,
   avgref = NULL,
-  colormap = NULL
+  colormap = NULL,
+  reference.version = '0.0.0'
 ) {
   if (inherits(x = plotref, what = "character")) {
     if (plotref %in% Reductions(object = object)) {
@@ -463,7 +499,10 @@ CreateAzimuthData <- function(
     Class = "AzimuthData",
     plotref = plotref,
     avgref = avgref,
-    colormap = colormap
+    colormap = colormap,
+    seurat.version = packageVersion("Seurat"),
+    azimuth.version = packageVersion("Azimuth"),
+    reference.version = reference.version
   )
   return(ad)
 }

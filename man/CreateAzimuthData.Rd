@@ -9,7 +9,8 @@ CreateAzimuthData(
   plotref = "umap",
   plot.metadata = NULL,
   avgref = NULL,
-  colormap = NULL
+  colormap = NULL,
+  reference.version = "0.0.0"
 )
 }
 \arguments{
@@ -27,6 +28,8 @@ used in the pseudobulk correlation test.}
 \item{colormap}{A list of named and ordered vectors specifying the colors and levels
 for the metadata. See \code{\link{CreateColorMap}} for help
 generating your own.}
+
+\item{reference.version}{Version of the Azimuth reference}
 }
 \value{
 Returns an \code{\link{AzimuthData}} object
