@@ -4,7 +4,7 @@
 \alias{RefDRDP}
 \title{RefDR Dot Product}
 \usage{
-RefDRDP(query, ref, query.dr, grouping.var)
+RefDRDP(query, ref, query.dr, ref.dr, grouping.var)
 }
 \arguments{
 \item{query}{Query object}
@@ -12,6 +12,8 @@ RefDRDP(query, ref, query.dr, grouping.var)
 \item{ref}{Reference object}
 
 \item{query.dr}{Query dimensional reduction}
+
+\item{ref.dr}{Reference dimensional reduction}
 
 \item{grouping.var}{Grouping variable for the reference}
 }

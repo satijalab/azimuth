@@ -505,6 +505,7 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #' @param query Query object
 #' @param ref Reference object
 #' @param query.dr Query dimensional reduction
+#' @param ref.dr Reference dimensional reduction
 #' @param grouping.var Grouping variable for the reference
 #'
 #' @importFrom Seurat WhichCells Idents Embeddings Cells
