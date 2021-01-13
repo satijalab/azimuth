@@ -632,13 +632,12 @@ AzimuthServer <- function(input, output, session) {
           message = 'Calculating mapping score'
         )
         # Dot product score
-        query.dr <- slot(object = app.env$anchors, name = "object.list")[[1]][['pcaproject']]
-        query.dr <- RenameCells(
-          object = query.dr,
-          new.names = gsub(pattern = "_query$", replacement = "", x = Cells(x = query.dr))
-        )
+        query.resids <- Seurat:::L2Norm(mat = app.env$object[["SCT"]]@scale.data, MARGIN = 2)
+        features <- intersect(x = rownames(x = Loadings(object = refs$map[["refDR"]])), y = rownames(x = query.resids))
+        query.embeddings <- t(crossprod(x = Loadings(object = refs$map[["refDR"]])[features, ], query.resids[features, ]))
+        app.env$object[['proj.pca']] <- CreateDimReducObject(embeddings = query.embeddings, assay = "SCT")
         for (i in input$metadataxfer) {
-          dp.scores <- RefDRDP(query = app.env$object, ref = refs$map, query.dr = query.dr, grouping.var = i)
+          dp.scores <- RefDRDP(query = app.env$object, ref = refs$map, ref.dr = "l2.dr", query.dr = app.env$object[['proj.pca']], grouping.var = i)
           dp.scoremax <- apply(X = dp.scores, MARGIN = 1, FUN = max)
           colnames(x = dp.scores) <- paste0("dpscore", i, ".", colnames(x = dp.scores))
           app.env$object <- AddMetaData(object = app.env$object, metadata = as.data.frame(x = dp.scores))
