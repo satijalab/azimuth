@@ -19,7 +19,7 @@ NULL
 #' FeaturePlot FindNeighbors FindTransferAnchors GetAssayData Idents Idents<-
 #' IntegrateEmbeddings Key MappingScore NoLegend PercentageFeatureSet
 #' RenameCells Reductions RunUMAP Tool TransferData SetAssayData SCTransform
-#' VariableFeatures VlnPlot
+#' VariableFeatures VlnPlot CreateDimReducObject
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI
