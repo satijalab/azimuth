@@ -69,6 +69,7 @@ AzimuthServer <- function(input, output, session) {
     markers = FALSE,
     metadata = FALSE,
     mt = FALSE,
+    xferopts = FALSE,
     path = NULL,
     pbcor = FALSE,
     progress = NULL,
@@ -170,6 +171,9 @@ AzimuthServer <- function(input, output, session) {
     refs$map <- SetColorMap(object = refs$map, value = colormap)
   }
   possible.metadata.transfer <- names(x = GetColorMap(object = refs$map))
+  if (length(x = possible.metadata.transfer) > 1) {
+    react.env$xferopts <- TRUE
+  }
   # React to events
   # Load the data an prepare for QC
   observeEvent(
@@ -234,6 +238,9 @@ AzimuthServer <- function(input, output, session) {
             ),
             'Try another dataset.'
           )[reject]
+        }
+        if (isFALSE(x = react.env$xferopts)) {
+          removeUI(selector = '#xferopts', immediate = TRUE)
         }
         react.env$qc <- !any(reject)
         react.env$path <- NULL
