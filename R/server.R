@@ -664,7 +664,7 @@ AzimuthServer <- function(input, output, session) {
         features <- intersect(x = rownames(x = Loadings(object = refs$map[["refDR"]])), y = rownames(x = query.resids))
         query.embeddings <- t(crossprod(x = Loadings(object = refs$map[["refDR"]])[features, ], query.resids[features, ]))
         app.env$object[['proj.pca']] <- CreateDimReducObject(embeddings = query.embeddings, assay = "SCT")
-        for (i in input$metadataxfer) {
+        for (i in app.env$metadataxfer) {
           dp.scores <- RefDRDP(query = app.env$object, ref = refs$map, ref.dr = "l2.dr", query.dr = app.env$object[['proj.pca']], grouping.var = i)
           dp.scoremax <- apply(X = dp.scores, MARGIN = 1, FUN = max)
           colnames(x = dp.scores) <- paste0("dpscore", i, ".", colnames(x = dp.scores))
@@ -788,8 +788,7 @@ AzimuthServer <- function(input, output, session) {
         score.pass <- TRUE
         score.subtitle.fail <- "Score threshold failed for: \n"
         for (i in input$metadataxfer) {
-          flag <- app.env$object[[paste0("dpscoremax.", i), drop = TRUE]] < 0.5 &
-            value(app.env$mapping.score) < 0.5
+          flag <- app.env$object[[paste0("dpscoremax.", i), drop = TRUE]] < 0.5
           flag <- length(x = which(x = flag)) / length(x = flag) * 100
           if (flag > 25) {
             score.pass <- FALSE
