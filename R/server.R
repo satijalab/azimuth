@@ -598,11 +598,16 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = react.env$map,
     handlerExpr = {
       if (isTRUE(x = react.env$map)) {
+        app.env$metadataxfer <- ifelse(
+          test = is.null(x = input$metadataxfer),
+          yes = names(x = GetColorMap(object = refs$map)),
+          no = input$metadataxfer
+        )
         react.env$progress$set(value = 0.5, message = 'Mapping cells')
-        refdata <- lapply(X = input$metadataxfer, function(x) {
+        refdata <- lapply(X = app.env$metadataxfer, function(x) {
           refs$map[[x, drop = TRUE]]
         })
-        names(x = refdata) <- input$metadataxfer
+        names(x = refdata) <- app.env$metadataxfer
         if (do.adt) {
           refdata[["impADT"]] <- GetAssayData(
             object = refs$map[['ADT']],
@@ -618,7 +623,7 @@ AzimuthServer <- function(input, output, session) {
           n.trees = n.trees,
           store.weights = TRUE
         )
-        for(i in input$metadataxfer) {
+        for(i in app.env$metadataxfer) {
           app.env$object[[paste0("predicted.", i), drop = TRUE]] <- factor(
             x = app.env$object[[paste0("predicted.", i), drop = TRUE]],
             levels = levels(x = refs$map[[i, drop = TRUE]])
@@ -780,7 +785,7 @@ AzimuthServer <- function(input, output, session) {
           value = 0.95,
           message = 'Running differential expression'
         )
-        for (i in input$metadataxfer) {
+        for (i in app.env$metadataxfer) {
           app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
             group_by = paste0("predicted.", i),
@@ -851,7 +856,7 @@ AzimuthServer <- function(input, output, session) {
         metadata.discrete <- sort(x =
                                     PlottableMetadataNames(
                                       object = app.env$object,
-                                      exceptions = input$metadataxfer,
+                                      exceptions = app.env$metadataxfer,
                                       min.levels = 1,
                                       max.levels = 50
                                     )
@@ -899,7 +904,7 @@ AzimuthServer <- function(input, output, session) {
         updateSelectizeInput(
           session = session,
           inputId = 'scoregroup',
-          choices = paste0("predicted.", input$metadataxfer),
+          choices = paste0("predicted.", app.env$metadataxfer),
           selected = app.env$default.metadata,
           server = TRUE,
           options = selectize.opts
@@ -918,7 +923,7 @@ AzimuthServer <- function(input, output, session) {
         updateSelectizeInput(
           session = session,
           inputId = 'metacolor.ref',
-          choices = input$metadataxfer,
+          choices = app.env$metadataxfer,
           selected = app.env$default.metadata,
           server = TRUE,
           options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
@@ -1003,7 +1008,7 @@ AzimuthServer <- function(input, output, session) {
         updateSelectizeInput(
           session = session,
           inputId = 'markerclustersgroup',
-          choices = input$metadataxfer,
+          choices = app.env$metadataxfer,
           selected = app.env$default.metadata,
           server = TRUE,
           options = selectize.opts
@@ -1050,7 +1055,7 @@ AzimuthServer <- function(input, output, session) {
             choices = list(
               'adtfeature' = app.env$adt.features,
               'metadata.cont' = app.env$metadata.cont,
-              'scoregroup' = input$metadataxfer,
+              'scoregroup' = app.env$metadataxfer,
               'scorefeature' = ''
             )[[f]],
             selected = '',
@@ -1085,7 +1090,7 @@ AzimuthServer <- function(input, output, session) {
             choices = list(
               'feature' = app.env$features,
               'metadata.cont' = app.env$metadata.cont,
-              'scoregroup' = input$metadataxfer,
+              'scoregroup' = app.env$metadataxfer,
               'scorefeature' = ''
             )[[f]],
             selected = '',
@@ -1122,7 +1127,7 @@ AzimuthServer <- function(input, output, session) {
             choices = list(
               'feature' = app.env$features,
               'adtfeature' = app.env$adt.features,
-              'scoregroup' = input$metadataxfer,
+              'scoregroup' = app.env$metadataxfer,
               'scorefeature' = ''
             )[[f]],
             selected = '',
@@ -1663,7 +1668,7 @@ AzimuthServer <- function(input, output, session) {
   output$dlpred <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
-      req <- paste0("predicted.", c(input$metadataxfer, paste0(input$metadataxfer, ".score")))
+      req <- paste0("predicted.", c(app.env$metadataxfer, paste0(app.env$metadataxfer, ".score")))
       if (resolved(x = app.env$mapping.score)) {
         req <- c(req, 'mapping.score')
       }
@@ -1708,7 +1713,7 @@ AzimuthServer <- function(input, output, session) {
       e$ntrees <- getOption(x = 'Azimuth.map.ntrees')
       e$adt.key <- adt.key
       e$do.adt <- do.adt
-      e$metadataxfer <- input$metadataxfer
+      e$metadataxfer <- app.env$metadataxfer
       if (length(x = e$metadataxfer == 1)) {
         e$metadataxfer <- paste0("\"", e$metadataxfer, "\"")
       }
