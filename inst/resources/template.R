@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 # Ensure Seurat v4.0 or higher is installed
-if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9019")) {
-  stop("Mapping datasets requires Seurat v4 or higher", call. = FALSE)
+if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9020")) {
+  stop("Mapping datasets requires Seurat v4 or higher.", call. = FALSE)
 }
 
 # Ensure glmGamPoi is installed
@@ -76,6 +76,7 @@ query <- SCTransform(
   object = query,
   assay = "RNA",
   residual.features = rownames(x = reference$map),
+  reference.SCT.model = reference$sct.model,
   method = 'glmGamPoi',
   ncells = ${sct.ncells},
   n_genes = ${sct.nfeats},
