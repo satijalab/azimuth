@@ -130,10 +130,25 @@ AzimuthUI <- tagList(
               ),
               textOutput(outputId = 'text.cellsremain'),
               div(
-                h4("Transfer Options"),
-              ),
-              div(
                 id = 'xferopts',
+                h4(
+                  'Transfer Options',
+                  bsButton(
+                    inputId = 'xferopts',
+                    label = '',
+                    icon = icon(name = 'question'),
+                    style = 'info',
+                    size = 'extra-small'
+                  )
+                ),
+                bsPopover(
+                  id = 'xferopts',
+                  title = 'Transfer Options',
+                  content = 'Select the meta.data fields to transfer from the reference',
+                  placement = 'right',
+                  trigger = 'focus',
+                  options = list(container = 'body')
+                ),
                 selectizeInput(
                   inputId = 'metadataxfer',
                   label = 'Reference Metadata to Transfer',
