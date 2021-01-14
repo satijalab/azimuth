@@ -573,8 +573,24 @@ AzimuthServer <- function(input, output, session) {
           verbose = TRUE,
           mapping.score.k = 100
         )
-        # TODO: fail if not enough anchors (Azimuth.map.anchors)
-        react.env$map <- TRUE
+        nanchors <- nrow(x = slot(object = app.env$anchors, name = "anchors"))
+        if (nanchors < getOption(x = 'Azimuth.map.nanchors')) {
+          output$valuebox.mapped <- renderValueBox(expr = {
+            valueBox(
+              value = 'Failure',
+              subtitle = paste0('Too few anchors identified (', nanchors, ')'),
+              icon = icon(name = 'times'),
+              color = 'red',
+              width = 6
+            )
+          })
+          app.env$object <- NULL
+          app.env$anchors <- NULL
+          react.env$progress$close()
+          gc(verbose = FALSE)
+        } else {
+          react.env$map <- TRUE
+        }
         react.env$anchors <- FALSE
       }
     }
