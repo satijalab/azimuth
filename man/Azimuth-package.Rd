@@ -87,7 +87,6 @@ Minimum number of genes in common with reference to accept uploaded file.
 Defaults to \code{250}
 }
 \item{\code{Azimuth.map.nanchors}}{
-\strong{NOT CURRENTLY USED}
 Minimum number of anchors that must be found to complete mapping.
 Defaults to \code{50}
 }
