@@ -161,8 +161,10 @@ AzimuthUI <- tagList(
               options = list(container = 'body')
             ),
             box(
-              checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis'),
-              checkboxInput(inputId = 'check.qcpoints', label = 'Hide points'),
+              fluidRow(
+                column(2, checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis')),
+                column(2, checkboxInput(inputId = 'check.qcpoints', label = 'Hide points'))
+              ),
               plotOutput(outputId = 'plot.qc'),
               tableOutput(outputId = 'table.qc'),
               width = 8
@@ -181,13 +183,30 @@ AzimuthUI <- tagList(
             )
           )
         ),
+        # DELETE tab
+        tabItem(
+          tabName = 'tab_del',
+          box(
+            title = 'Referencedel',
+            selectizeInput(
+              inputId = 'metacolor.ref',
+              label = 'Metadata to color by',
+              choices = '',
+              multiple = TRUE,
+            ),
+            plotlyOutput(outputId = 'refdim2'),
+            width = 12
+          )
+        ),
         # Cell tab
         tabItem(
           tabName = 'tab_cell',
           box(
             title = 'Reference',
-            checkboxInput(inputId = 'labels', label = 'Show labels'),
-            checkboxInput(inputId = 'legend', label = 'Show legend'),
+            fluidRow(
+              column(2, checkboxInput(inputId = 'labels', label = 'Show labels')),
+              column(2, checkboxInput(inputId = 'legend', label = 'Show legend'))
+            ),
             selectizeInput(
               inputId = 'metacolor.ref',
               label = 'Metadata to color by',

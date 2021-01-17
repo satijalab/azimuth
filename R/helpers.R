@@ -347,7 +347,7 @@ LoadReference <- function(path, normalization.method, seconds = 10L) {
   # Load the map reference
   map <- readRDS(file = mapref)
   # Load the annoy index into the Neighbor object in the neighbors slot
-  
+
   map[["refdr.annoy.neighbors"]] <- LoadAnnoyIndex(
     object = map[["refdr.annoy.neighbors"]],
     file = annref
@@ -364,7 +364,7 @@ LoadReference <- function(path, normalization.method, seconds = 10L) {
     dimnames = list("placeholder", Cells(x = plotref.dr))
   )
   plot <- CreateSeuratObject(
-    counts = cm
+    counts = cm, names.field = NULL, names.delim = NULL # saves >10s on `feat/updateCSO` seurat branch
   )
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))

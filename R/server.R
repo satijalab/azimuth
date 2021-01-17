@@ -39,11 +39,10 @@ AzimuthServer <- function(input, output, session) {
   if (is.null(x = getOption(x = 'Azimuth.app.demodataset'))) {
     hide(id="triggerdemo")
   }
-  dims <- getOption(
+  dims <- 1:getOption(
     x = 'Azimuth.app.dims',
     default = 50
   )
-  dims <- 1:dims
   norm.method <- getOption(
     x = 'Azimuth.norm.method',
     default = 'SCT'
@@ -300,7 +299,7 @@ AzimuthServer <- function(input, output, session) {
         updateNumericInput(
           session = session,
           inputId = 'num.ncountmax',
-          label = paste('min', ncount),
+          label = paste('max', ncount),
           value = ncount.val[2],
           min = ncount.val[1],
           max = ncount.val[2]
@@ -321,7 +320,7 @@ AzimuthServer <- function(input, output, session) {
         updateNumericInput(
           session = session,
           inputId = 'num.nfeaturemax',
-          label = paste('min', nfeature),
+          label = paste('max', nfeature),
           value = nfeature.val[2],
           min = nfeature.val[1],
           max = nfeature.val[2]
@@ -361,6 +360,11 @@ AzimuthServer <- function(input, output, session) {
             tabName = 'tab_preproc',
             icon = icon(name = 'filter'),
             selected = TRUE
+          ),
+          menuItem(
+            text = "Cell Plots",
+            tabName = "tab_del",
+            icon = icon("chart-area")
           ))
         })
         ncellsupload <- length(x = colnames(x = app.env$object))
@@ -414,7 +418,7 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-  
+
   # Filter and process the data
   observeEvent(
     eventExpr = input$map,
@@ -569,7 +573,7 @@ AzimuthServer <- function(input, output, session) {
           message = 'Log Normalizing'
         )
         app.env$object <- NormalizeData(object = app.env$object)
-        # VariableFeatures(app.env$object) <- 
+        # VariableFeatures(app.env$object) <-
         #   intersect(
         #     x = rownames(x = app.env$object),
         #     y = rownames(x = refs$map)
@@ -603,7 +607,7 @@ AzimuthServer <- function(input, output, session) {
           reference.assay = assay,
           query.assay = assay,
           reference.reduction = 'refDR',
-          features = 
+          features =
             intersect(
               x = rownames(x = refs$map),
               y = VariableFeatures(object = app.env$object)
@@ -822,7 +826,7 @@ AzimuthServer <- function(input, output, session) {
             )
           }
         }
-        
+
         # Finalize the log
         time.fmt <- FormatDiffTime(dt = difftime(
           time1 = Sys.time(),
@@ -993,7 +997,7 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-  
+
   observeEvent(
     eventExpr = react.env$markers,
     handlerExpr = {
@@ -1016,7 +1020,7 @@ AzimuthServer <- function(input, output, session) {
         #   server = TRUE,
         #   options = selectize.opts
         # )
-        
+
         updateSelectizeInput(
           session = session,
           inputId = 'markerclusters',
@@ -1025,7 +1029,7 @@ AzimuthServer <- function(input, output, session) {
           server = TRUE,
           options = selectize.opts
         )
-        
+
         updateSelectizeInput(
           session = session,
           inputId = 'markerclustersgroup',
@@ -1034,7 +1038,7 @@ AzimuthServer <- function(input, output, session) {
           server = TRUE,
           options = selectize.opts
         )
-        
+
         react.env$markers <- FALSE
       }
     }
@@ -1044,14 +1048,14 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (FALSE) {
         # Enable the feature explorer
-        
+
         # Add the predicted ID and score to the plots
-        
-        
-        
+
+
+
         # Enable downloads
-        
-        
+
+
         react.env$no <- FALSE
       }
     }
@@ -1250,7 +1254,7 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-  
+
   observeEvent( # Select from biomarkers table
     eventExpr = input$biomarkers_rows_selected,
     handlerExpr = {
@@ -1386,7 +1390,7 @@ AzimuthServer <- function(input, output, session) {
   })
   if (bigref == 'TRUE') {
     updateCheckboxInput(session, "legend", value = FALSE)
-    updateCheckboxInput(session, "labels", value = TRUE)
+    updateCheckboxInput(session, "labels", value = FALSE)
     label.size <- 3
     repel <- FALSE
   } else {
@@ -1405,7 +1409,7 @@ AzimuthServer <- function(input, output, session) {
           label.size = label.size,
           repel = repel,
           group.by = input$metacolor.ref[i],
-          cols = colormaps[[i]],
+          cols = colormaps[[i]]
         )
         if (!input$legend) {
           plots[[i]] <- plots[[i]] + NoLegend()
@@ -1418,6 +1422,34 @@ AzimuthServer <- function(input, output, session) {
       wrap_plots(plots, nrow = 1)
     }
   })
+  output$refdim2 <- renderPlotly(expr = {
+    if (TRUE) {
+      plots <- list()
+      refs$plot<-subset(refs$plot,cells=Cells(refs$plot)[1:1000])
+      for (i in 1:1) {
+        plots[[i]] <- DimPlot(
+          object = refs$plot,
+          label = input$labels,
+          label.size = label.size,
+          repel = repel,
+          raster = FALSE
+        )
+        if (!input$legend) {
+          plots[[i]] <- plots[[i]] + NoLegend()
+        }
+      }
+      app.env$plot.ranges <- list(
+        layer_scales(plots[[1]])$x$range$range,
+        layer_scales(plots[[1]])$y$range$range
+      )
+      # wrap_plots(plots, nrow = 1)
+      # p <- toWebGL(ggplotly(plots[[1]]))
+      p <- toWebGL(plot_ly(mtcars, x = ~mpg, y = ~wt))
+      p
+    }
+  })
+  # outputOptions(output, "refdim2", suspendWhenHidden = TRUE)
+
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
@@ -1481,11 +1513,11 @@ AzimuthServer <- function(input, output, session) {
         } else {
           title <- ifelse(
             test = grepl(
-              pattern = if (norm.method == 'SCT') "^sct_" else '^rna_', 
+              pattern = if (norm.method == 'SCT') "^sct_" else '^rna_',
               x = app.env$feature),
             yes = gsub(
-              pattern = if (norm.method == 'SCT') "^sct_" else '^rna_', 
-              replacement = '', 
+              pattern = if (norm.method == 'SCT') "^sct_" else '^rna_',
+              replacement = '',
               x = app.env$feature),
             no = app.env$feature
           )
