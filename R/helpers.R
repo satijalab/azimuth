@@ -369,19 +369,22 @@ LoadReference <- function(path, normalization.method, seconds = 10L) {
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   avg <- GetAvgRef(object = ad)
+  sd <- GetSdRef(object = ad)
   gc(verbose = FALSE)
   if (normalization.method == 'SCT') {
     return(list(
       map = map,
       sct.model = sct.model,
       plot = plot,
-      avgexp = avg
+      avgexp = avg,
+      sdexp = sd
     ))
   } else {
     return(list(
       map = map,
       plot = plot,
-      avgexp = avg
+      avgexp = avg,
+      sdexp = sd
     ))
   }
 }

@@ -107,6 +107,7 @@ AzimuthApp <- function(config = NULL, ...) {
 #' @slot plotref DimReduc object containing UMAP for plotting and projection.
 #' This should also contain the cell IDs in the misc slot
 #' @slot avgref Average RNA expression for pseudobulk correlation tests
+#' @slot sdref Stdev of RNA expression for pseudobulk correlation tests
 #' @slot colormap Vector of id-color mapping for specifying the plots.
 #'
 #' @name AzimuthData-class
@@ -118,6 +119,7 @@ AzimuthData <- setClass(
   slots = c(
     plotref = 'DimReduc',
     avgref = 'matrix',
+    sdref = 'matrix',
     colormap = 'list'
   )
 )
@@ -141,6 +143,23 @@ AzimuthData <- setClass(
 #'
 GetAvgRef <- function(object, ...) {
   UseMethod(generic = 'GetAvgRef', object = object)
+}
+
+#' Get Azimuth average expression
+#'
+#' Pull reference stdev RNA expression matrix
+#'
+#' @param object An object
+#' @param slot Name of tool
+#' @param ... Arguments passed to other methods
+#'
+#' @return A feature x 1 matrix of average RNA expression values
+#'
+#' @rdname GetSdRef
+#' @export GetSdRef
+#'
+GetSdRef <- function(object, ...) {
+  UseMethod(generic = 'GetSdRef', object = object)
 }
 
 #' Get Azimuth color mapping
@@ -206,6 +225,26 @@ GetAvgRef.AzimuthData <- function(object, ...) {
 #'
 GetAvgRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
   return(GetAvgRef(object = Tool(object = object, slot = slot)))
+}
+
+#' @rdname GetSdRef
+#' @export
+#' @method GetSdRef AzimuthData
+#'
+GetSdRef.AzimuthData <- function(object, ...) {
+  if ("sdref" %in% slotNames(object)) {
+    return(slot(object = object, name = "sdref"))
+  } else {
+    return(NULL)
+  }
+}
+
+#' @rdname GetSdRef
+#' @export
+#' @method GetSdRef Seurat
+#'
+GetSdRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
+  return(GetSdRef(object = Tool(object = object, slot = slot)))
 }
 
 #' @rdname GetColorMap
@@ -293,6 +332,7 @@ AzimuthReference <- function(
   plot.metadata = NULL,
   ori.index = NULL,
   avgref = NULL,
+  sdref = NULL,
   colormap = NULL,
   assays = NULL,
   metadata = c('celltype'),
@@ -324,7 +364,7 @@ AzimuthReference <- function(
       object[[i, drop = TRUE]] <- factor(x = object[[i, drop = TRUE]], levels = sort(x = unique(object[[i, drop = TRUE]])))
     }
   }
-  
+
   if ((normalization.method == 'SCT') & (!"SCT" %in% Assays(object = object))) {
     stop("Seurat object provided must have the SCT Assay stored if `normalization.method` is set to SCT.")
   }
@@ -350,7 +390,7 @@ AzimuthReference <- function(
       verbose = verbose
     )
   }
-  
+
   if (verbose) {
     message("Computing pseudobulk averages")
   }
@@ -362,11 +402,21 @@ AzimuthReference <- function(
     }
     Idents(object = object) <- random.name
     object <- NormalizeData(object = object, assay = "RNA", verbose = verbose)
-    avgref <- AverageExpression(
-      object = object,
-      assays = "RNA",
-      verbose = verbose
-    )[[1]][features, , drop = FALSE]
+    # avgref <- AverageExpression(
+    #   object = object,
+    #   assays = "RNA",
+    #   verbose = verbose
+    # )[[1]][features, , drop = FALSE]
+    avgref <- rowMeans(as.matrix(object[['RNA']]@data))[features] # weird complaint w/ouot as.matrix
+    sdref <- sqrt(
+      x = SparseRowVar2(
+        mat = object[['RNA']]@data[features,],
+        mu = as.vector(avgref),
+        display_progress = FALSE
+      )
+    )
+    sdref[is.na(x = sdref)] <- 1
+    rownames(sdref)<-features
     Idents(object = object) <- "id"
   }
   plot.metadata <- plot.metadata %||% object[[metadata]]
@@ -378,6 +428,7 @@ AzimuthReference <- function(
     plotref = plotref,
     plot.metadata  = plot.metadata,
     avgref = avgref,
+    sdref = sdref,
     colormap = colormap
   )
   # Add the "ori.index" column.
@@ -390,14 +441,14 @@ AzimuthReference <- function(
   object[[assay]] <- subset(x = object[[assay]], features = features)
   # Preserves DR after DietSeurat
   DefaultAssay(object = object[["refDR"]]) <- assay
+  object <- DietSeurat(
+    object = object,
+    counts = FALSE,
+    assays = c(assay, assays),
+    dimreducs = c("refDR","refUMAP")
+  )
+  object[[assay]] <- Seurat:::CreateDummyAssay(assay = object[[assay]])
   if (assay == 'SCT') {
-    object <- DietSeurat(
-      object = object,
-      counts = FALSE,
-      assays = c(assay, assays),
-      dimreducs = c("refDR","refUMAP")
-    )
-    object[["SCT"]] <- Seurat:::CreateDummyAssay(assay = object[["SCT"]])
     Misc(object = object[["SCT"]], slot = "vst.set") <- list()
   }
   metadata <- c(metadata, "ori.index")
@@ -406,7 +457,7 @@ AzimuthReference <- function(
       object[[i]] <- NULL
     }
   }
-  Tool(object = object) <- ad
+  object@tools[['AzimuthReference']] <- ad
   ValidateAzimuthReference(object = object, normalization.method = normalization.method)
   return(object)
 }
@@ -438,6 +489,7 @@ CreateAzimuthData <- function(
   plotref = "umap",
   plot.metadata = NULL,
   avgref = NULL,
+  sdref = NULL,
   colormap = NULL
 ) {
   if (inherits(x = plotref, what = "character")) {
@@ -467,10 +519,12 @@ CreateAzimuthData <- function(
   slot(object = plotref, name = 'misc')[["plot.metadata"]] <- plot.metadata
   colormap <- colormap[colnames(x = plot.metadata)]
   avgref <- as.matrix(x = avgref)
+  sdref <- as.matrix(x = sdref)
   ad <- new(
     Class = "AzimuthData",
     plotref = plotref,
     avgref = avgref,
+    sdref = sdref,
     colormap = colormap
   )
   return(ad)
@@ -520,9 +574,9 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #' @export
 #'
 ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference", normalization.method = 'SCT') {
-  if (!inherits(x = Tool(object = object, slot = ad.name), what = "AzimuthData")) {
-    stop ("Reference must contain an AzimuthData object in the tools slot.")
-  }
+  # if (!inherits(x = Tool(object = object, slot = ad.name), what = "AzimuthData")) {
+  #   stop ("Reference must contain an AzimuthData object in the tools slot.")
+  # }
   plotref <- GetPlotRef(object = object, slot = ad.name)
   colormap <- GetColorMap(object = object, slot = ad.name)
   # plotref needs to have IDs in misc

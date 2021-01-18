@@ -616,7 +616,11 @@ AzimuthServer <- function(input, output, session) {
           dims = dims,
           n.trees = n.trees,
           verbose = TRUE,
-          mapping.score.k = 100
+          mapping.score.k = if (bigref == "TRUE") NULL else 100,
+          feature.mean =
+            if ((bigref == "TRUE") && !is.null(refs$sd)) refs$avg else NULL,
+          feature.sd =
+            if ((bigref == "TRUE") && !is.null(refs$sd)) refs$sd else NULL,
         )
         # TODO: fail if not enough anchors (Azimuth.map.anchors)
         react.env$map <- TRUE
@@ -1422,34 +1426,37 @@ AzimuthServer <- function(input, output, session) {
       wrap_plots(plots, nrow = 1)
     }
   })
-  output$refdim2 <- renderPlotly(expr = {
-    if (TRUE) {
-      plots <- list()
-      refs$plot<-subset(refs$plot,cells=Cells(refs$plot)[1:1000])
-      for (i in 1:1) {
-        plots[[i]] <- DimPlot(
-          object = refs$plot,
-          label = input$labels,
-          label.size = label.size,
-          repel = repel,
-          raster = FALSE
-        )
-        if (!input$legend) {
-          plots[[i]] <- plots[[i]] + NoLegend()
-        }
-      }
-      app.env$plot.ranges <- list(
-        layer_scales(plots[[1]])$x$range$range,
-        layer_scales(plots[[1]])$y$range$range
-      )
-      # wrap_plots(plots, nrow = 1)
-      # p <- toWebGL(ggplotly(plots[[1]]))
-      p <- toWebGL(plot_ly(mtcars, x = ~mpg, y = ~wt))
-      p
-    }
-  })
+  # output$refdim2 <- renderPlotly(expr = {
+  #   if (TRUE) {
+  #     plots <- list()
+  #     refs$plot<-subset(refs$plot,cells=Cells(refs$plot)[1:1000])
+  #     for (i in 1:1) {
+  #       plots[[i]] <- DimPlot(
+  #         object = refs$plot,
+  #         label = input$labels,
+  #         label.size = label.size,
+  #         repel = repel,
+  #         raster = FALSE
+  #       )
+  #       if (!input$legend) {
+  #         plots[[i]] <- plots[[i]] + NoLegend()
+  #       }
+  #     }
+  #     app.env$plot.ranges <- list(
+  #       layer_scales(plots[[1]])$x$range$range,
+  #       layer_scales(plots[[1]])$y$range$range
+  #     )
+  #     # wrap_plots(plots, nrow = 1)
+  #     # p <- toWebGL(ggplotly(plots[[1]]))
+  #     p <- toWebGL(plot_ly(mtcars, x = ~mpg, y = ~wt))
+  #     p
+  #   }
+  # })
   # outputOptions(output, "refdim2", suspendWhenHidden = TRUE)
-
+  addResourcePath("tmp", getOption("Azimuth.app.reference"))
+  output$del <- renderUI({
+    tags$iframe(seamless="seamless", src="tmp/widget3.html", width=800, height=800)
+  })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {

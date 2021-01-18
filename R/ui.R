@@ -3,7 +3,7 @@
 #' @importFrom DT DTOutput
 #' @importFrom htmltools div h3 h4 HTML includeCSS p tagList tags
 #' @importFrom shinyjs disabled useShinyjs
-#' @importFrom shiny actionButton checkboxInput downloadButton fileInput
+#' @importFrom shiny column actionButton checkboxInput downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
 #' tableOutput textOutput uiOutput verbatimTextOutput
 #' @importFrom shinyBS bsButton bsPopover
@@ -194,7 +194,8 @@ AzimuthUI <- tagList(
               choices = '',
               multiple = TRUE,
             ),
-            plotlyOutput(outputId = 'refdim2'),
+            htmlOutput("del"),
+            # plotlyOutput(outputId = 'refdim2'),
             width = 12
           )
         ),
