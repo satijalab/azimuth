@@ -25,6 +25,9 @@ ADT to select by default in feature/violin plot
 \item{\code{Azimuth.app.default_gene}}{
 Gene to select by default in feature/violin plot
 }
+\item{\code{Azimuth.app.default_metadata}}{
+Default metadata transferred from reference.
+}
 \item{\code{Azimuth.app.demodataset}}{
 Path to data file (in any Azimuth-supported format) to automatically load
 when the user clicks a button. The button is only available in the UI
@@ -84,7 +87,6 @@ Minimum number of genes in common with reference to accept uploaded file.
 Defaults to \code{250}
 }
 \item{\code{Azimuth.map.nanchors}}{
-\strong{NOT CURRENTLY USED}
 Minimum number of anchors that must be found to complete mapping.
 Defaults to \code{50}
 }

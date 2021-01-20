@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 # Ensure Seurat v4.0 or higher is installed
-if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9002")) {
-  stop("Mapping datasets requires Seurat v4 or higher", call. = FALSE)
+if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9020")) {
+  stop("Mapping datasets requires Seurat v4 or higher.", call. = FALSE)
 }
 
 # Ensure glmGamPoi is installed
@@ -76,6 +76,7 @@ query <- SCTransform(
   object = query,
   assay = "RNA",
   residual.features = rownames(x = reference$map),
+  reference.SCT.model = reference$sct.model,
   method = 'glmGamPoi',
   ncells = ${sct.ncells},
   n_genes = ${sct.nfeats},
@@ -89,10 +90,10 @@ anchors <- FindTransferAnchors(
   reference = reference$map,
   query = query,
   k.filter = NA,
-  reference.neighbors = "spca.annoy.neighbors",
+  reference.neighbors = "refdr.annoy.neighbors",
   reference.assay = "SCT",
   query.assay = "SCT",
-  reference.reduction = "spca",
+  reference.reduction = "refDR",
   normalization.method = "SCT",
   features = intersect(rownames(x = reference$map), VariableFeatures(object = query)),
   dims = 1:50,
@@ -102,21 +103,28 @@ anchors <- FindTransferAnchors(
 
 # Transfer cell type labels and impute protein expression
 #
-# Transferred labels are in a metadata column named "predicted.id"
-# The maximum prediction score is in a metadata column named "predicted.id.score"
-# The prediction scores for each class are in an assay named "prediction.score.id"
-# The imputed assay is named "impADT"
+# Transferred labels are in metadata columns named "predicted.*"
+# The maximum prediction score is in a metadata column named "predicted.*.score"
+# The prediction scores for each class are in an assay named "prediction.score.*"
+# The imputed assay is named "impADT" if computed
+
+refdata <- lapply(X = ${metadataxfer}, function(x) {
+  reference$map[[x, drop = TRUE]]
+})
+names(x = refdata) <- ${metadataxfer}
+if (${do.adt}) {
+  refdata[["impADT"]] <- GetAssayData(
+    object = reference$map[['ADT']],
+    slot = 'data'
+  )
+}
 query <- TransferData(
   reference = reference$map,
   query = query,
   dims = 1:50,
   anchorset = anchors,
-  refdata = list(
-    id = Idents(reference$map),
-    impADT = GetAssayData(
-    object = reference$map[['ADT']],
-    slot = 'data'
-  )),
+  refdata = refdata,
+  n.trees = ${ntrees},
   store.weights = TRUE
 )
 
@@ -132,7 +140,7 @@ query <- IntegrateEmbeddings(
 # Calculate the query neighbors in the reference
 # with respect to the integrated embeddings
 query[["query_ref.nn"]] <- FindNeighbors(
-  object = Embeddings(reference$map[["spca"]]),
+  object = Embeddings(reference$map[["refDR"]]),
   query = Embeddings(query[["integrated_dr"]]),
   return.neighbor = TRUE,
   l2.norm = TRUE
@@ -149,7 +157,7 @@ query <- NNTransform(
 # Project the query to the reference UMAP.
 query[["proj.umap"]] <- RunUMAP(
   object = query[["query_ref.nn"]],
-  reduction.model = reference$map[["jumap"]],
+  reduction.model = reference$map[["refUMAP"]],
   reduction.key = 'UMAP_'
 )
 
@@ -163,28 +171,34 @@ query <- AddMetaData(
 
 # VISUALIZATIONS
 
+# First predicted metadata field, change to visualize other predicted metadata
+id <- ${metadataxfer}[1]
+predicted.id <- paste0("predicted.", id)
+
 # DimPlot of the reference
-DimPlot(object = reference$plot, reduction = "umap", group.by = "id", label = TRUE) + NoLegend()
+DimPlot(object = reference$plot, reduction = "refUMAP", group.by = id, label = TRUE) + NoLegend()
 
 # DimPlot of the query, colored by predicted cell type
-DimPlot(object = query, reduction = "proj.umap", group.by = "predicted.id", label = TRUE) + NoLegend()
+DimPlot(object = query, reduction = "proj.umap", group.by = predicted.id, label = TRUE) + NoLegend()
 
 # Plot the score for the predicted cell type of the query
-FeaturePlot(object = query, features = "predicted.id.score", reduction = "proj.umap")
-VlnPlot(object = query, features = "predicted.id.score", group.by = "predicted.id") + NoLegend()
+FeaturePlot(object = query, features = paste0(predicted.id, ".score"), reduction = "proj.umap")
+VlnPlot(object = query, features = paste0(predicted.id, ".score"), group.by = predicted.id) + NoLegend()
 
 # Plot the mapping score
 FeaturePlot(object = query, features = "mapping.score", reduction = "proj.umap")
-VlnPlot(object = query, features = "mapping.score", group.by = "predicted.id") + NoLegend()
+VlnPlot(object = query, features = "mapping.score", group.by = predicted.id) + NoLegend()
 
 # Plot the prediction score for the class CD16 Mono
 FeaturePlot(object = query, features = "CD16 Mono", reduction = "proj.umap")
-VlnPlot(object = query, features = "CD16 Mono", group.by = "predicted.id") + NoLegend()
+VlnPlot(object = query, features = "CD16 Mono", group.by = predicted.id) + NoLegend()
 
 # Plot an RNA feature
 FeaturePlot(object = query, features = "${plotgene}", reduction = "proj.umap")
-VlnPlot(object = query, features = "${plotgene}", group.by = "predicted.id") + NoLegend()
+VlnPlot(object = query, features = "${plotgene}", group.by = predicted.id) + NoLegend()
 
 # Plot an imputed protein feature
-FeaturePlot(object = query, features = "${plotadt}", reduction = "proj.umap")
-VlnPlot(object = query, features = "${plotadt}", group.by = "predicted.id") + NoLegend()
+if (${do.adt}) {
+  FeaturePlot(object = query, features = "${plotadt}", reduction = "proj.umap")
+  VlnPlot(object = query, features = "${plotadt}", group.by = predicted.id) + NoLegend()
+}

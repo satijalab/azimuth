@@ -16,6 +16,9 @@
 #'   \item{\code{Azimuth.app.default_gene}}{
 #'    Gene to select by default in feature/violin plot
 #'   }
+#'   \item{\code{Azimuth.app.default_metadata}}{
+#'    Default metadata transferred from reference.
+#'   }
 #'   \item{\code{Azimuth.app.demodataset}}{
 #'    Path to data file (in any Azimuth-supported format) to automatically load
 #'    when the user clicks a button. The button is only available in the UI
@@ -76,7 +79,6 @@
 #'    Defaults to \code{250}
 #'   }
 #'   \item{\code{Azimuth.map.nanchors}}{
-#'    \strong{NOT CURRENTLY USED}
 #'    Minimum number of anchors that must be found to complete mapping.
 #'    Defaults to \code{50}
 #'   }
@@ -133,6 +135,7 @@ app.title <- 'Azimuth'
 default.options <- list(
   Azimuth.app.default_adt = "CD3-1",
   Azimuth.app.default_gene = "GNLY",
+  Azimuth.app.default_metadata = NULL,
   Azimuth.app.max_cells = 50000,
   Azimuth.app.mito = '^MT-',
   Azimuth.app.plotseed = NULL,
@@ -303,6 +306,7 @@ GetCSS <- function() {
 #' appropriate number of levels for plotting when converted to a factor
 #'
 #' @param object a Seurat object
+#' @param exceptions vector of metadata names to explicitly allow
 #' @param min.levels minimum number of levels in a metadata factor to include
 #' @param max.levels maximum number of levels in a metadata factor to include
 #'
@@ -310,6 +314,7 @@ GetCSS <- function() {
 #'
 PlottableMetadataNames <- function(
   object,
+  exceptions,
   min.levels = 2,
   max.levels = 20
 ) {
@@ -319,8 +324,10 @@ PlottableMetadataNames <- function(
       length(x = levels(x = droplevels(x = as.factor(x = column)))) >= min.levels &&
         length(x = levels(x = droplevels(x = as.factor(x = column)))) <= max.levels
     }
-  ) & (colnames(object[[]]) != "mapping.score") &
-   (colnames(object[[]]) != "predicted.id")
+  ) & ! (grepl(pattern = ".score$", x = colnames(x = object[[]]))) |
+    (grepl(pattern = "^predicted.", x = colnames(x = object[[]])) &
+    ! (grepl(pattern = ".score$", x = colnames(x = object[[]])))) |
+    colnames(x = object[[]]) %in% exceptions
   return(colnames(object[[]])[column.status])
 }
 
