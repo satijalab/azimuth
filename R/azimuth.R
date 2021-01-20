@@ -312,8 +312,9 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 #' @return Returns a Seurat object with AzimuthData stored in the tools slot for
 #' use with Azimuth.
 #'
-#' @importFrom Seurat Reductions Misc Misc<- Assays FindNeighbors Cells Loadings
-#' Idents NormalizeData AverageExpression DefaultAssay DietSeurat Tool<-
+#' @importFrom SeuratObject Reductions Misc Misc<- Assays Cells Loadings Idents
+#' DefaultAssay Tool<-
+#' @importFrom Seurat FindNeighbors NormalizeData AverageExpression DietSeurat
 #'
 #' @export
 #'
@@ -456,7 +457,7 @@ AzimuthReference <- function(
 #'
 #' @return Returns an \code{\link{AzimuthData}} object
 #'
-#' @importFrom Seurat Reductions Misc<-
+#' @importFrom SeuratObject Reductions Misc<-
 #'
 #' @export
 #'
@@ -546,7 +547,7 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #'
 #' @return No return value
 #'
-#' @importFrom Seurat Tool Misc Reductions
+#' @importFrom SeuratObject Tool Misc Reductions
 #'
 #' @export
 #'

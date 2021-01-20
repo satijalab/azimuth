@@ -43,6 +43,7 @@ Imports:
   scales (>= 1.1.1),
   Seurat (>= 3.9.9),
   SeuratDisk,
+  SeuratObject,
   shiny (>= 1.5.0),
   shinyBS (>= 0.61),
   shinydashboard (>= 0.7.1),

@@ -15,11 +15,12 @@ NULL
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
-#' @importFrom Seurat AddMetaData Assays Cells DimPlot DefaultAssay Embeddings
-#' FeaturePlot FindNeighbors FindTransferAnchors GetAssayData Idents Idents<-
-#' IntegrateEmbeddings Key MappingScore NoLegend PercentageFeatureSet
-#' RenameCells Reductions RunUMAP Tool TransferData SetAssayData SCTransform
-#' VariableFeatures VlnPlot
+#' @importFrom SeuratObject AddMetaData Assays Cells DefaultAssay Embeddings
+#' GetAssayData Idents Idents<- Key RenameCells Reductions Tool SetAssayData
+#' VariableFeatures
+#' @importFrom Seurat DimPlot FeaturePlot FindNeighbors FindTransferAnchors
+#' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
+#' RunUMAP TransferData SCTransform VlnPlot
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI

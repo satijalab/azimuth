@@ -14,8 +14,9 @@
 #'
 #' @importFrom tools file_ext
 #' @importFrom SeuratDisk Connect
-#' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse Assays
-#' GetAssayData DefaultAssay<- DietSeurat as.Seurat
+#' @importFrom SeuratObject CreateSeuratObject Assays GetAssayData
+#' DefaultAssay<-
+#' @importFrom Seurat Read10X_h5 as.sparse Assays DietSeurat as.Seurat
 #'
 #' @keywords internal
 #'
@@ -112,7 +113,7 @@ LoadFileInput <- function(path) {
 #' @return A \code{Seurat} object
 #'
 #' @importFrom hdf5r H5File h5attr
-#' @importFrom Seurat AddMetaData CreateSeuratObject
+#' @importFrom SeuratObject AddMetaData CreateSeuratObject
 #'
 #' @keywords internal
 #'
@@ -268,7 +269,8 @@ LoadH5AD <- function(path) {
 #'  \item{\code{avgexp}}{Average expression (for pseudobulk check)}
 #' }
 #'
-#' @importFrom Seurat Idents<- LoadAnnoyIndex
+#' @importFrom SeuratObject Idents<-
+#' @importFrom Seurat LoadAnnoyIndex
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
@@ -384,7 +386,7 @@ LoadReference <- function(path, seconds = 10L) {
 #'
 #' @return \code{object} with transfomed neighbor.slot
 #'
-#' @importFrom Seurat Indices
+#' @importFrom SeuratObject Indices
 #'
 #' @keywords internal
 #'
