@@ -134,7 +134,7 @@ AzimuthUI <- tagList(
                 h4(
                   'Transfer Options',
                   bsButton(
-                    inputId = 'xferopts',
+                    inputId = 'xferinput',
                     label = '',
                     icon = icon(name = 'question'),
                     style = 'info',
@@ -142,7 +142,7 @@ AzimuthUI <- tagList(
                   )
                 ),
                 bsPopover(
-                  id = 'xferopts',
+                  id = 'xferinput',
                   title = 'Transfer Options',
                   content = 'Select the meta.data fields to transfer from the reference',
                   placement = 'right',
