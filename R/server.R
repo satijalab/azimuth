@@ -598,11 +598,11 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = react.env$map,
     handlerExpr = {
       if (isTRUE(x = react.env$map)) {
-        app.env$metadataxfer <- ifelse(
-          test = is.null(x = input$metadataxfer),
-          yes = names(x = GetColorMap(object = refs$map)),
-          no = input$metadataxfer
-        )
+        if (is.null(x = input$metadataxfer)) {
+          app.env$metadataxfer <- names(x = GetColorMap(object = refs$map))
+        } else {
+          app.env$metadataxfer <- input$metadataxfer
+        }
         react.env$progress$set(value = 0.5, message = 'Mapping cells')
         refdata <- lapply(X = app.env$metadataxfer, function(x) {
           refs$map[[x, drop = TRUE]]
