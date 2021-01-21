@@ -392,11 +392,11 @@ AzimuthReference <- function(
     }
     Idents(object = object) <- random.name
     object <- NormalizeData(object = object, assay = "RNA", verbose = verbose)
-    avgref <- AverageExpression(
+    avgref <- suppressMessages(expr = AverageExpression(
       object = object,
       assays = "RNA",
       verbose = verbose
-    )[[1]][features, , drop = FALSE]
+    ))[[1]][features, , drop = FALSE]
     Idents(object = object) <- "id"
   }
   plot.metadata <- plot.metadata %||% object[[metadata]]
@@ -431,7 +431,7 @@ AzimuthReference <- function(
       object[[i]] <- NULL
     }
   }
-  object[["SCT"]] <- Seurat:::CreateDummyAssay(assay = object[["SCT"]])
+  object[["SCT"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[["SCT"]])), Class = "SCTAssay")
   Misc(object = object[["SCT"]], slot = "vst.set") <- list()
   Tool(object = object) <- ad
   ValidateAzimuthReference(object = object)
