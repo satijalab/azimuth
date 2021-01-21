@@ -331,6 +331,7 @@ AzimuthReference <- function(
   colormap = NULL,
   assays = NULL,
   metadata = NULL,
+  reference.version = "0.0.0",
   verbose = FALSE
 ) {
   # Parameter validation
@@ -408,7 +409,8 @@ AzimuthReference <- function(
     plotref = plotref,
     plot.metadata  = plot.metadata,
     avgref = avgref,
-    colormap = colormap
+    colormap = colormap,
+    reference.version = reference.version
   )
   # Add the "ori.index" column.
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))

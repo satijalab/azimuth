@@ -17,6 +17,7 @@ AzimuthReference(
   colormap = NULL,
   assays = NULL,
   metadata = NULL,
+  reference.version = "0.0.0",
   verbose = FALSE
 )
 }
@@ -51,6 +52,8 @@ generating your own.}
 \item{assays}{Assays to retain for transfer}
 
 \item{metadata}{Metadata to retain for transfer}
+
+\item{reference.version}{Version of the Azimuth reference}
 
 \item{verbose}{Display progress/messages}
 }
