@@ -39,6 +39,15 @@ AzimuthServer <- function(input, output, session) {
   if (is.null(x = getOption(x = 'Azimuth.app.demodataset'))) {
     hide(id="triggerdemo")
   }
+  if (is.null(x = getOption(x = 'Azimuth.app.demodataset2'))) {
+    hide(id="triggerdemo2")
+  }
+  if (is.null(x = getOption(x = 'Azimuth.app.demodataset3'))) {
+    hide(id="triggerdemo3")
+  }
+  if (is.null(x = getOption(x = 'Azimuth.app.demodataset4'))) {
+    hide(id="triggerdemo4")
+  }
   dims <- 1:getOption(
     x = 'Azimuth.app.dims',
     default = 50
@@ -196,6 +205,18 @@ AzimuthServer <- function(input, output, session) {
   observeEvent(
     eventExpr = input$triggerdemo,
     handlerExpr = react.env$path <- getOption(x = 'Azimuth.app.demodataset')
+  )
+  observeEvent(
+    eventExpr = input$triggerdemo2,
+    handlerExpr = react.env$path <- getOption(x = 'Azimuth.app.demodataset2')
+  )
+  observeEvent(
+    eventExpr = input$triggerdemo3,
+    handlerExpr = react.env$path <- getOption(x = 'Azimuth.app.demodataset3')
+  )
+  observeEvent(
+    eventExpr = input$triggerdemo4,
+    handlerExpr = react.env$path <- getOption(x = 'Azimuth.app.demodataset4')
   )
   observeEvent(
     eventExpr = react.env$path,
@@ -360,11 +381,6 @@ AzimuthServer <- function(input, output, session) {
             tabName = 'tab_preproc',
             icon = icon(name = 'filter'),
             selected = TRUE
-          ),
-          menuItem(
-            text = "Cell Plots",
-            tabName = "tab_del",
-            icon = icon("chart-area")
           ))
         })
         ncellsupload <- length(x = colnames(x = app.env$object))
@@ -570,7 +586,7 @@ AzimuthServer <- function(input, output, session) {
       if (isTRUE(x = react.env$lognormalize)) {
         react.env$progress$set(
           value = 0.2,
-          message = 'Log Normalizing'
+          message = 'Log-normalizing'
         )
         app.env$object <- NormalizeData(object = app.env$object)
         # VariableFeatures(app.env$object) <-
@@ -674,7 +690,11 @@ AzimuthServer <- function(input, output, session) {
             app.env$default.metadata <- names(x = refdata)[1]
           }
         }
-        react.env$score <- TRUE
+        if (bigref == 'TRUE') {
+          react.env$transform <- TRUE
+        } else {
+          react.env$score <- TRUE
+        }
         react.env$map <- FALSE
       }
     }
@@ -887,15 +907,26 @@ AzimuthServer <- function(input, output, session) {
                                       object = app.env$object,
                                       exceptions = input$metadataxfer,
                                       min.levels = 1,
-                                      max.levels = 50
+                                      max.levels = 100
                                     )
         )
         for (id in c('metarow', 'metacol', 'metagroup')) {
+          if (id == 'metarow') {
+            matches <- grep('celltype', metadata.discrete, value=T, ignore.case=T)
+            matches <- grep('predicted',matches,value=T,invert=T)
+            if (len(matches) > 0) {
+              selected <- matches[1]
+            } else {
+              selected <- 'query'
+            }
+          } else {
+            selected <- paste0("predicted.", app.env$default.metadata)
+          }
           updateSelectizeInput(
             session = session,
             inputId = id,
             choices = metadata.discrete,
-            selected = paste0("predicted.", app.env$default.metadata),
+            selected = selected,
             server = TRUE,
             options = selectize.opts
           )
@@ -1393,50 +1424,28 @@ AzimuthServer <- function(input, output, session) {
     }
   })
   if (bigref == 'TRUE') {
-    updateCheckboxInput(session, "legend", value = FALSE)
-    updateCheckboxInput(session, "labels", value = FALSE)
+    # updateCheckboxInput(session, "legend", value = FALSE)
+    # updateCheckboxInput(session, "labels", value = FALSE)
     label.size <- 3
     repel <- FALSE
   } else {
-    updateCheckboxInput(session, "legend", value = TRUE)
+    # updateCheckboxInput(session, "legend", value = TRUE)
     label.size <- 4
     repel <- TRUE
   }
-  output$refdim <- renderPlot(expr = {
-    if (!is.null(x = input$metacolor.ref)) {
-      colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
-      plots <- list()
-      for (i in 1:length(x = colormaps)) {
-        plots[[i]] <- DimPlot(
-          object = refs$plot,
-          label = input$labels,
-          label.size = label.size,
-          repel = repel,
-          group.by = input$metacolor.ref[i],
-          cols = colormaps[[i]]
-        )
-        if (!input$legend) {
-          plots[[i]] <- plots[[i]] + NoLegend()
-        }
-      }
-      app.env$plot.ranges <- list(
-        layer_scales(plots[[1]])$x$range$range,
-        layer_scales(plots[[1]])$y$range$range
-      )
-      wrap_plots(plots, nrow = 1)
-    }
-  })
-  # output$refdim2 <- renderPlotly(expr = {
-  #   if (TRUE) {
+  # output$refdim <- renderPlot(expr = {
+  #   if (!is.null(x = input$metacolor.ref)) {
+  #     print('refdim')
+  #     colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
   #     plots <- list()
-  #     refs$plot<-subset(refs$plot,cells=Cells(refs$plot)[1:1000])
-  #     for (i in 1:1) {
+  #     for (i in 1:length(x = colormaps)) {
   #       plots[[i]] <- DimPlot(
   #         object = refs$plot,
   #         label = input$labels,
   #         label.size = label.size,
   #         repel = repel,
-  #         raster = FALSE
+  #         group.by = input$metacolor.ref[i],
+  #         cols = colormaps[[i]]
   #       )
   #       if (!input$legend) {
   #         plots[[i]] <- plots[[i]] + NoLegend()
@@ -1446,18 +1455,19 @@ AzimuthServer <- function(input, output, session) {
   #       layer_scales(plots[[1]])$x$range$range,
   #       layer_scales(plots[[1]])$y$range$range
   #     )
-  #     # wrap_plots(plots, nrow = 1)
-  #     # p <- toWebGL(ggplotly(plots[[1]]))
-  #     p <- toWebGL(plot_ly(mtcars, x = ~mpg, y = ~wt))
-  #     p
+  #     wrap_plots(plots, nrow = 1)
   #   }
   # })
-  # outputOptions(output, "refdim2", suspendWhenHidden = TRUE)
-  addResourcePath("tmp", getOption("Azimuth.app.reference"))
-  output$del <- renderUI({
-    tags$iframe(seamless="seamless", src="tmp/widget3.html", width=800, height=800)
+
+  widget_prefix <- Sys.info()[["nodename"]] # same as debug id
+  addResourcePath(widget_prefix, getOption("Azimuth.app.reference"))
+  output$reference_umap <- renderUI({
+    div(tags$iframe(seamless="seamless", src = paste0(widget_prefix, "/reference_widget.html"),
+                    height="800px", width="100%"))
   })
-  output$objdim <- renderPlot(expr = {
+  removeResourcePath(widget_prefix)
+
+  output$query_umap <- renderPlotly(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
         plots <- list()
@@ -1470,21 +1480,67 @@ AzimuthServer <- function(input, output, session) {
           plots[[i]] <- DimPlot(
             object = app.env$object,
             group.by = input$metacolor.query[i],
-            label = input$labels,
+            label = TRUE,
             label.size = label.size,
             repel = repel,
             cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
             reduction = "umap.proj"
-          ) + xlim(app.env$plot.ranges[[1]]) +
-            ylim(app.env$plot.ranges[[2]])
-          if (!input$legend) {
-            plots[[i]] <- plots[[i]] + NoLegend()
-          }
+          ) + NoLegend()+
+            ggtitle("Processed Query")+theme(plot.title=element_text(hjust=0.5)) +xlim(c(-15.4265310925019,16.2055575686919))+
+            ylim(c(-18.4033183582995,14.2620373240736)) # TODO: IMPORT FROM REFERENCE_RANGES.CSV
+          # &theme(axis.title.x = element_blank(),axis.title.y = element_blank(),axis.text = element_blank(),axis.line = element_blank(),axis.ticks = element_blank())
         }
-        wrap_plots(plots, nrow = 1)
+        g=ggplotly(plots[[1]])
+
+        for (i in seq_along(g$x$data)[-len(g$x$data)]) {
+          g$x$data[[i]]$text <- rep(
+            x = paste0(str_split(g$x$data[[i]]$name,'-')[[1]],collapse=' - '),
+            times = len(g$x$data[[i]]$x)
+          )
+        }
+        i=len(g$x$data)
+        g$x$data[[i]]$hovertext <- as.factor(unlist(lapply(
+          g$x$data[[i]]$hovertext,
+          function(x) {
+            y = str_match(x, "predicted.Organ_cell_lineage: (.*?)<br.*")[1,2]
+            return(paste0(str_split(y,'-')[[1]],collapse=' - '))
+          }
+        )))
+        g$sizingPolicy$padding <- 0
+        g
       }
     }
   })
+
+  # output$objdim <- renderPlot(expr = {
+  #   if (!is.null(x = app.env$object)) {
+  #     print('doing other stuff now')
+  #     if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
+  #       plots <- list()
+  #       for (i in 1:length(x = input$metacolor.query)) {
+  #         group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
+  #         colormap <- GetColorMap(object = refs$map)[[group.var]]
+  #         if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
+  #           colormap <- NULL
+  #         }
+  #         plots[[i]] <- DimPlot(
+  #           object = app.env$object,
+  #           group.by = input$metacolor.query[i],
+  #           label = input$labels,
+  #           label.size = label.size,
+  #           repel = repel,
+  #           cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
+  #           reduction = "umap.proj"
+  #         ) + xlim(app.env$plot.ranges[[1]]) +
+  #           ylim(app.env$plot.ranges[[2]])
+  #         if (!input$legend) {
+  #           plots[[i]] <- plots[[i]] + NoLegend()
+  #         }
+  #       }
+  #       wrap_plots(plots, nrow = 1)
+  #     }
+  #   }
+  # })
   output$evln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       avail <- c(
@@ -1712,20 +1768,31 @@ AzimuthServer <- function(input, output, session) {
     selection = 'single',
     options = list(dom = 't')
   )
-  output$table.metadata <- renderTable(
-    expr = {
-      if (!is.null(x = app.env$object)) {
-        CategoryTable(
-          object = app.env$object,
-          category.1 = input$metarow,
-          category.2 = input$metacol,
-          percentage = (input$radio.pct == "Percentage")
-        )
-      }
-    },
-    rownames = TRUE
-  )
+  # output$table.metadata <- renderTable(
+  #   expr = {
+  #     if (!is.null(x = app.env$object)) {
+  #       CategoryTable(
+  #         object = app.env$object,
+  #         category.1 = input$metarow,
+  #         category.2 = input$metacol,
+  #         percentage = (input$radio.pct == "Percentage")
+  #       )
+  #     }
+  #   },
+  #   rownames = TRUE
+  # )
   # Downloads
+  output$table.metadata <- renderPlotly({
+    table <- CategoryTable(
+      object = app.env$object,
+      category.1 = input$metarow,
+      category.2 = input$metacol,
+      percentage = (input$radio.pct == "Percentage")
+    )
+    table <- as.matrix(table)
+    library(plotly)
+    plot_ly(x = colnames(table), y = rownames(table), z = table, type = 'heatmap')
+  })
   output$dlumap <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_umap.Rds'),
     content = function(file) {

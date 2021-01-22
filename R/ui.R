@@ -48,7 +48,10 @@ AzimuthUI <- tagList(
         trigger = 'focus',
         options = list(container = 'body')
       ),
-      actionButton(inputId = 'triggerdemo', label = 'Load demo dataset'),
+      actionButton(inputId = 'triggerdemo', label = 'Demo Adult Pancreas'),
+      actionButton(inputId = 'triggerdemo2', label = 'Demo Neonatal Heart'),
+      actionButton(inputId = 'triggerdemo3', label = 'Demo Fetal Kidney'),
+      actionButton(inputId = 'triggerdemo4', label = 'Demo Placenta'),
       htmlOutput(outputId = 'message', inline = FALSE),
       sidebarMenu(
         menuItem(
@@ -183,50 +186,44 @@ AzimuthUI <- tagList(
             )
           )
         ),
-        # DELETE tab
-        tabItem(
-          tabName = 'tab_del',
-          box(
-            title = 'Referencedel',
-            selectizeInput(
-              inputId = 'metacolor.ref',
-              label = 'Metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            htmlOutput("del"),
-            # plotlyOutput(outputId = 'refdim2'),
-            width = 12
-          )
-        ),
         # Cell tab
         tabItem(
           tabName = 'tab_cell',
-          box(
-            title = 'Reference',
-            fluidRow(
-              column(2, checkboxInput(inputId = 'labels', label = 'Show labels')),
-              column(2, checkboxInput(inputId = 'legend', label = 'Show legend'))
-            ),
-            selectizeInput(
-              inputId = 'metacolor.ref',
-              label = 'Metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            plotOutput(outputId = 'refdim'),
-            width = 12
-          ),
-          box(
-            title = 'Query',
-            selectizeInput(
-              inputId = 'metacolor.query',
-              label = 'Metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            plotOutput(outputId = 'objdim'),
-            width = 12
+          tabsetPanel(
+            type = "tabs",
+            tabPanel("Query", plotlyOutput("query_umap", width='100%', height='800px')),
+            tabPanel("Reference", htmlOutput("reference_umap", inline=T))),
+          # box(
+          #   title = 'Reference',
+          #   fluidRow(
+          #     column(2, checkboxInput(inputId = 'labels', label = 'Show labels')),
+          #     column(2, checkboxInput(inputId = 'legend', label = 'Show legend'))
+          #   ),
+          #   selectizeInput(
+          #     inputId = 'metacolor.ref',
+          #     label = 'Metadata to color by',
+          #     choices = '',
+          #     multiple = TRUE,
+          #   ),
+          #   plotOutput(outputId = 'refdim'),
+          #   width = 12
+          # ),
+          # box(
+          #   title = 'Query',
+          #   selectizeInput(
+          #     inputId = 'metacolor.query',
+          #     label = 'Metadata to color by',
+          #     choices = '',
+          #     multiple = TRUE,
+          #   ),
+          #   plotOutput(outputId = 'objdim'),
+          #   width = 12
+          # ),
+          selectizeInput(
+            inputId = 'metacolor.query',
+            label = 'Metadata to color query by',
+            choices = '',
+            multiple = FALSE,
           ),
           box(
             title = 'Metadata table',
@@ -246,18 +243,45 @@ AzimuthUI <- tagList(
                 choices = ''
               )
             ),
-            div(
-              style = 'display: inline-block; vertical-align: top; width: 50%',
-              radioButtons(
-                inputId = 'radio.pct',
-                label = NULL,
-                choices = c('Percentage','Frequency'),
-                inline = TRUE
-              )
-            ),
-            tableOutput(outputId = 'table.metadata'),
-            width = 12
+            div(radioButtons(
+              inputId = 'radio.pct',
+              label = NULL,
+              choices = c('Percentage','Frequency'),
+              inline = TRUE
+            )),
+            plotlyOutput("table.metadata"),
+            width=12
           )
+          # box(
+          #   title = 'Metadata table',
+          #   div(
+          #     style = 'display: inline-block; vertical-align: top; width: 25%',
+          #     selectizeInput(
+          #       inputId = 'metarow',
+          #       label = 'Table rows',
+          #       choices = ''
+          #     )
+          #   ),
+          #   div(
+          #     style = 'display: inline-block; vertical-align: top; width: 25%',
+          #     selectizeInput(
+          #       inputId = 'metacol',
+          #       label = 'Table columns',
+          #       choices = ''
+          #     )
+          #   ),
+          #   div(
+          #     style = 'display: inline-block; vertical-align: top; width: 50%',
+          #     radioButtons(
+          #       inputId = 'radio.pct',
+          #       label = NULL,
+          #       choices = c('Percentage','Frequency'),
+          #       inline = TRUE
+          #     )
+          #   ),
+          #   tableOutput(outputId = 'table.metadata'),
+          #   width = 12
+          # )
         ),
         # Feature tab
         tabItem(
