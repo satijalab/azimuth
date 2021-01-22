@@ -616,6 +616,18 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
       "and the cell indices in the object here."
     )
   }
+  if (!"refAssay" %in% Assays(object = object)) {
+    stop("Must contain assay called 'refAssay'.")
+  }
+  if (!inherits(x = object[["refAssay"]], what = "SCTAssay")) {
+    stop("refAssay must be an SCTAssay object.")
+  }
+  if (!"refmodel" %in% levels(x = object[["refAssay"]])) {
+    stop("refAssay must contain the SCTModel called refmodel.")
+  }
+  if (length(x = Assays(object = object)) > 1) {
+    message("Only 'refAssay' is required for use with Azimuth. Consider removing other Assays for efficiency.")
+  }
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
