@@ -353,8 +353,6 @@ LoadReference <- function(path, seconds = 10L) {
     object = map[["refdr.annoy.neighbors"]],
     file = annref
   )
-  sct.model <- Misc(object = map[["SCT"]], slot = "vst.set")
-  suppressWarnings(expr = Misc(object = map[["SCT"]], slot = "vst.set") <- list())
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
@@ -371,7 +369,6 @@ LoadReference <- function(path, seconds = 10L) {
   gc(verbose = FALSE)
   return(list(
     map = map,
-    sct.model = sct.model,
     plot = plot,
     avgexp = avg
   ))

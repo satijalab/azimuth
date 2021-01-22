@@ -322,6 +322,7 @@ AzimuthReference <- function(
   object,
   refUMAP = "umap",
   refDR = "spca",
+  refAssay = "SCT",
   dims = 1:50,
   k.param = 31,
   plotref = "umap",
@@ -359,12 +360,19 @@ AzimuthReference <- function(
       object[[i, drop = TRUE]] <- factor(x = object[[i, drop = TRUE]], levels = sort(x = unique(object[[i, drop = TRUE]])))
     }
   }
-  if (!"SCT" %in% Assays(object = object)) {
+  if (!refAssay %in% Assays(object = object)) {
     stop("Seurat object provided must have the SCT Assay stored.")
+  }
+  if (!inherits(x = object[[refAssay]], what = "SCTAssay")) {
+    stop("refAssay (", refAssay, ") is not an SCTAssay.")
+  }
+  if (length(x = levels(x = object[[refAssay]])) != 1) {
+    stop("refAssay (", refAssay, ") should contain a single SCT model.")
   }
   if (is.null(x = avgref) && !"RNA" %in% Assays(object = object)) {
     stop("Please provide either the RNA assay or avgref.")
   }
+
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
 
@@ -417,14 +425,14 @@ AzimuthReference <- function(
   object$ori.index <- ori.index
 
   # Subset the features of the RNA assay
-  DefaultAssay(object = object) <- "SCT"
-  object[["SCT"]] <- subset(x = object[["SCT"]], features = features)
+  DefaultAssay(object = object) <- refAssay
+  object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
   # Preserves DR after DietSeurat
-  DefaultAssay(object = object[["refDR"]]) <- "SCT"
+  DefaultAssay(object = object[["refDR"]]) <- refAssay
   object <- DietSeurat(
     object = object,
     counts = FALSE,
-    assays = c("SCT", assays),
+    assays = c(refAssay, assays),
     dimreducs = c("refDR","refUMAP")
   )
   metadata <- c(metadata, "ori.index")
@@ -433,9 +441,18 @@ AzimuthReference <- function(
       object[[i]] <- NULL
     }
   }
-  object[["SCT"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[["SCT"]])), Class = "SCTAssay")
-  Misc(object = object[["SCT"]], slot = "vst.set") <- list()
+  sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
+  object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
+  slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = sct.model)
+  DefaultAssay(object = object) <- "refAssay"
+  DefaultAssay(object = object[["refDR"]]) <- "refAssay"
   Tool(object = object) <- ad
+  object <- DietSeurat(
+    object = object,
+    counts = FALSE,
+    assays = c("refAssay", assays),
+    dimreducs = c("refDR","refUMAP")
+  )
   ValidateAzimuthReference(object = object)
   return(object)
 }
@@ -600,3 +617,16 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
     )
   }
 }
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# S4 methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+setMethod(
+  f = 'show',
+  signature = 'AzimuthData',
+  definition = function(object) {
+    cat('An AzimuthData object - reference version:', slot(object = object, name = "reference.version"),
+        '\nContains', length(x = GetColorMap(object = object)), 'meta.data field(s) to transfer.')
+  }
+)

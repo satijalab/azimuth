@@ -522,22 +522,24 @@ AzimuthServer <- function(input, output, session) {
             app.env$object <- suppressWarnings(expr = SCTransform(
               object = app.env$object,
               residual.features = rownames(x = refs$map),
-              reference.SCT.model = refs$sct.model,
+              reference.SCT.model = slot(object = refs$map[["refAssay"]], name = "SCTModel.list")[["refmodel"]],
               method = "glmGamPoi",
               do.correct.umi = FALSE,
               do.scale = FALSE,
-              do.center = TRUE
+              do.center = TRUE,
+              new.assay.name = "refAssay"
             ))
           },
           error = function(e) {
             app.env$object <- suppressWarnings(expr = SCTransform(
               object = app.env$object,
               residual.features = rownames(x = refs$map),
-              reference.SCT.model = refs$sct.model,
+              reference.SCT.model = slot(object = refs$map[["refAssay"]], name = "SCTModel.list")[["refmodel"]],
               method = "poisson",
               do.correct.umi = FALSE,
               do.scale = FALSE,
-              do.center = TRUE
+              do.center = TRUE,
+              new.assay.name = "refAssay"
             ))
           }
         )
@@ -560,8 +562,8 @@ AzimuthServer <- function(input, output, session) {
           query = app.env$object,
           k.filter = NA,
           reference.neighbors = "refdr.annoy.neighbors",
-          reference.assay = "SCT",
-          query.assay = 'SCT',
+          reference.assay = "refAssay",
+          query.assay = 'refAssay',
           reference.reduction = 'refDR',
           normalization.method = 'SCT',
           features = intersect(
@@ -756,7 +758,7 @@ AzimuthServer <- function(input, output, session) {
         )
         app.env$object <- SetAssayData(
           object = app.env$object,
-          assay = 'SCT',
+          assay = 'refAssay',
           slot = 'scale.data',
           new.data = new(Class = 'matrix')
         )
@@ -1044,7 +1046,7 @@ AzimuthServer <- function(input, output, session) {
         app.env$feature <- ifelse(
           test = input$feature %in% rownames(x = app.env$object),
           yes = paste0(
-            Key(object = app.env$object[["SCT"]]),
+            Key(object = app.env$object[["refAssay"]]),
             input$feature
           ),
           no = input$feature
@@ -1412,7 +1414,7 @@ AzimuthServer <- function(input, output, session) {
     if (!is.null(x = app.env$object)) {
       avail <- c(
         paste0(
-          Key(object = app.env$object[["SCT"]]),
+          Key(object = app.env$object[["refAssay"]]),
           rownames(x = app.env$object)
         ),
         colnames(x = app.env$object[[]])
@@ -1442,8 +1444,8 @@ AzimuthServer <- function(input, output, session) {
             theme_void()
         } else {
           title <- ifelse(
-            test = grepl(pattern = '^sct_', x = app.env$feature),
-            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            test = grepl(pattern = '^refassay_', x = app.env$feature),
+            yes = gsub(pattern = '^refassay_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
           if (nchar(x = input$scoregroup)) {
@@ -1476,7 +1478,7 @@ AzimuthServer <- function(input, output, session) {
         c('lightgrey', 'darkred')
       )
       names(x = palettes) <- c(
-        Key(object = app.env$object[["SCT"]]),
+        Key(object = app.env$object[["refAssay"]]),
         'md_'
       )
       if (do.adt) {
@@ -1508,8 +1510,8 @@ AzimuthServer <- function(input, output, session) {
             theme_void()
         } else {
           title <- ifelse(
-            test = grepl(pattern = '^sct_', x = app.env$feature),
-            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            test = grepl(pattern = '^refassay_', x = app.env$feature),
+            yes = gsub(pattern = '^refassay_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
           if (nchar(x = input$scoregroup)) {
