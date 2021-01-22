@@ -625,9 +625,6 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
   if (!"refmodel" %in% levels(x = object[["refAssay"]])) {
     stop("refAssay must contain the SCTModel called refmodel.")
   }
-  if (length(x = Assays(object = object)) > 1) {
-    message("Only 'refAssay' is required for use with Azimuth. Consider removing other Assays for efficiency.")
-  }
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
