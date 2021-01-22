@@ -16,6 +16,8 @@ This should also contain the cell IDs in the misc slot}
 
 \item{\code{avgref}}{Average RNA expression for pseudobulk correlation tests}
 
+\item{\code{sdref}}{Stdev of RNA expression for pseudobulk correlation tests}
+
 \item{\code{colormap}}{Vector of id-color mapping for specifying the plots.}
 }}
 

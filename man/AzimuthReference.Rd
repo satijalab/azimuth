@@ -14,6 +14,7 @@ AzimuthReference(
   plot.metadata = NULL,
   ori.index = NULL,
   avgref = NULL,
+  sdref = NULL,
   colormap = NULL,
   assays = NULL,
   metadata = c("celltype"),

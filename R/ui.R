@@ -10,6 +10,7 @@
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
 #' valueBoxOutput
+#' @importFrom plotly plotlyOutput renderPlotly toWebGL
 #'
 NULL
 
@@ -165,8 +166,8 @@ AzimuthUI <- tagList(
             ),
             box(
               fluidRow(
-                column(2, checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis')),
-                column(2, checkboxInput(inputId = 'check.qcpoints', label = 'Hide points'))
+                shiny::column(2, checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis')),
+                shiny::column(2, checkboxInput(inputId = 'check.qcpoints', label = 'Hide points'))
               ),
               plotOutput(outputId = 'plot.qc'),
               tableOutput(outputId = 'table.qc'),

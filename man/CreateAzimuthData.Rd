@@ -9,6 +9,7 @@ CreateAzimuthData(
   plotref = "umap",
   plot.metadata = NULL,
   avgref = NULL,
+  sdref = NULL,
   colormap = NULL
 )
 }

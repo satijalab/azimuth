@@ -23,7 +23,7 @@ NULL
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI
-#' onStop updateCheckboxInput
+#' onStop updateCheckboxInput addResourcePath removeResourcePath
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show
@@ -31,6 +31,7 @@ NULL
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile
 #' @importFrom utils write.table packageVersion
+#' @importFrom plotly plotlyOutput renderPlotly toWebGL ggplotly plot_ly
 #'
 #' @keywords internal
 #'
@@ -1790,7 +1791,6 @@ AzimuthServer <- function(input, output, session) {
       percentage = (input$radio.pct == "Percentage")
     )
     table <- as.matrix(table)
-    library(plotly)
     plot_ly(x = colnames(table), y = rownames(table), z = table, type = 'heatmap')
   })
   output$dlumap <- downloadHandler(

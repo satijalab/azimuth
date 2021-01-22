@@ -22,7 +22,7 @@ Remotes:
   immunogenomics/presto,
   jlmelville/uwot,
   mojaveazure/seurat-disk,
-  satijalab/seurat@release/4.0.0
+  satijalab/seurat@feat/descartes
 Depends:
   R (>= 3.6.0)
 Imports:
@@ -51,6 +51,7 @@ Imports:
   stringr (>= 1.4.0),
   tools,
   utils,
+  plotly,
   withr (>= 2.3.0)
 Collate:
     'zzz.R'
