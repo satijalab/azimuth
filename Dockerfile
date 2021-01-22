@@ -18,7 +18,8 @@ RUN R --no-echo -e "install.packages('remotes')"
 
 COPY Rprofile.site /usr/lib/R/etc/
 RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr', 'BiocManager'), repo='https://cloud.r-project.org')"
-RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'jlmelville/uwot', 'mojaveazure/seurat-disk', 'satijalab/seurat@feat/descartes'))"
+RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'jlmelville/uwot', 'satijalab/seurat@feat/descartes'))"
+RUN R --no-echo -e "remotes::install_github('mojaveazure/seurat-disk',ref='b84b8ded51284fdca7c548fbfed6571aaeafbaea')"
 RUN R --no-echo -e "BiocManager::install('glmGamPoi')"
 
 ARG SEURAT_VER=unknown
