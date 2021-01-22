@@ -5,7 +5,7 @@
 #' @importFrom shinyjs disabled useShinyjs
 #' @importFrom shiny column actionButton checkboxInput downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
-#' tableOutput textOutput uiOutput verbatimTextOutput
+#' tableOutput textOutput uiOutput verbatimTextOutput tabsetPanel tabPanel
 #' @importFrom shinyBS bsButton bsPopover
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
