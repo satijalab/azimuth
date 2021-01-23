@@ -21,7 +21,7 @@ biocViews:
 Remotes:
   immunogenomics/presto,
   jlmelville/uwot,
-  mojaveazure/seurat-disk,
+  mojaveazure/seurat-disk@b84b8ded51284fdca7c548fbfed6571aaeafbaea,
   satijalab/seurat@feat/descartes
 Depends:
   R (>= 3.6.0)
