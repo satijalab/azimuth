@@ -377,7 +377,6 @@ AzimuthServer <- function(input, output, session) {
               color = 'green'
             )
           })
-          enable(id = 'map')
           if (!is.null(x = googlesheet)) {
             try(
               expr = sheet_append(
@@ -396,11 +395,15 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           react.env$progress <- NULL
         }
+        default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
+        if (!default_xfer %in% possible.metadata.transfer) {
+          default_xfer <- possible.metadata.transfer[1]
+        }
         updateSelectizeInput(
           session = session,
           inputId = 'metadataxfer',
           choices = possible.metadata.transfer,
-          selected =  getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1]),
+          selected = default_xfer,
           server = TRUE,
           options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
         )
@@ -408,7 +411,17 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-
+  observeEvent(
+    eventExpr = input$metadataxfer,
+    handlerExpr = {
+      if (length(x = input$metadataxfer) == 0) {
+        disable(id = 'map')
+      } else {
+        enable(id = 'map')
+      }
+    },
+    ignoreNULL = FALSE
+  )
   # Filter and process the data
   observeEvent(
     eventExpr = input$map,
