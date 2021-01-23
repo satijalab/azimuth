@@ -27,7 +27,7 @@ NULL
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show
-#' @importFrom stringr str_interp
+#' @importFrom stringr str_interp str_split str_match
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile
 #' @importFrom utils write.table packageVersion
