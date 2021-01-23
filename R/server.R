@@ -1493,13 +1493,13 @@ AzimuthServer <- function(input, output, session) {
         }
         g=ggplotly(plots[[1]])
 
-        for (i in seq_along(g$x$data)[-len(g$x$data)]) {
+        for (i in seq_along(g$x$data)[-length(g$x$data)]) {
           g$x$data[[i]]$text <- rep(
             x = paste0(str_split(g$x$data[[i]]$name,'-')[[1]],collapse=' - '),
-            times = len(g$x$data[[i]]$x)
+            times = length(g$x$data[[i]]$x)
           )
         }
-        i=len(g$x$data)
+        i=length(g$x$data)
         g$x$data[[i]]$hovertext <- as.factor(unlist(lapply(
           g$x$data[[i]]$hovertext,
           function(x) {
