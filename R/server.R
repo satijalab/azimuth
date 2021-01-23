@@ -11,7 +11,7 @@ NULL
 #' @importFrom DT dataTableProxy renderDT selectRows
 #' @importFrom future future plan resolved value
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
-#' theme_void theme xlab layer_scales xlim ylim
+#' theme_void theme element_text xlab layer_scales xlim ylim
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
