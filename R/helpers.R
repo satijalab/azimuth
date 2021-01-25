@@ -406,26 +406,26 @@ NNTransform <- function(
   return(object)
 }
 
-#' Make An English List
-#'
-#' Joins items together to make an English list; uses the Oxford comma for the
-#' last item in the list.
-#'
+# Make An English List
+#
+# Joins items together to make an English list; uses the Oxford comma for the
+# last item in the list.
+#
 #' @inheritParams base::paste
-#' @param join either \dQuote{and} or \dQuote{or}
-#'
-#' @return A character vector of the values, joined together with commas and
-#' \code{join}
-#'
+# @param join either \dQuote{and} or \dQuote{or}
+#
+# @return A character vector of the values, joined together with commas and
+# \code{join}
+#
 #' @keywords internal
-#'
-#' @examples
-#' \donttest{
-#' Oxford("red")
-#' Oxford("red", "blue")
-#' Oxford("red", "green", "blue")
-#' }
-#'
+#
+# @examples
+# \donttest{
+# Oxford("red")
+# Oxford("red", "blue")
+# Oxford("red", "green", "blue")
+# }
+#
 Oxford <- function(..., join = c('and', 'or')) {
   join <- match.arg(arg = join)
   args <- as.character(x = c(...))

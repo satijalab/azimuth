@@ -259,6 +259,10 @@ GetPlotRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
   return(GetPlotRef(object = Tool(object = object, slot = slot)))
 }
 
+#' @param object Seurat or AzimuthData object
+#' @param slot Name of the version to pull. Can be "seurat.version",
+#' "azimuth.version", or "reference.version".
+#' @param ... Not used
 #' @rdname ReferenceVersion
 #' @export
 #' @method ReferenceVersion AzimuthData
@@ -300,6 +304,7 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 #' @inheritParams CreateAzimuthData
 #' @param refUMAP Name of UMAP in reference to use for mapping
 #' @param refDR Name of DimReduc in reference to use for mapping
+#' @param refAssay Name of SCTAssay to use in reference
 #' @param dims Dimensions to use in reference neighbor finding
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param ori.index Index of the cells used in mapping in the original object on
@@ -315,6 +320,7 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 #' @importFrom SeuratObject Reductions Misc Misc<- Assays Cells Loadings Idents
 #' DefaultAssay Tool<-
 #' @importFrom Seurat FindNeighbors NormalizeData AverageExpression DietSeurat
+#' @importFrom methods as
 #'
 #' @export
 #'

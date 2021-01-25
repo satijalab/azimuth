@@ -12,6 +12,14 @@ ReferenceVersion(object, ...)
 
 \method{ReferenceVersion}{Seurat}(object, slot = "AzimuthReference", ...)
 }
+\arguments{
+\item{object}{Seurat or AzimuthData object}
+
+\item{...}{Not used}
+
+\item{slot}{Name of the version to pull. Can be "seurat.version",
+"azimuth.version", or "reference.version".}
+}
 \value{
 A character string specifying the reference version
 }
