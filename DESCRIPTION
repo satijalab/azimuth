@@ -1,7 +1,7 @@
 Package: Azimuth
 Type: Package
 Title: What the Package Does (One Line, Title Case)
-Version: 0.2.0.9000
+Version: 0.2.0.9001
 Date: 2020-11-02
 Authors@R: c(
   person(given = "Yuhan", family = "Hao", email = "yhao@nygenome.org", role = "aut", comment = c(ORCID = "0000-0002-1810-0822")),
