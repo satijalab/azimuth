@@ -200,7 +200,7 @@ AttachDeps <- function() {
 #' @param category.2 another metadata field in the object
 #' @param percentage if TRUE, returns percentages; otherwise, counts
 #'
-#' @importFrom Seurat FetchData
+#' @importFrom SeuratObject FetchData
 #'
 #' @keywords internal
 #'

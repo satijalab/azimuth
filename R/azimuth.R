@@ -259,6 +259,10 @@ GetPlotRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
   return(GetPlotRef(object = Tool(object = object, slot = slot)))
 }
 
+#' @param object Seurat or AzimuthData object
+#' @param slot Name of the version to pull. Can be "seurat.version",
+#' "azimuth.version", or "reference.version".
+#' @param ... Not used
 #' @rdname ReferenceVersion
 #' @export
 #' @method ReferenceVersion AzimuthData
@@ -300,6 +304,7 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 #' @inheritParams CreateAzimuthData
 #' @param refUMAP Name of UMAP in reference to use for mapping
 #' @param refDR Name of DimReduc in reference to use for mapping
+#' @param refAssay Name of SCTAssay to use in reference
 #' @param dims Dimensions to use in reference neighbor finding
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param ori.index Index of the cells used in mapping in the original object on
@@ -312,8 +317,10 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 #' @return Returns a Seurat object with AzimuthData stored in the tools slot for
 #' use with Azimuth.
 #'
-#' @importFrom Seurat Reductions Misc Misc<- Assays FindNeighbors Cells Loadings
-#' Idents NormalizeData AverageExpression DefaultAssay DietSeurat Tool<-
+#' @importFrom SeuratObject Reductions Misc Misc<- Assays Cells Loadings Idents
+#' DefaultAssay Tool<-
+#' @importFrom Seurat FindNeighbors NormalizeData AverageExpression DietSeurat
+#' @importFrom methods as
 #'
 #' @export
 #'
@@ -321,6 +328,7 @@ AzimuthReference <- function(
   object,
   refUMAP = "umap",
   refDR = "spca",
+  refAssay = "SCT",
   dims = 1:50,
   k.param = 31,
   plotref = "umap",
@@ -330,6 +338,7 @@ AzimuthReference <- function(
   colormap = NULL,
   assays = NULL,
   metadata = NULL,
+  reference.version = "0.0.0",
   verbose = FALSE
 ) {
   # Parameter validation
@@ -357,12 +366,19 @@ AzimuthReference <- function(
       object[[i, drop = TRUE]] <- factor(x = object[[i, drop = TRUE]], levels = sort(x = unique(object[[i, drop = TRUE]])))
     }
   }
-  if (!"SCT" %in% Assays(object = object)) {
+  if (!refAssay %in% Assays(object = object)) {
     stop("Seurat object provided must have the SCT Assay stored.")
+  }
+  if (!inherits(x = object[[refAssay]], what = "SCTAssay")) {
+    stop("refAssay (", refAssay, ") is not an SCTAssay.")
+  }
+  if (length(x = levels(x = object[[refAssay]])) != 1) {
+    stop("refAssay (", refAssay, ") should contain a single SCT model.")
   }
   if (is.null(x = avgref) && !"RNA" %in% Assays(object = object)) {
     stop("Please provide either the RNA assay or avgref.")
   }
+
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
 
@@ -391,11 +407,11 @@ AzimuthReference <- function(
     }
     Idents(object = object) <- random.name
     object <- NormalizeData(object = object, assay = "RNA", verbose = verbose)
-    avgref <- AverageExpression(
+    avgref <- suppressMessages(expr = AverageExpression(
       object = object,
       assays = "RNA",
       verbose = verbose
-    )[[1]][features, , drop = FALSE]
+    ))[[1]][features, , drop = FALSE]
     Idents(object = object) <- "id"
   }
   plot.metadata <- plot.metadata %||% object[[metadata]]
@@ -407,21 +423,22 @@ AzimuthReference <- function(
     plotref = plotref,
     plot.metadata  = plot.metadata,
     avgref = avgref,
-    colormap = colormap
+    colormap = colormap,
+    reference.version = reference.version
   )
   # Add the "ori.index" column.
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
   object$ori.index <- ori.index
 
   # Subset the features of the RNA assay
-  DefaultAssay(object = object) <- "SCT"
-  object[["SCT"]] <- subset(x = object[["SCT"]], features = features)
+  DefaultAssay(object = object) <- refAssay
+  object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
   # Preserves DR after DietSeurat
-  DefaultAssay(object = object[["refDR"]]) <- "SCT"
+  DefaultAssay(object = object[["refDR"]]) <- refAssay
   object <- DietSeurat(
     object = object,
     counts = FALSE,
-    assays = c("SCT", assays),
+    assays = c(refAssay, assays),
     dimreducs = c("refDR","refUMAP")
   )
   metadata <- c(metadata, "ori.index")
@@ -430,9 +447,18 @@ AzimuthReference <- function(
       object[[i]] <- NULL
     }
   }
-  object[["SCT"]] <- Seurat:::CreateDummyAssay(assay = object[["SCT"]])
-  Misc(object = object[["SCT"]], slot = "vst.set") <- list()
+  sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
+  object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
+  slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = sct.model)
+  DefaultAssay(object = object) <- "refAssay"
+  DefaultAssay(object = object[["refDR"]]) <- "refAssay"
   Tool(object = object) <- ad
+  object <- DietSeurat(
+    object = object,
+    counts = FALSE,
+    assays = c("refAssay", assays),
+    dimreducs = c("refDR","refUMAP")
+  )
   ValidateAzimuthReference(object = object)
   return(object)
 }
@@ -456,7 +482,7 @@ AzimuthReference <- function(
 #'
 #' @return Returns an \code{\link{AzimuthData}} object
 #'
-#' @importFrom Seurat Reductions Misc<-
+#' @importFrom SeuratObject Reductions Misc<-
 #'
 #' @export
 #'
@@ -546,7 +572,7 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #'
 #' @return No return value
 #'
-#' @importFrom Seurat Tool Misc Reductions
+#' @importFrom SeuratObject Tool Misc Reductions
 #'
 #' @export
 #'
@@ -596,4 +622,26 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
       "and the cell indices in the object here."
     )
   }
+  if (!"refAssay" %in% Assays(object = object)) {
+    stop("Must contain assay called 'refAssay'.")
+  }
+  if (!inherits(x = object[["refAssay"]], what = "SCTAssay")) {
+    stop("refAssay must be an SCTAssay object.")
+  }
+  if (!"refmodel" %in% levels(x = object[["refAssay"]])) {
+    stop("refAssay must contain the SCTModel called refmodel.")
+  }
 }
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# S4 methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+setMethod(
+  f = 'show',
+  signature = 'AzimuthData',
+  definition = function(object) {
+    cat('An AzimuthData object - reference version:', slot(object = object, name = "reference.version"),
+        '\nContains', length(x = GetColorMap(object = object)), 'meta.data field(s) to transfer.')
+  }
+)

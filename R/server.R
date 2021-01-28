@@ -15,11 +15,12 @@ NULL
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
-#' @importFrom Seurat AddMetaData Assays Cells DimPlot DefaultAssay Embeddings
-#' FeaturePlot FindNeighbors FindTransferAnchors GetAssayData Idents Idents<-
-#' IntegrateEmbeddings Key MappingScore NoLegend PercentageFeatureSet
-#' RenameCells Reductions RunUMAP Tool TransferData SetAssayData SCTransform
-#' VariableFeatures VlnPlot
+#' @importFrom SeuratObject AddMetaData Assays Cells DefaultAssay Embeddings
+#' GetAssayData Idents Idents<- Key RenameCells Reductions Tool SetAssayData
+#' VariableFeatures
+#' @importFrom Seurat DimPlot FeaturePlot FindNeighbors FindTransferAnchors
+#' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
+#' RunUMAP TransferData SCTransform VlnPlot
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI
@@ -376,7 +377,6 @@ AzimuthServer <- function(input, output, session) {
               color = 'green'
             )
           })
-          enable(id = 'map')
           if (!is.null(x = googlesheet)) {
             try(
               expr = sheet_append(
@@ -395,11 +395,15 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           react.env$progress <- NULL
         }
+        default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
+        if (!default_xfer %in% possible.metadata.transfer) {
+          default_xfer <- possible.metadata.transfer[1]
+        }
         updateSelectizeInput(
           session = session,
           inputId = 'metadataxfer',
           choices = possible.metadata.transfer,
-          selected =  getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1]),
+          selected = default_xfer,
           server = TRUE,
           options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
         )
@@ -407,7 +411,17 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-
+  observeEvent(
+    eventExpr = input$metadataxfer,
+    handlerExpr = {
+      if (length(x = input$metadataxfer) == 0) {
+        disable(id = 'map')
+      } else {
+        enable(id = 'map')
+      }
+    },
+    ignoreNULL = FALSE
+  )
   # Filter and process the data
   observeEvent(
     eventExpr = input$map,
@@ -521,22 +535,24 @@ AzimuthServer <- function(input, output, session) {
             app.env$object <- suppressWarnings(expr = SCTransform(
               object = app.env$object,
               residual.features = rownames(x = refs$map),
-              reference.SCT.model = refs$sct.model,
+              reference.SCT.model = slot(object = refs$map[["refAssay"]], name = "SCTModel.list")[["refmodel"]],
               method = "glmGamPoi",
               do.correct.umi = FALSE,
               do.scale = FALSE,
-              do.center = TRUE
+              do.center = TRUE,
+              new.assay.name = "refAssay"
             ))
           },
           error = function(e) {
             app.env$object <- suppressWarnings(expr = SCTransform(
               object = app.env$object,
               residual.features = rownames(x = refs$map),
-              reference.SCT.model = refs$sct.model,
+              reference.SCT.model = slot(object = refs$map[["refAssay"]], name = "SCTModel.list")[["refmodel"]],
               method = "poisson",
               do.correct.umi = FALSE,
               do.scale = FALSE,
-              do.center = TRUE
+              do.center = TRUE,
+              new.assay.name = "refAssay"
             ))
           }
         )
@@ -559,8 +575,8 @@ AzimuthServer <- function(input, output, session) {
           query = app.env$object,
           k.filter = NA,
           reference.neighbors = "refdr.annoy.neighbors",
-          reference.assay = "SCT",
-          query.assay = 'SCT',
+          reference.assay = "refAssay",
+          query.assay = 'refAssay',
           reference.reduction = 'refDR',
           normalization.method = 'SCT',
           features = intersect(
@@ -755,7 +771,7 @@ AzimuthServer <- function(input, output, session) {
         )
         app.env$object <- SetAssayData(
           object = app.env$object,
-          assay = 'SCT',
+          assay = 'refAssay',
           slot = 'scale.data',
           new.data = new(Class = 'matrix')
         )
@@ -1043,7 +1059,7 @@ AzimuthServer <- function(input, output, session) {
         app.env$feature <- ifelse(
           test = input$feature %in% rownames(x = app.env$object),
           yes = paste0(
-            Key(object = app.env$object[["SCT"]]),
+            Key(object = app.env$object[["refAssay"]]),
             input$feature
           ),
           no = input$feature
@@ -1411,7 +1427,7 @@ AzimuthServer <- function(input, output, session) {
     if (!is.null(x = app.env$object)) {
       avail <- c(
         paste0(
-          Key(object = app.env$object[["SCT"]]),
+          Key(object = app.env$object[["refAssay"]]),
           rownames(x = app.env$object)
         ),
         colnames(x = app.env$object[[]])
@@ -1441,8 +1457,8 @@ AzimuthServer <- function(input, output, session) {
             theme_void()
         } else {
           title <- ifelse(
-            test = grepl(pattern = '^sct_', x = app.env$feature),
-            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            test = grepl(pattern = '^refassay_', x = app.env$feature),
+            yes = gsub(pattern = '^refassay_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
           if (nchar(x = input$scoregroup)) {
@@ -1475,7 +1491,7 @@ AzimuthServer <- function(input, output, session) {
         c('lightgrey', 'darkred')
       )
       names(x = palettes) <- c(
-        Key(object = app.env$object[["SCT"]]),
+        Key(object = app.env$object[["refAssay"]]),
         'md_'
       )
       if (do.adt) {
@@ -1507,8 +1523,8 @@ AzimuthServer <- function(input, output, session) {
             theme_void()
         } else {
           title <- ifelse(
-            test = grepl(pattern = '^sct_', x = app.env$feature),
-            yes = gsub(pattern = '^sct_', replacement = '', x = app.env$feature),
+            test = grepl(pattern = '^refassay_', x = app.env$feature),
+            yes = gsub(pattern = '^refassay_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
           if (nchar(x = input$scoregroup)) {

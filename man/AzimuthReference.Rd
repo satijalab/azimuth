@@ -8,6 +8,7 @@ AzimuthReference(
   object,
   refUMAP = "umap",
   refDR = "spca",
+  refAssay = "SCT",
   dims = 1:50,
   k.param = 31,
   plotref = "umap",
@@ -17,6 +18,7 @@ AzimuthReference(
   colormap = NULL,
   assays = NULL,
   metadata = NULL,
+  reference.version = "0.0.0",
   verbose = FALSE
 )
 }
@@ -26,6 +28,8 @@ AzimuthReference(
 \item{refUMAP}{Name of UMAP in reference to use for mapping}
 
 \item{refDR}{Name of DimReduc in reference to use for mapping}
+
+\item{refAssay}{Name of SCTAssay to use in reference}
 
 \item{dims}{Dimensions to use in reference neighbor finding}
 
@@ -51,6 +55,8 @@ generating your own.}
 \item{assays}{Assays to retain for transfer}
 
 \item{metadata}{Metadata to retain for transfer}
+
+\item{reference.version}{Version of the Azimuth reference}
 
 \item{verbose}{Display progress/messages}
 }

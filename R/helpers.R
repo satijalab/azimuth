@@ -14,8 +14,9 @@
 #'
 #' @importFrom tools file_ext
 #' @importFrom SeuratDisk Connect
-#' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse Assays
-#' GetAssayData DefaultAssay<- DietSeurat as.Seurat
+#' @importFrom SeuratObject CreateSeuratObject Assays GetAssayData
+#' DefaultAssay<-
+#' @importFrom Seurat Read10X_h5 as.sparse Assays DietSeurat as.Seurat
 #'
 #' @keywords internal
 #'
@@ -112,7 +113,7 @@ LoadFileInput <- function(path) {
 #' @return A \code{Seurat} object
 #'
 #' @importFrom hdf5r H5File h5attr
-#' @importFrom Seurat AddMetaData CreateSeuratObject
+#' @importFrom SeuratObject AddMetaData CreateSeuratObject
 #'
 #' @keywords internal
 #'
@@ -268,7 +269,8 @@ LoadH5AD <- function(path) {
 #'  \item{\code{avgexp}}{Average expression (for pseudobulk check)}
 #' }
 #'
-#' @importFrom Seurat Idents<- LoadAnnoyIndex
+#' @importFrom SeuratObject Idents<-
+#' @importFrom Seurat LoadAnnoyIndex
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
@@ -351,8 +353,6 @@ LoadReference <- function(path, seconds = 10L) {
     object = map[["refdr.annoy.neighbors"]],
     file = annref
   )
-  sct.model <- Misc(object = map[["SCT"]], slot = "vst.set")
-  suppressWarnings(expr = Misc(object = map[["SCT"]], slot = "vst.set") <- list())
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
@@ -369,7 +369,6 @@ LoadReference <- function(path, seconds = 10L) {
   gc(verbose = FALSE)
   return(list(
     map = map,
-    sct.model = sct.model,
     plot = plot,
     avgexp = avg
   ))
@@ -384,7 +383,7 @@ LoadReference <- function(path, seconds = 10L) {
 #'
 #' @return \code{object} with transfomed neighbor.slot
 #'
-#' @importFrom Seurat Indices
+#' @importFrom SeuratObject Indices
 #'
 #' @keywords internal
 #'
@@ -407,26 +406,26 @@ NNTransform <- function(
   return(object)
 }
 
-#' Make An English List
-#'
-#' Joins items together to make an English list; uses the Oxford comma for the
-#' last item in the list.
-#'
+# Make An English List
+#
+# Joins items together to make an English list; uses the Oxford comma for the
+# last item in the list.
+#
 #' @inheritParams base::paste
-#' @param join either \dQuote{and} or \dQuote{or}
-#'
-#' @return A character vector of the values, joined together with commas and
-#' \code{join}
-#'
+# @param join either \dQuote{and} or \dQuote{or}
+#
+# @return A character vector of the values, joined together with commas and
+# \code{join}
+#
 #' @keywords internal
-#'
-#' @examples
-#' \donttest{
-#' Oxford("red")
-#' Oxford("red", "blue")
-#' Oxford("red", "green", "blue")
-#' }
-#'
+#
+# @examples
+# \donttest{
+# Oxford("red")
+# Oxford("red", "blue")
+# Oxford("red", "green", "blue")
+# }
+#
 Oxford <- function(..., join = c('and', 'or')) {
   join <- match.arg(arg = join)
   args <- as.character(x = c(...))
