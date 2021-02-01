@@ -10,7 +10,7 @@ RUN mkdir lzf
 WORKDIR /lzf/lzf
 RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf_c.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf_d.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzfP.h https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf.h
 WORKDIR /lzf
-RUN gcc -O2 -fPIC -shared lzf/*.c lzf_filter.c $(pkg-config --cflags --libs hdf5) -o liblzf_filter.so
+RUN gcc -O2 -fPIC -shared lzf/*.c lzf_filter.c -I /usr/include/hdf5/serial/ -lhdf5_serial -o liblzf_filter.so
 WORKDIR /
 ENV HDF5_PLUGIN_PATH=/lzf
 
