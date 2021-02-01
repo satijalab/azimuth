@@ -1,4 +1,4 @@
-FROM satijalab/seurat:3.2.3
+FROM satijalab/seurat:4.0.0
 
 RUN apt-get update
 RUN apt-get install -y libv8-dev
@@ -14,16 +14,10 @@ RUN gcc -O2 -fPIC -shared lzf/*.c lzf_filter.c $(pkg-config --cflags --libs hdf5
 WORKDIR /
 ENV HDF5_PLUGIN_PATH=/lzf
 
-RUN R --no-echo -e "install.packages('remotes')"
-
 COPY Rprofile.site /usr/lib/R/etc/
 RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr', 'BiocManager'), repo='https://cloud.r-project.org')"
-RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'jlmelville/uwot', 'mojaveazure/seurat-disk', 'satijalab/seurat@release/4.0.0'))"
+RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'jlmelville/uwot', 'mojaveazure/seurat-disk'))"
 RUN R --no-echo -e "BiocManager::install('glmGamPoi')"
-
-ARG SEURAT_VER=unknown
-RUN echo "$SEURAT_VER"
-RUN R --no-echo -e "remotes::install_github('satijalab/seurat@release/4.0.0')"
 
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"
