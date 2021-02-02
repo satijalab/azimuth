@@ -14,7 +14,8 @@ RUN gcc -O2 -fPIC -shared lzf/*.c lzf_filter.c -I /usr/include/hdf5/serial/ -lhd
 WORKDIR /
 ENV HDF5_PLUGIN_PATH=/lzf
 
-COPY Rprofile.site /usr/lib/R/etc/
+COPY Rprofile.site /usr/local/lib/R/etc/Rprofile.site
+
 RUN R --no-echo -e "BiocManager::install(c('glmGamPoi'))"
 RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr'), repo='https://cloud.r-project.org')"
 RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveazure/seurat-disk'), dependencies = FALSE)"
