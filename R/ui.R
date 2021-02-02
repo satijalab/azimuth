@@ -1,5 +1,6 @@
 #' @include zzz.R
 #'
+#' @importFrom vitessce vitessce_output
 #' @importFrom DT DTOutput
 #' @importFrom htmltools div h3 h4 HTML includeCSS p tagList tags
 #' @importFrom shinyjs disabled useShinyjs
@@ -200,28 +201,15 @@ AzimuthUI <- tagList(
         tabItem(
           tabName = 'tab_cell',
           box(
-            title = 'Reference',
-            checkboxInput(inputId = 'labels', label = 'Show labels'),
-            selectizeInput(
-              inputId = 'metacolor.ref',
-              label = 'Metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            plotOutput(outputId = 'refdim'),
+            title = 'Cell Plots',
+            vitessce_output(output_id = 'refdim', height = "75rem"),
             width = 12
           ),
-          box(
-            title = 'Query',
-            selectizeInput(
-              inputId = 'metacolor.query',
-              label = 'Metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            plotOutput(outputId = 'objdim'),
-            width = 12
-          ),
+          # box(
+          #   title = 'Query',
+          #   vitessce_output(output_id = 'objdim'),
+          #   width = 12
+          # ),
           box(
             title = 'Metadata table',
             div(

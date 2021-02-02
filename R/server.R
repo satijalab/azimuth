@@ -32,6 +32,8 @@ NULL
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile
 #' @importFrom utils write.table packageVersion
+#' @importFrom vitessce render_vitessce VitessceConfig SeuratWrapper Component
+#' CoordinationType hconcat vconcat
 #'
 #' @keywords internal
 #'
@@ -1379,50 +1381,59 @@ AzimuthServer <- function(input, output, session) {
       wrap_plots(vlnlist, ncol = length(x = vlnlist))
     }
   })
-  output$refdim <- renderPlot(expr = {
-    if (!is.null(x = input$metacolor.ref)) {
-      colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
-      plots <- list()
-      for (i in 1:length(x = colormaps)) {
-        plots[[i]] <- DimPlot(
-          object = refs$plot,
-          label = input$labels,
-          group.by = input$metacolor.ref[i],
-          cols = colormaps[[i]],
-          repel = TRUE,
-        )
-      }
-      app.env$plot.ranges <- list(
-        layer_scales(plots[[1]])$x$range$range,
-        layer_scales(plots[[1]])$y$range$range
+  output$refdim <- render_vitessce(expr = {
+    if (!is.null(x = app.env$metadataxfer)) {
+      vc <- VitessceConfig$new("Azimuth")
+      ref_dataset <- vc$add_dataset("reference")$add_object(
+        SeuratWrapper$new(refs$plot, cell_set_meta_names = as.list(app.env$metadataxfer))
       )
-      wrap_plots(plots, nrow = 1)
+      ref_plot <- vc$add_view(ref_dataset, Component$SCATTERPLOT, mapping = "refUMAP")
+      cell_sets_ref <- vc$add_view(ref_dataset, Component$CELL_SETS)
+
+      # query.metadata <- PlottableMetadataNames(
+      #   object = app.env$object,
+      #   exceptions = app.env$metadataxfer,
+      #   min.levels = 1,
+      #   max.levels = 50
+      # )
+
+      query.metadata <- as.list(x = app.env$metadataxfer)
+      names(x = query.metadata) <- paste0("predicted.", app.env$metadataxfer)
+      query_dataset <- vc$add_dataset("query")$add_object(
+        SeuratWrapper$new(app.env$object, cell_set_meta_names = names(x = query.metadata), cell_set_meta_name_mappings = query.metadata)
+      )
+      query_plot <- vc$add_view(query_dataset, Component$SCATTERPLOT, mapping = "umap.proj")
+      cell_sets_query <- vc$add_view(query_dataset, Component$CELL_SETS)
+      vc$link_views(
+        c(ref_plot, query_plot),
+        c(CoordinationType$EMBEDDING_ZOOM, CoordinationType$EMBEDDING_TARGET_X, CoordinationType$EMBEDDING_TARGET_Y),
+        c_values = c(1, 0, 0)
+      )
+      vc$layout(hconcat(vconcat(ref_plot, query_plot), vconcat(cell_sets_ref, cell_sets_query)))
+      vc$widget()
     }
   })
-  output$objdim <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
-      if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
-        plots <- list()
-        for (i in 1:length(x = input$metacolor.query)) {
-          group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
-          colormap <- GetColorMap(object = refs$map)[[group.var]]
-          if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
-            colormap <- NULL
-          }
-          plots[[i]] <- DimPlot(
-            object = app.env$object,
-            group.by = input$metacolor.query[i],
-            label = input$labels,
-            cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
-            repel = TRUE,
-            reduction = "umap.proj"
-          ) + xlim(app.env$plot.ranges[[1]]) +
-            ylim(app.env$plot.ranges[[2]])
-        }
-        wrap_plots(plots, nrow = 1)
-      }
-    }
-  })
+  # output$objdim <- render_vitessce(expr = {
+  #   if (!is.null(x = app.env$object)) {
+  #     if (length(x = Reductions(object = app.env$object))) {
+  #       vc_query <- VitessceConfig$new("Query")
+  #
+  #       query.metadata <- PlottableMetadataNames(
+  #         object = app.env$object,
+  #         exceptions = app.env$metadataxfer,
+  #         min.levels = 1,
+  #         max.levels = 50
+  #       )
+  #       query_dataset <- vc_query$add_dataset("query")$add_object(
+  #         SeuratWrapper$new(app.env$object, cell_set_meta_names = query.metadata)
+  #       )
+  #       query_plot <- vc_query$add_view(query_dataset, Component$SCATTERPLOT, mapping = "umap.proj")
+  #       cell_sets_query <- vc_query$add_view(query_dataset, Component$CELL_SETS)
+  #       vc_query$layout(hconcat(query_plot, cell_sets_query))
+  #       vc_query$widget()
+  #     }
+  #   }
+  # })
   output$evln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       avail <- c(

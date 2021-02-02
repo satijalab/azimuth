@@ -23,6 +23,7 @@ biocViews:
 Remotes:
   immunogenomics/presto,
   mojaveazure/seurat-disk,
+  vitessce/vitessce-r
 Depends:
   R (>= 4.0.0)
 Imports:
@@ -52,6 +53,7 @@ Imports:
   stringr (>= 1.4.0),
   tools,
   utils,
+  vitessce,
   withr (>= 2.3.0)
 Collate:
     'zzz.R'
