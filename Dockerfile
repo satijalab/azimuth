@@ -15,14 +15,14 @@ WORKDIR /
 ENV HDF5_PLUGIN_PATH=/lzf
 
 COPY Rprofile.site /usr/lib/R/etc/
-RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr', 'BiocManager'), repo='https://cloud.r-project.org')"
-RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'jlmelville/uwot', 'mojaveazure/seurat-disk'))"
-RUN R --no-echo -e "BiocManager::install('glmGamPoi')"
+RUN R --no-echo -e "BiocManager::install(c('glmGamPoi'))"
+RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr'), repo='https://cloud.r-project.org')"
+RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveazure/seurat-disk'), dependencies = FALSE)"
+
 
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"
 COPY . /root/azimuth
-RUN R --no-echo -e "remotes::install_deps('/root/azimuth')"
 RUN R --no-echo -e "install.packages('/root/azimuth', repos = NULL, type = 'source')"
 
 EXPOSE 3838
