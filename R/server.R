@@ -1410,7 +1410,7 @@ AzimuthServer <- function(input, output, session) {
         c_values = c(1, 0, 0)
       )
       vc$layout(hconcat(vconcat(ref_plot, query_plot), vconcat(cell_sets_ref, cell_sets_query)))
-      vc$widget()
+      vc$widget(port = 8373)
     }
   })
   # output$objdim <- render_vitessce(expr = {

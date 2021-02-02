@@ -26,5 +26,7 @@ COPY . /root/azimuth
 RUN R --no-echo -e "install.packages('/root/azimuth', repos = NULL, type = 'source')"
 
 EXPOSE 3838
+# For vitessce widgets
+EXPOSE 8373
 
 CMD ["R", "-e", "Azimuth::AzimuthApp(reference='/reference-data')"]
