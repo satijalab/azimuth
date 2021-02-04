@@ -885,11 +885,34 @@ AzimuthServer <- function(input, output, session) {
                                     )
         )
         for (id in c('metarow', 'metacol', 'metagroup')) {
+          if (id == 'metarow') {
+            matches <- grep(
+              pattern = 'celltype|label|annotation',
+              x = metadata.discrete,
+              value = T,
+              ignore.case = T
+            )
+            matches <- grep(
+              pattern = 'predicted',
+              x = matches,
+              value = T,
+              invert = T
+            )
+            show.metadata <- (
+              if (length(x = matches) > 0) {
+                matches[1]
+              } else {
+                'query'
+              }
+            )
+          } else {
+            show.metadata <- paste0("predicted.", app.env$default.metadata)
+          }
           updateSelectizeInput(
             session = session,
             inputId = id,
             choices = metadata.discrete,
-            selected = paste0("predicted.", app.env$default.metadata),
+            selected = show.metadata,
             server = TRUE,
             options = selectize.opts
           )
