@@ -203,48 +203,55 @@ AzimuthServer <- function(input, output, session) {
                 app.env$object <- LoadFileInput(path = react.env$path)
                 app.env$object$query <- 'query'
                 Idents(object = app.env$object) <- 'query'
+
+                app.env$default.assay <- DefaultAssay(object = app.env$object)
+                react.env$mt <- any(grepl(
+                  pattern = mito.pattern,
+                  x = rownames(x = app.env$object)
+                ))
+                if (isFALSE(x = react.env$mt)) {
+                  removeUI(selector = '#pctmt', immediate = TRUE)
+                }
+                common.features <- intersect(
+                  x = rownames(x = app.env$object),
+                  y = rownames(x = refs$map)
+                )
+                reject <- c(
+                  length(x = common.features) < getOption(x = 'Azimuth.map.ngenes'),
+                  length(x = Cells(x = app.env$object)) > getOption(x = 'Azimuth.app.max_cells')
+                )
+                if (any(reject)) {
+                  app.env$object <- NULL
+                  gc(verbose = FALSE)
+                  reject <- min(which(x = reject))
+                  app.env$messages <- paste(
+                    c(
+                      'Not enough genes in common with reference.',
+                      'Too many cells.'
+                    ),
+                    'Try another dataset.'
+                  )[reject]
+                }
+                if (isFALSE(x = react.env$xferopts)) {
+                  removeUI(selector = '#xferopts', immediate = TRUE)
+                }
+                react.env$qc <- !any(reject)
+                react.env$path <- NULL
               },
               error = function(e) {
                 app.env$messages <- e$message
                 safeError(error = e$message)
+                app.env$object <- NULL
+                gc(verbose = FALSE)
+                if (isFALSE(x = react.env$xferopts)) {
+                  removeUI(selector = '#xferopts', immediate = TRUE)
+                }
+                react.env$path <- NULL
               }
             )
             setProgress(value = 1)
           }
         )
-        app.env$default.assay <- DefaultAssay(object = app.env$object)
-        react.env$mt <- any(grepl(
-          pattern = mito.pattern,
-          x = rownames(x = app.env$object)
-        ))
-        if (isFALSE(x = react.env$mt)) {
-          removeUI(selector = '#pctmt', immediate = TRUE)
-        }
-        common.features <- intersect(
-          x = rownames(x = app.env$object),
-          y = rownames(x = refs$map)
-        )
-        reject <- c(
-          length(x = common.features) < getOption(x = 'Azimuth.map.ngenes'),
-          length(x = Cells(x = app.env$object)) > getOption(x = 'Azimuth.app.max_cells')
-        )
-        if (any(reject)) {
-          app.env$object <- NULL
-          gc(verbose = FALSE)
-          reject <- min(which(x = reject))
-          app.env$messages <- paste(
-            c(
-              'Not enough genes in common with reference.',
-              'Too many cells.'
-            ),
-            'Try another dataset.'
-          )[reject]
-        }
-        if (isFALSE(x = react.env$xferopts)) {
-          removeUI(selector = '#xferopts', immediate = TRUE)
-        }
-        react.env$qc <- !any(reject)
-        react.env$path <- NULL
       }
     }
   )
@@ -294,7 +301,7 @@ AzimuthServer <- function(input, output, session) {
         updateNumericInput(
           session = session,
           inputId = 'num.ncountmax',
-          label = paste('min', ncount),
+          label = paste('max', ncount),
           value = ncount.val[2],
           min = ncount.val[1],
           max = ncount.val[2]
@@ -315,7 +322,7 @@ AzimuthServer <- function(input, output, session) {
         updateNumericInput(
           session = session,
           inputId = 'num.nfeaturemax',
-          label = paste('min', nfeature),
+          label = paste('max', nfeature),
           value = nfeature.val[2],
           min = nfeature.val[1],
           max = nfeature.val[2]

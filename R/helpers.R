@@ -66,7 +66,7 @@ LoadFileInput <- function(path) {
         if (!'RNA' %in% Assays(object = object)) {
           stop("No RNA assay provided", call. = FALSE)
         } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
-          stop("No RNA counts matrix present", call. = )
+          stop("No RNA counts matrix present", call. = FALSE)
         }
         DefaultAssay(object = object) <- "RNA"
         object <- DietSeurat(
