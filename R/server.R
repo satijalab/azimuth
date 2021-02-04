@@ -901,7 +901,7 @@ AzimuthServer <- function(input, output, session) {
             show.metadata <- (
               if (length(x = matches) > 0) {
                 count.na <- sapply(X = matches, FUN = function(m) {
-                  sum(is.na(x = FetchData(object = app.env$object, vars = m)))
+                  sum(FetchData(object = app.env$object, vars = m)[,1] %in% c(NA, ''))
                 })
                 matches[which.min(x = count.na)]
               } else {
