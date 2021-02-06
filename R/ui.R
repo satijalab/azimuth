@@ -61,7 +61,16 @@ AzimuthUI <- tagList(
       htmlOutput(outputId = 'containerid', inline = FALSE)
     ),
     dashboardBody(
-      tags$head(tags$style(HTML('.content-wrapper { overflow: auto; }'))),
+      tags$head(
+        tags$style(
+          HTML("
+            .content-wrapper { overflow: auto; };
+            .shiny-notification {
+             position: fixed;
+             top: calc(50%);
+             left: calc(50%);
+            }"
+          ))),
       tabItems(
         # Welcome tab
         tabItem(

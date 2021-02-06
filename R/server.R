@@ -24,7 +24,7 @@ NULL
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI
-#' onStop
+#' onStop showNotification
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show
@@ -240,7 +240,12 @@ AzimuthServer <- function(input, output, session) {
               },
               error = function(e) {
                 app.env$messages <- e$message
-                safeError(error = e$message)
+                showNotification(
+                  e$message,
+                  duration = 5,
+                  type = 'error'
+                  closeButton = TRUE
+                )
                 app.env$object <- NULL
                 gc(verbose = FALSE)
                 if (isFALSE(x = react.env$xferopts)) {
