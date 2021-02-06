@@ -875,7 +875,8 @@ AzimuthServer <- function(input, output, session) {
                 app.env$demo,
                 app.env$ncellsupload,
                 app.env$ncellspreproc,
-                as.numeric(x = mapping.time)
+                as.numeric(x = mapping.time),
+                Sys.Date()
               )
             ),
             silent = TRUE
