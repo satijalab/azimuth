@@ -48,6 +48,7 @@ AzimuthServer <- function(input, output, session) {
   app.env <- reactiveValues(
     adt.features = character(length = 0L),
     anchors = NULL,
+    demo = FALSE,
     default.assay = NULL,
     default.feature = NULL,
     default.metadata = NULL,
@@ -56,6 +57,8 @@ AzimuthServer <- function(input, output, session) {
     features = character(length = 0L),
     mapping.score = NULL,
     messages = 'Upload a file',
+    ncellsupload = 0L,
+    ncellspreproc = 0L,
     object = NULL,
     metadata.cont = character(length = 0L),
     scorefeatures = character(length = 0L),
@@ -119,13 +122,14 @@ AzimuthServer <- function(input, output, session) {
         )
         googlesheet <- gs4_get(ss = getOption(x = "Azimuth.app.googlesheet"))
         app_start_time <- Sys.time()
+        app_session_id <- paste0(Sys.info()[["nodename"]], as.numeric(Sys.time()))
         onStop(
           fun = function() {
             try(expr = sheet_append(
               ss = googlesheet,
               data = data.frame(
                 "SESSIONLENGTH",
-                Sys.info()[["nodename"]],
+                app_session_id,
                 as.numeric(x = Sys.time() - app_start_time, units = "mins")
               )
             ))
@@ -144,7 +148,7 @@ AzimuthServer <- function(input, output, session) {
       ss = googlesheet,
       data = data.frame(
         "STARTUPTIME",
-        Sys.info()[["nodename"]],
+        app_session_id,
         Sys.time()
       )
     ))
@@ -162,6 +166,19 @@ AzimuthServer <- function(input, output, session) {
       setProgress(value = 1)
     }
   )
+  if (!is.null(x = googlesheet)) {
+    try(
+      expr = sheet_append(
+        ss = googlesheet,
+        data = data.frame(
+          c('REFERENCE_NAME', "REFERENCE_VERSION"),
+          c(app_session_id, app_session_id),
+          c(basename(getOption(x = 'Azimuth.app.reference')),  ReferenceVersion(object = refs$map))
+        )
+      ),
+      silent = TRUE
+    )
+  }
   plotseed <- getOption(x = "Azimuth.app.plotseed")
   if (!is.null(x = plotseed)) {
     set.seed(seed = plotseed)
@@ -212,6 +229,11 @@ AzimuthServer <- function(input, output, session) {
             setProgress(value = 1)
           }
         )
+        if (react.env$path == getOption(x = 'Azimuth.app.demodataset')) {
+          app.env$demo <- TRUE
+        } else {
+          app.env$demo <- FALSE
+        }
         app.env$default.assay <- DefaultAssay(object = app.env$object)
         react.env$mt <- any(grepl(
           pattern = mito.pattern,
@@ -358,6 +380,7 @@ AzimuthServer <- function(input, output, session) {
           ))
         })
         ncellsupload <- length(x = colnames(x = app.env$object))
+        app.env$ncellsupload <- ncellsupload
         app.env$messages <- paste(ncellsupload, 'cells uploaded')
         if (ncellsupload < getOption(x = 'Azimuth.map.ncells')) {
           output$valuebox.upload <- renderValueBox(expr = {
@@ -383,7 +406,7 @@ AzimuthServer <- function(input, output, session) {
                 ss = googlesheet,
                 data = data.frame(
                   'CELLSUPLOAD',
-                  Sys.info()[['nodename']],
+                  app_session_id,
                   ncellsupload
                 )
               ),
@@ -447,6 +470,7 @@ AzimuthServer <- function(input, output, session) {
           app.env$object[[mt.key, drop = TRUE]] <= input$maxmt
       }
       ncellspreproc <- sum(cells.use)
+      app.env$ncellspreproc <- ncellspreproc
       # not enough cells available after filtering: reset filter elements
       if (ncellspreproc < getOption(x = "Azimuth.map.ncells")) {
         output$valuebox.preproc <- renderValueBox(expr = valueBox(
@@ -468,7 +492,7 @@ AzimuthServer <- function(input, output, session) {
             ss = googlesheet,
             data = data.frame(
               "CELLSPREPROC",
-              Sys.info()[["nodename"]],
+              app_session_id,
               ncellspreproc
             )
           ))
@@ -495,7 +519,7 @@ AzimuthServer <- function(input, output, session) {
             ss = googlesheet,
             data = data.frame(
               "PBCOR",
-              Sys.info()[["nodename"]],
+              app_session_id,
               pbcor[["cor.res"]]
             )
           ))
@@ -819,11 +843,12 @@ AzimuthServer <- function(input, output, session) {
         }
 
         # Finalize the log
-        time.fmt <- FormatDiffTime(dt = difftime(
+        mapping.time <- difftime(
           time1 = Sys.time(),
           time2 = react.env$start,
           units = 'secs'
-        ))
+        )
+        time.fmt <- FormatDiffTime(dt = mapping.time)
         app.env$messages <- c(
           app.env$messages,
           time.fmt
@@ -833,10 +858,28 @@ AzimuthServer <- function(input, output, session) {
             ss = googlesheet,
             data = data.frame(
               "MAPPINGTIME",
-              Sys.info()[["nodename"]],
-              as.numeric(x = time.fmt, units = "secs")
+              app_session_id,
+              as.numeric(x = mapping.time)
             )
           ))
+        }
+        if (!is.null(x = googlesheet)) {
+          try(
+            expr = sheet_append(
+              ss = googlesheet,
+              data = data.frame(
+                "SUMMARY",
+                app_session_id,
+                basename(getOption(x = 'Azimuth.app.reference')),
+                ReferenceVersion(object = refs$map),
+                app.env$demo,
+                app.env$ncellsupload,
+                app.env$ncellspreproc,
+                as.numeric(x = mapping.time)
+              )
+            ),
+            silent = TRUE
+          )
         }
         output$menu2 <- renderMenu(expr = {
           sidebarMenu(
