@@ -108,11 +108,15 @@ MappingQCMetric <- function(query, ds.amount = 5000){
     x = tapply(X = orig_ent, INDEX = ids, FUN = mean) -
       tapply(X = proj_ent, INDEX = ids, FUN = mean)
   )
+  # TODO: slim down query
+  query <- DietSeurat(
+    object = query, assays = "refAssay",
+    dimreducs =  c("qc.orig.umap", "qc.intdr.umap"), counts = FALSE
+  )
   Misc(object = query, slot = "mapping.qc") <- list(
     stat = stat,
     proj_ent = proj_ent,
     orig_ent = orig_ent
   )
-  # TODO: slim down query
   return(query)
 }
