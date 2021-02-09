@@ -76,7 +76,6 @@ AzimuthServer <- function(input, output, session) {
     mt = FALSE,
     xferopts = FALSE,
     path = NULL,
-    pbcor = FALSE,
     progress = NULL,
     qc = FALSE,
     score = FALSE,
@@ -539,51 +538,7 @@ AzimuthServer <- function(input, output, session) {
           ))
         }
         app.env$object <- app.env$object[, cells.use]
-        react.env$pbcor <- TRUE
-      }
-    }
-  )
-  observeEvent(
-    eventExpr = react.env$pbcor,
-    handlerExpr = {
-      if (isTRUE(x = react.env$pbcor)) {
-        react.env$progress$set(
-          value = 0.1,
-          message = 'Running pseudobulk correlation test'
-        )
-        pbcor <- PBCorTest(
-          object = app.env$object,
-          ref = refs$avg
-        )
-        if (!is.null(googlesheet)) {
-          try(sheet_append(
-            ss = googlesheet,
-            data = data.frame(
-              "PBCOR",
-              app_session_id,
-              pbcor[["cor.res"]]
-            )
-          ))
-        }
-        if (pbcor[["cor.res"]] < getOption(x = 'Azimuth.map.pbcorthresh')) {
-          output$valuebox.mapped <- renderValueBox(expr = {
-            valueBox(
-              value = 'Failure',
-              subtitle = 'Query is too dissimilar',
-              icon = icon(name = 'times'),
-              color = 'red',
-              width = 6
-            )
-          })
-          output$plot.pbcor <- renderPlot(expr = pbcor[['plot']])
-          show(selector = ".rowhide")
-          app.env$object <- NULL
-          react.env$progress$close()
-          gc(verbose = FALSE)
-        } else {
-          react.env$sctransform <- TRUE
-        }
-        react.env$pbcor <- FALSE
+        react.env$sctransform <- TRUE
       }
     }
   )

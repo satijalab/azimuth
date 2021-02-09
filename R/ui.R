@@ -188,13 +188,6 @@ AzimuthUI <- tagList(
             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
             valueBoxOutput(outputId = 'valuebox.mapped', width = 3)
           ),
-          fluidRow(
-            class = 'rowhide',
-            box(
-              plotOutput(outputId = 'plot.pbcor'),
-              width = 8
-            )
-          )
         ),
         # Cell tab
         tabItem(
