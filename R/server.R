@@ -218,6 +218,11 @@ AzimuthServer <- function(input, output, session) {
             tryCatch(
               expr = {
                 app.env$object <- LoadFileInput(path = react.env$path)
+                if (react.env$path == getOption(x = 'Azimuth.app.demodataset')) {
+                  app.env$demo <- TRUE
+                } else {
+                  app.env$demo <- FALSE
+                }
                 app.env$object$query <- 'query'
                 Idents(object = app.env$object) <- 'query'
 
@@ -269,11 +274,6 @@ AzimuthServer <- function(input, output, session) {
             setProgress(value = 1)
           }
         )
-        if (react.env$path == getOption(x = 'Azimuth.app.demodataset')) {
-          app.env$demo <- TRUE
-        } else {
-          app.env$demo <- FALSE
-        }
         app.env$default.assay <- DefaultAssay(object = app.env$object)
         react.env$mt <- any(grepl(
           pattern = mito.pattern,
