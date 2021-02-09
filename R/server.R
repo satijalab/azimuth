@@ -11,7 +11,7 @@ NULL
 #' @importFrom DT dataTableProxy renderDT selectRows
 #' @importFrom future future plan resolved value
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
-#' theme_void xlab layer_scales xlim ylim
+#' theme_void xlab layer_scales xlim ylim ylab ggtitle theme element_text
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
@@ -29,7 +29,7 @@ NULL
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show
 #' @importFrom stringr str_interp
-#' @importFrom patchwork wrap_plots
+#' @importFrom patchwork wrap_plots plot_layout
 #' @importFrom stats na.omit quantile
 #' @importFrom utils write.table packageVersion
 #'
@@ -62,7 +62,8 @@ AzimuthServer <- function(input, output, session) {
     object = NULL,
     metadata.cont = character(length = 0L),
     scorefeatures = character(length = 0L),
-    plot.ranges = list()
+    plot.ranges = list(),
+    query.qc = NULL
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -653,6 +654,13 @@ AzimuthServer <- function(input, output, session) {
           mapping.score.k = 100
         )
         nanchors <- nrow(x = slot(object = app.env$anchors, name = "anchors"))
+        output$valuebox.nanchors <- renderValueBox(expr = {
+          valueBox(
+            value = nanchors,
+            subtitle = "Total Anchors",
+            color = 'blue'
+          )
+        })
         if (nanchors < getOption(x = 'Azimuth.map.nanchors')) {
           output$valuebox.mapped <- renderValueBox(expr = {
             valueBox(
@@ -738,6 +746,17 @@ AzimuthServer <- function(input, output, session) {
           value = 0.7,
           message = 'Calculating mapping score'
         )
+        # post mapping QC
+        app.env$query.qc <- MappingQCMetric(query = app.env$object)
+        qc.stat <- round(x = Misc(object = app.env$query.qc, slot = "mapping.qc")$stat, digits = 3)
+        output$valuebox.mappingqcstat <- renderValueBox(expr = {
+          valueBox(
+            value = qc.stat,
+            subtitle = "Mapping QC Stat",
+            color = ifelse(test = qc.stat < 0.2, yes = "green", no = "orange"),
+            icon = icon(name = ifelse(test = qc.stat < 0.2, yes = "check", no = "exclamation-circle"))
+          )
+        })
         refdr <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = app.env$object), "_query")
@@ -844,14 +863,26 @@ AzimuthServer <- function(input, output, session) {
           app.env$messages,
           paste(ncol(x = app.env$object), "cells mapped")
         )
-        output$valuebox.mapped <- renderValueBox(expr = {
-          valueBox(
-            value = 'Success',
-            subtitle = 'Mapping complete',
-            icon = icon(name = 'check'),
-            color = 'green'
-          )
-        })
+        if (Misc(object = app.env$query.qc, slot = "mapping.qc")$stat < 0.2){
+          output$valuebox.mapped <- renderValueBox(expr = {
+            valueBox(
+              value = 'Success',
+              subtitle = 'Mapping complete',
+              icon = icon(name = 'check'),
+              color = 'green'
+            )
+          })
+        }
+        else {
+          output$valuebox.mapped <- renderValueBox(expr = {
+            valueBox(
+              value = 'Warning',
+              subtitle = 'Mapping complete',
+              icon = icon(name = 'exclamation-circle'),
+              color = 'orange'
+            )
+          })
+        }
         react.env$biomarkers <- TRUE
         react.env$transform <- FALSE
       }
@@ -932,6 +963,11 @@ AzimuthServer <- function(input, output, session) {
             menuItem(
               text = "Feature Plots",
               tabName = "tab_feature",
+              icon = icon("chart-area")
+            ),
+            menuItem(
+              text = "Mapping QC",
+              tabName = "tab_mappingqc",
               icon = icon("chart-area")
             ),
             menuItem(
@@ -1051,6 +1087,14 @@ AzimuthServer <- function(input, output, session) {
           inputId = 'metacolor.ref',
           choices = app.env$metadataxfer,
           selected = app.env$default.metadata,
+          server = TRUE,
+          options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
+        )
+        updateSelectizeInput(
+          session = session,
+          inputId = 'query.qc.meta',
+          choices = paste0("predicted.", app.env$metadataxfer),
+          selected = paste0("predicted.", app.env$default.metadata),
           server = TRUE,
           options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
         )
@@ -1654,6 +1698,43 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   })
+
+  output$mapping.qc.dimplots1 <- renderPlot(expr = {
+    p1 <- DimPlot(object = app.env$query.qc, reduction = "qc.orig.umap", label = TRUE) +
+      ggtitle("Original UMAP")
+    p2 <- DimPlot(object = app.env$query.qc, reduction = "qc.intdr.umap", label = TRUE) +
+      ggtitle("Projected UMAP")
+    p1 + p2 & NoLegend() & xlab("UMAP 1") & ylab("UMAP 2") & theme(plot.title = element_text(hjust = 0.5))
+  })
+
+  output$mapping.qc.dimplots2 <- renderPlot(expr = {
+    if (!is.null(x = input$query.qc.meta)) {
+      colormaps <- GetColorMap(object = refs$map)[input$query.qc.meta]
+      app.env$query.qc[[input$query.qc.meta]] <- app.env$object[[input$query.qc.meta]]
+      p1 <- DimPlot(
+        object = app.env$query.qc,
+        group.by = input$query.qc.meta,
+        cols = colormaps[[1]],
+        reduction = "qc.orig.umap"
+      ) + ggtitle("Original UMAP")
+      p2 <- DimPlot(
+        object = app.env$query.qc,
+        group.by = input$query.qc.meta,
+        cols = colormaps[[1]],
+        reduction = "qc.intdr.umap"
+      ) + ggtitle("Projected UMAP")
+      p1 + p2 + plot_layout(guides = 'collect') & xlab("UMAP 1") & ylab("UMAP 2") & theme(plot.title = element_text(hjust = 0.5))
+    }
+  })
+
+  output$mapping.qc.dimplots <- renderPlot(expr = {
+    p1 <- DimPlot(object = app.env$query.qc, reduction = "qc.orig.umap", label = TRUE) +
+      ggtitle("Original UMAP")
+    p2 <- DimPlot(object = app.env$query.qc, reduction = "qc.intdr.umap", label = TRUE) +
+      ggtitle("Projected UMAP")
+    p1 + p2 & NoLegend() & xlab("UMAP 1") & ylab("UMAP 2") & theme(plot.title = element_text(hjust = 0.5))
+  })
+
   # Messages
   output$message <- renderUI(expr = {
     p(HTML(text = paste(app.env$messages, collapse = "<br />")))

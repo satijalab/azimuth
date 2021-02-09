@@ -376,6 +376,29 @@ AzimuthUI <- tagList(
             width = 12
           )
         ),
+        # Post Mapping QC Tab
+        tabItem(
+          tabName = 'tab_mappingqc',
+          fluidRow(
+            valueBoxOutput(outputId = 'valuebox.nanchors', width = 3),
+            valueBoxOutput(outputId = 'valuebox.mappingqcstat', width = 3)
+          ),
+          box(
+            title = 'Query Clusters',
+            plotOutput(outputId = "mapping.qc.dimplots1"),
+            width = 12
+          ),
+          box(
+            title = 'Query Predictions',
+            selectizeInput(
+              inputId = 'query.qc.meta',
+              label = 'Prediction',
+              choices = ''
+            ),
+            plotOutput(outputId = 'mapping.qc.dimplots2'),
+            width = 12
+          ),
+        ),
         # Downloads tab
         tabItem(
           tabName = 'tab_download',

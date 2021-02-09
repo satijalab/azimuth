@@ -4,7 +4,7 @@
 \name{Azimuth-package}
 \alias{Azimuth}
 \alias{Azimuth-package}
-\title{Azimuth: What the Package Does (One Line, Title Case)}
+\title{Azimuth: A Shiny App Demonstrating a Query-Reference Mapping Algorithm for Single-Cell Data}
 \description{
 What the package does (one paragraph).
 }
@@ -148,10 +148,16 @@ Useful links:
 
 Authors:
 \itemize{
-  \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID})
-  \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID})
-  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
   \item Andrew Butler \email{abutler@nygenome.org} (\href{https://orcid.org/0000-0003-3608-0463}{ORCID})
+  \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID})
+  \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID})
+  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
+}
+
+Other contributors:
+\itemize{
+  \item Jaison Jain \email{jjain@nygenome.org} (\href{https://orcid.org/0000-0002-9478-5018}{ORCID}) [contributor]
+  \item Satija Lab and Collaborators [funder]
 }
 
 }
