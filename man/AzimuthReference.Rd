@@ -14,7 +14,6 @@ AzimuthReference(
   plotref = "umap",
   plot.metadata = NULL,
   ori.index = NULL,
-  avgref = NULL,
   colormap = NULL,
   assays = NULL,
   metadata = NULL,
@@ -44,9 +43,6 @@ in the plotref.}
 \item{ori.index}{Index of the cells used in mapping in the original object on
 which UMAP was run. Only need to provide if UMAP was run on different set of
 cells.}
-
-\item{avgref}{Matrix containing the average RNA expression for the reference,
-used in the pseudobulk correlation test.}
 
 \item{colormap}{A list of named and ordered vectors specifying the colors and levels
 for the metadata. See \code{\link{CreateColorMap}} for help

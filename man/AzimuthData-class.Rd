@@ -14,8 +14,6 @@ The AzimuthData class is used to store reference info needed for Azimuth
 \item{\code{plotref}}{DimReduc object containing UMAP for plotting and projection.
 This should also contain the cell IDs in the misc slot}
 
-\item{\code{avgref}}{Average RNA expression for pseudobulk correlation tests}
-
 \item{\code{colormap}}{Vector of id-color mapping for specifying the plots.}
 
 \item{\code{seurat.version}}{Version of Seurat used in reference construction}
