@@ -1,5 +1,4 @@
 #' @include zzz.R
-#' @include seurat.R
 #' @include helpers.R
 #' @include ui.R
 #'
@@ -106,7 +105,6 @@ AzimuthApp <- function(config = NULL, ...) {
 #'
 #' @slot plotref DimReduc object containing UMAP for plotting and projection.
 #' This should also contain the cell IDs in the misc slot
-#' @slot avgref Average RNA expression for pseudobulk correlation tests
 #' @slot colormap Vector of id-color mapping for specifying the plots.
 #' @slot seurat.version Version of Seurat used in reference construction
 #' @slot azimuth.version Version of Azimuth used in reference construction
@@ -120,7 +118,6 @@ AzimuthData <- setClass(
   Class = 'AzimuthData',
   slots = c(
     plotref = 'DimReduc',
-    avgref = 'matrix',
     colormap = 'list',
     seurat.version = 'package_version',
     azimuth.version = 'package_version',
@@ -131,29 +128,13 @@ AzimuthData <- setClass(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' Get Azimuth average expression
-#'
-#' Pull reference average RNA expression matrix
-#'
-#' @param object An object
-#' @param slot Name of tool
-#' @param ... Arguments passed to other methods
-#'
-#' @return A feature x 1 matrix of average RNA expression values
-#'
-#' @rdname GetAvgRef
-#' @export GetAvgRef
-#'
-GetAvgRef <- function(object, ...) {
-  UseMethod(generic = 'GetAvgRef', object = object)
-}
-
 #' Get Azimuth color mapping
 #'
 #' Pull ID-color mapping for Azimuth plotting
 #'
-#' @inheritParams GetAvgRef
+#' @param object An object
+#' @param slot Name of tool
+#' @param ... Arguments passed to other methods
 #'
 #' @return A named vector specifying the colors for all reference IDs
 #'
@@ -168,7 +149,7 @@ GetColorMap <- function(object, ...) {
 #'
 #' Pull DimReduc used in Azimuth plotting/projection
 #'
-#' @inheritParams GetAvgRef
+#' @inheritParams GetColorMap
 #'
 #' @return A DimReduc object
 #'
@@ -196,7 +177,7 @@ ReferenceVersion <- function(object, ...) {
 #'
 #' Set ID-color mapping for Azimuth plotting
 #'
-#' @inheritParams GetAvgRef
+#' @inheritParams GetColorMap
 #'
 #' @return An object with the colormap slot set
 #'
@@ -210,22 +191,6 @@ SetColorMap <- function(object, ...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' @rdname GetAvgRef
-#' @export
-#' @method GetAvgRef AzimuthData
-#'
-GetAvgRef.AzimuthData <- function(object, ...) {
-  return(slot(object = object, name = "avgref"))
-}
-
-#' @rdname GetAvgRef
-#' @export
-#' @method GetAvgRef Seurat
-#'
-GetAvgRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
-  return(GetAvgRef(object = Tool(object = object, slot = slot)))
-}
 
 #' @rdname GetColorMap
 #' @export
@@ -334,7 +299,6 @@ AzimuthReference <- function(
   plotref = "umap",
   plot.metadata = NULL,
   ori.index = NULL,
-  avgref = NULL,
   colormap = NULL,
   assays = NULL,
   metadata = NULL,
@@ -375,9 +339,6 @@ AzimuthReference <- function(
   if (length(x = levels(x = object[[refAssay]])) != 1) {
     stop("refAssay (", refAssay, ") should contain a single SCT model.")
   }
-  if (is.null(x = avgref) && !"RNA" %in% Assays(object = object)) {
-    stop("Please provide either the RNA assay or avgref.")
-  }
 
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
@@ -400,20 +361,6 @@ AzimuthReference <- function(
     message("Computing pseudobulk averages")
   }
   features <- rownames(x = Loadings(object = object[['refDR']]))
-  if (is.null(x = avgref)) {
-    random.name <- "allcells"
-    while (random.name %in% colnames(x = object[[]])) {
-      random.name <- paste0(sample(letters, size = 10), collapse = "")
-    }
-    Idents(object = object) <- random.name
-    object <- NormalizeData(object = object, assay = "RNA", verbose = verbose)
-    avgref <- suppressMessages(expr = AverageExpression(
-      object = object,
-      assays = "RNA",
-      verbose = verbose
-    ))[[1]][features, , drop = FALSE]
-    Idents(object = object) <- "id"
-  }
   plot.metadata <- plot.metadata %||% object[[metadata]]
   if (inherits(x = plotref, what = "DimReduc")) {
     plot.metadata <- plot.metadata[Cells(x = plotref), ]
@@ -422,7 +369,6 @@ AzimuthReference <- function(
     object = object,
     plotref = plotref,
     plot.metadata  = plot.metadata,
-    avgref = avgref,
     colormap = colormap,
     reference.version = reference.version
   )
@@ -473,8 +419,6 @@ AzimuthReference <- function(
 #' to use for the plotting reference or the DimReduc object itself.
 #' @param plot.metadata A data.frame of discrete metadata fields for the cells
 #' in the plotref.
-#' @param avgref Matrix containing the average RNA expression for the reference,
-#' used in the pseudobulk correlation test.
 #' @param colormap A list of named and ordered vectors specifying the colors and levels
 #' for the metadata. See \code{\link{CreateColorMap}} for help
 #' generating your own.
@@ -490,7 +434,6 @@ CreateAzimuthData <- function(
   object,
   plotref = "umap",
   plot.metadata = NULL,
-  avgref = NULL,
   colormap = NULL,
   reference.version = '0.0.0'
 ) {
@@ -520,11 +463,9 @@ CreateAzimuthData <- function(
   }
   slot(object = plotref, name = 'misc')[["plot.metadata"]] <- plot.metadata
   colormap <- colormap[colnames(x = plot.metadata)]
-  avgref <- as.matrix(x = avgref)
   ad <- new(
     Class = "AzimuthData",
     plotref = plotref,
-    avgref = avgref,
     colormap = colormap,
     seurat.version = packageVersion("Seurat"),
     azimuth.version = packageVersion("Azimuth"),
@@ -607,13 +548,6 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
   }
   if (!"refDR" %in% Reductions(object = object)) {
     stop("Object must contain a DimReduc called refDR to use in transfer/projection.")
-  }
-  avgref <- GetAvgRef(object = object, slot = ad.name)
-  if (!all(rownames(x = Loadings(object = object[['refDR']])) %in% rownames(x = avgref))){
-    stop(
-      "avgref must contain average expression values for all features used ",
-      "when computing refDR."
-    )
   }
   if (!"ori.index" %in% colnames(x = object[[]])){
     stop(

@@ -86,10 +86,6 @@
 #'    Annoy (approximate nearest neighbor) n.trees parameter
 #'    Defaults to \code{20}
 #'   }
-#'   \item{\code{Azimuth.map.pbcorthresh}}{
-#'    Only proceed to mapping if query dataset meets or exceeds this threshold
-#'    in pseudobulk correlation test.
-#'   }
 #'   \item{\code{Azimuth.de.mincells}}{
 #'    Minimum number of cells per cluster for differential expression; defaults
 #'    to \code{15}
@@ -147,7 +143,6 @@ default.options <- list(
   Azimuth.map.ngenes = 250L,
   Azimuth.map.nanchors = 50L,
   Azimuth.map.ntrees = 20L,
-  Azimuth.map.pbcorthresh = 0.75,
   Azimuth.sct.ncells = 2000L,
   Azimuth.sct.nfeats = 2000L
 )
