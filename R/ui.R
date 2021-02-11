@@ -5,7 +5,7 @@
 #' @importFrom shinyjs disabled useShinyjs
 #' @importFrom shiny actionButton checkboxInput downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
-#' tableOutput textOutput uiOutput verbatimTextOutput
+#' tableOutput textOutput uiOutput verbatimTextOutput hoverOpts
 #' @importFrom shinyBS bsButton bsPopover
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
@@ -63,14 +63,33 @@ AzimuthUI <- tagList(
     dashboardBody(
       tags$head(
         tags$style(
-          HTML("
-            .content-wrapper { overflow: auto; };
-            .shiny-notification {
-             position: fixed;
-             top: calc(50%);
-             left: calc(50%);
-            }"
-          ))),
+          HTML(".content-wrapper { overflow: auto }
+          .shiny-notification {
+            position: fixed;
+            font-size: 15px;
+            left: calc(50% - 100px);
+            top: calc(90%);
+            width: 350px;
+          }
+            "
+          )
+        )
+      ),
+      # .shiny-notification {
+      #   position: fixed;
+      #   left: calc(50%-150px);
+      #   top: calc(90%);
+      # }
+      # tags$head(
+      #   tags$style(
+      #     HTML("
+      #       .content-wrapper { overflow: auto; };
+      #       .shiny-notification {
+      #        position: fixed;
+      #        top: calc(50%);
+      #        left: calc(50%);
+      #       }"
+      #     ))),
       tabItems(
         # Welcome tab
         tabItem(
@@ -217,7 +236,9 @@ AzimuthUI <- tagList(
               choices = '',
               multiple = TRUE,
             ),
-            plotOutput(outputId = 'refdim'),
+            plotOutput(outputId = 'refdim',
+                       hover = shiny:::hoverOpts("plot_hover_refdim", delay = 0, delayType = "throttle")),
+            uiOutput("hover_info_refdim"),
             width = 12
           ),
           box(

@@ -11,7 +11,7 @@ NULL
 #' @importFrom DT dataTableProxy renderDT selectRows
 #' @importFrom future future plan resolved value
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
-#' theme_void xlab layer_scales xlim ylim
+#' theme_void xlab layer_scales xlim ylim aes geom_point
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
@@ -20,11 +20,11 @@ NULL
 #' VariableFeatures
 #' @importFrom Seurat DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
-#' RunUMAP TransferData SCTransform VlnPlot
+#' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI
-#' onStop showNotification
+#' onStop showNotification wellPanel nearPoints
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show
@@ -59,7 +59,8 @@ AzimuthServer <- function(input, output, session) {
     object = NULL,
     metadata.cont = character(length = 0L),
     scorefeatures = character(length = 0L),
-    plot.ranges = list()
+    plot.ranges = list(),
+    plots.refdim = list()
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -242,9 +243,10 @@ AzimuthServer <- function(input, output, session) {
                 app.env$messages <- e$message
                 showNotification(
                   e$message,
-                  duration = 5,
-                  type = 'error'
-                  closeButton = TRUE
+                  duration = 10,
+                  type = 'error',
+                  closeButton = TRUE,
+                  id = 'no-progress-notification'
                 )
                 app.env$object <- NULL
                 gc(verbose = FALSE)
@@ -1422,6 +1424,9 @@ AzimuthServer <- function(input, output, session) {
       colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
       plots <- list()
       for (i in 1:length(x = colormaps)) {
+        p=ggplot(data=cbind(as.data.frame(refs$plot[['refUMAP']]@cell.embeddings),
+                            refs$plot@meta.data),
+                 ggplot2:::aes(x=refumap_1,y=refumap_2,color=subclass))+ggplot2:::geom_point(size=0.3)
         plots[[i]] <- DimPlot(
           object = refs$plot,
           label = input$labels,
@@ -1429,13 +1434,56 @@ AzimuthServer <- function(input, output, session) {
           cols = colormaps[[i]],
           repel = TRUE,
         )
+        app.env$plots.refdim[[i]] <- p
       }
       app.env$plot.ranges <- list(
         layer_scales(plots[[1]])$x$range$range,
         layer_scales(plots[[1]])$y$range$range
       )
-      wrap_plots(plots, nrow = 1)
+      # wrap_plots(plots, nrow = 1)
+      plots[[1]]
     }
+  })
+  output$hover_info_refdim <- renderUI({
+    plot <- input$refdim
+    hover <- input$plot_hover_refdim
+    if (!is.null(hover)){
+      hover[['mapping']] <- (setNames(list('refumap_1','refumap_2'),nm=c('x','y')))
+    }
+    point <- shiny:::nearPoints(app.env$plots.refdim[[1]]$data, hover,
+                        threshold = 5, maxpoints = 1, addDist = TRUE)
+    if (nrow(point) == 0) return(NULL)
+
+    # calculate point position INSIDE the image as percent of total dimensions
+    # from left (horizontal) and from top (vertical)
+    left_pct <- (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+    top_pct <- (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+
+    # calculate distance from left and bottom side of the picture in pixels
+    left_px <- hover$range$left + left_pct * (hover$range$right - hover$range$left)
+    top_px <- hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+
+    # left_px=hover$range$left
+    # top_px=hover$range$right
+    #
+    # create style property fot tooltip
+    # background color is set so tooltip is a bit transparent
+    # z-index is set so we are sure are tooltip will be on top
+    style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); ",
+                    "left:", left_px-500, "px; top:", top_px-200, "px;")
+
+    # actual tooltip created as wellPanel
+    shiny:::wellPanel(
+      style = style,
+      p(HTML(paste0("<b> Class: </b>", point$class  ,"<br/>",
+                    "<b> Cluster: </b>", point$cluster  ,"<br/>",
+                    "<b> Cross-species cluster: </b>",point$cross_species_cluster, "<br/>")))
+    )
+
+    # print('skeep')
+    # Sys.sleep(10)
+    # print('skeep2')
+
   })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
