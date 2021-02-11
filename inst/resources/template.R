@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Ensure Seurat v4.0 or higher is installed
-if (packageVersion(pkg = "Seurat") < package_version(x = "3.9.9020")) {
+if (packageVersion(pkg = "Seurat") < package_version(x = "4.0.0")) {
   stop("Mapping datasets requires Seurat v4 or higher.", call. = FALSE)
 }
 
@@ -17,7 +17,7 @@ library(Seurat)
 # Load helper functions from Azimuth
 source("https://raw.githubusercontent.com/satijalab/azimuth/master/R/helpers.R")
 
-# Download the multimodal PBMC reference from [LINK] and extract the archive
+# Download the Azimuth reference and extract the archive
 
 # Load the reference
 # Change the file path based on where the reference is located on your system.
@@ -75,8 +75,9 @@ query <- query[, cells.use]
 query <- SCTransform(
   object = query,
   assay = "RNA",
+  new.assay.name = "refAssay",
   residual.features = rownames(x = reference$map),
-  reference.SCT.model = reference$sct.model,
+  reference.SCT.model = reference$map[["refAssay"]]@SCTModel.list$refmodel,
   method = 'glmGamPoi',
   ncells = ${sct.ncells},
   n_genes = ${sct.nfeats},
@@ -91,8 +92,8 @@ anchors <- FindTransferAnchors(
   query = query,
   k.filter = NA,
   reference.neighbors = "refdr.annoy.neighbors",
-  reference.assay = "SCT",
-  query.assay = "SCT",
+  reference.assay = "refAssay",
+  query.assay = "refAssay",
   reference.reduction = "refDR",
   normalization.method = "SCT",
   features = intersect(rownames(x = reference$map), VariableFeatures(object = query)),
