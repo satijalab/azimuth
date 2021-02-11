@@ -365,12 +365,10 @@ LoadReference <- function(path, seconds = 10L) {
   )
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
-  avg <- GetAvgRef(object = ad)
   gc(verbose = FALSE)
   return(list(
     map = map,
-    plot = plot,
-    avgexp = avg
+    plot = plot
   ))
 }
 
