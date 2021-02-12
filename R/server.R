@@ -210,7 +210,10 @@ AzimuthServer <- function(input, output, session) {
   )
   observeEvent(
     eventExpr = input$triggerdemo,
-    handlerExpr = react.env$path <- getOption(x = 'Azimuth.app.demodataset')
+    handlerExpr = {
+      ResetEnv()
+      react.env$path <- getOption(x = 'Azimuth.app.demodataset')
+    }
   )
   observeEvent(
     eventExpr = react.env$path,
@@ -801,6 +804,9 @@ AzimuthServer <- function(input, output, session) {
           message = 'Running differential expression'
         )
         for (i in app.env$metadataxfer) {
+          # if (length(x = unique(x = app.env$object[[paste0("predicted.", i)]])) < 2) {
+          #   next
+          # }
           app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
             group_by = paste0("predicted.", i),
@@ -1124,11 +1130,13 @@ AzimuthServer <- function(input, output, session) {
             options = selectize.opts
           )
         }
+        print('ok1')
         table.check <- input$feature %in% rownames(x = RenderDiffExp(
           diff.exp = app.env$diff.expr[[paste(app.env$default.assay, app.env$default.metadata, sep = "_")]],
           groups.use = input$markerclusters,
           n = Inf
         ))
+        print("ok2")
         tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, !table.check)]
         for (tab in tables.clear) {
           selectRows(proxy = tab, selected = NULL)

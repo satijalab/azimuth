@@ -83,9 +83,10 @@ AzimuthUI <- tagList(
           tabName = 'tab_welcome',
           div(
             fluidRow(
-              div(
+              box(
                 htmlOutput(outputId = 'welcomebox'),
                 htmlOutput(outputId = 'refdescriptor'),
+                width=12
               ),
               width=12
             ),
