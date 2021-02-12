@@ -286,39 +286,6 @@ AzimuthServer <- function(input, output, session) {
             setProgress(value = 1)
           }
         )
-        app.env$default.assay <- DefaultAssay(object = app.env$object)
-        react.env$mt <- any(grepl(
-          pattern = mito.pattern,
-          x = rownames(x = app.env$object)
-        ))
-        if (isFALSE(x = react.env$mt)) {
-          removeUI(selector = '#pctmt', immediate = TRUE)
-        }
-        common.features <- intersect(
-          x = rownames(x = app.env$object),
-          y = rownames(x = refs$map)
-        )
-        reject <- c(
-          length(x = common.features) < getOption(x = 'Azimuth.map.ngenes'),
-          length(x = Cells(x = app.env$object)) > getOption(x = 'Azimuth.app.max_cells')
-        )
-        if (any(reject)) {
-          app.env$object <- NULL
-          gc(verbose = FALSE)
-          reject <- min(which(x = reject))
-          app.env$messages <- paste(
-            c(
-              'Not enough genes in common with reference.',
-              'Too many cells.'
-            ),
-            'Try another dataset.'
-          )[reject]
-        }
-        if (isFALSE(x = react.env$xferopts)) {
-          removeUI(selector = '#xferopts', immediate = TRUE)
-        }
-        react.env$qc <- !any(reject)
-        react.env$path <- NULL
       }
     }
   )
@@ -1776,7 +1743,9 @@ AzimuthServer <- function(input, output, session) {
             features = app.env$feature,
             cols = pal.use,
             reduction = "umap.proj"
-          )) + ggtitle(label = title)
+          )) + xlim(app.env$plot.ranges[[1]]) +
+            ylim(app.env$plot.ranges[[2]]) +
+            ggtitle(label = title)
         }
       }
     }
