@@ -1463,7 +1463,7 @@ AzimuthServer <- function(input, output, session) {
     hover <- input$refdim_intro_hover_location
     df <- app.env$plots.refdim_intro_df
     if (!is.null(x = hover)){
-      hover[['mapping']] <- setNames(list('UMAP_1', 'UMAP_2'), nm = c('x', 'y'))
+      hover[['mapping']] <- setNames(as.list(colnames(app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
     }
     point <- shiny:::nearPoints( # import!!!
       df,
@@ -1557,7 +1557,7 @@ AzimuthServer <- function(input, output, session) {
       hover <- input$refdim_hover_location
       df <- app.env$plots.refdim_df
       if (!is.null(x = hover)){
-        hover[['mapping']] <- setNames(list('UMAP_1', 'UMAP_2'), nm = c('x', 'y'))
+        hover[['mapping']] <- setNames(as.list(colnames(app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
       }
       point <- shiny:::nearPoints(
         df,
@@ -1647,7 +1647,7 @@ AzimuthServer <- function(input, output, session) {
       hover <- input$objdim_hover_location
       df <- app.env$plots.objdim_df
       if (!is.null(x = hover)){
-        hover[['mapping']] <- setNames(list('UMAP_1', 'UMAP_2'), nm = c('x', 'y'))
+        hover[['mapping']] <- setNames(as.list(colnames(app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
       }
       point <- shiny:::nearPoints(
         df,
