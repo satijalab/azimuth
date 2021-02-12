@@ -990,7 +990,6 @@ AzimuthServer <- function(input, output, session) {
         # Add prediction scores for all classes to continuous metadata
         metadata.cont <- sort(x = metadata.cont)[-grep(pattern = "predicted.*.score", x = metadata.cont)]
         metadata.cont <- metadata.cont[-grep(pattern = "*_refAssay", x = metadata.cont)]
-        app.env$object$predicted.celltype.l2.score
         max.predictions <- paste0("predicted.", app.env$metadataxfer, ".score")
         names(x = max.predictions) <- app.env$metadataxfer
         max.predictions <- as.list(x = max.predictions)

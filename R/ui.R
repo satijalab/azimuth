@@ -84,7 +84,6 @@ AzimuthUI <- tagList(
           div(
             fluidRow(
               htmlOutput(outputId = 'welcomebox'),
-              htmlOutput(outputId = 'refdescriptor'),
               width=12
             ),
             fluidRow(
@@ -103,10 +102,10 @@ AzimuthUI <- tagList(
               ),
               width = 12
             ),
-            # fluidRow(
-            #   htmlOutput(outputId = 'refdescriptor'),
-            #   width=12
-            # )
+            fluidRow(
+              htmlOutput(outputId = 'refdescriptor'),
+              width=12
+            )
           )
         ),
         # Preprocessing + QC Tab
