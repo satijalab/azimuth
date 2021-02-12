@@ -248,6 +248,7 @@ AzimuthUI <- tagList(
         ),
         # Feature tab
         tabItem(
+          tags$head(tags$style(HTML(".selectize-dropdown .optgroup-header { font-weight: bold; font-size: 13px; color: black; background: #f6f6f6}"))),
           tabName = 'tab_feature',
           box(
             title = 'Feature Plots',
@@ -274,25 +275,7 @@ AzimuthUI <- tagList(
               class = 'thirds',
               selectizeInput(
                 inputId = 'metadata.cont',
-                label = 'Continuous Metadata',
-                choices = ''
-              )
-            ),
-            div(
-              id = 'scoregroupinput',
-              class = 'thirds',
-              selectizeInput(
-                inputId = 'scoregroup',
-                label = 'Predicted Metadata',
-                choices = ''
-              )
-            ),
-            div(
-              id = 'scorefeatureinput',
-              class = 'thirds',
-              selectizeInput(
-                inputId = 'scorefeature',
-                label = 'Prediction Score',
+                label = 'Prediction Scores and Metadata',
                 choices = ''
               )
             ),
