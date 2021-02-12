@@ -53,7 +53,9 @@ AzimuthUI <- tagList(
       sidebarMenu(
         menuItem(
           text = 'Welcome',
-          tabName = 'tab_welcome'
+          tabName = 'tab_welcome',
+          icon = icon(name = 'map'),
+          selected = TRUE
         ),
         sidebarMenuOutput(outputId = 'menu1'),
         sidebarMenuOutput(outputId = 'menu2')
@@ -75,26 +77,36 @@ AzimuthUI <- tagList(
           )
         )
       ),
-      # .shiny-notification {
-      #   position: fixed;
-      #   left: calc(50%-150px);
-      #   top: calc(90%);
-      # }
-      # tags$head(
-      #   tags$style(
-      #     HTML("
-      #       .content-wrapper { overflow: auto; };
-      #       .shiny-notification {
-      #        position: fixed;
-      #        top: calc(50%);
-      #        left: calc(50%);
-      #       }"
-      #     ))),
       tabItems(
         # Welcome tab
         tabItem(
           tabName = 'tab_welcome',
-          htmlOutput(outputId = 'welcomebox')
+          div(
+            fluidRow(
+              htmlOutput(outputId = 'welcomebox'),
+              width=12
+            ),
+            fluidRow(
+              div(
+                style = "position:relative",
+                plotOutput(
+                  outputId = 'refdim_intro',
+                  hover = shiny:::hoverOpts(  # import!!! (hoverOpts)
+                    id = "refdim_intro_hover_location",
+                    delay = 5,
+                    delayType = "debounce",
+                    nullOutside = TRUE
+                  )
+                ),
+                uiOutput("refdim_intro_hover_box")
+              ),
+              width = 12
+            ),
+            fluidRow(
+              htmlOutput(outputId = 'refdescriptor'),
+              width=12
+            )
+          )
         ),
         # Preprocessing + QC Tab
         tabItem(
@@ -224,7 +236,6 @@ AzimuthUI <- tagList(
             )
           )
         ),
-        # Cell tab
         tabItem(
           tabName = 'tab_cell',
           box(
@@ -236,9 +247,19 @@ AzimuthUI <- tagList(
               choices = '',
               multiple = TRUE,
             ),
-            plotOutput(outputId = 'refdim',
-                       hover = shiny:::hoverOpts("plot_hover_refdim", delay = 0, delayType = "throttle")),
-            uiOutput("hover_info_refdim"),
+            div(
+              style = "position:relative",
+              plotOutput(
+                outputId = 'refdim',
+                hover = shiny:::hoverOpts(
+                  id = "refdim_hover_location",
+                  delay = 5,
+                  delayType = "debounce",
+                  nullOutside = TRUE
+                )
+              ),
+              uiOutput("refdim_hover_box")
+            ),
             width = 12
           ),
           box(
@@ -249,106 +270,26 @@ AzimuthUI <- tagList(
               choices = '',
               multiple = TRUE,
             ),
-            plotOutput(outputId = 'objdim'),
-            width = 12
-          ),
-          box(
-            title = 'Metadata table',
             div(
-              style = 'display: inline-block; vertical-align: top; width: 25%',
-              selectizeInput(
-                inputId = 'metarow',
-                label = 'Table rows',
-                choices = ''
-              )
+              style = "position:relative",
+              plotOutput(
+                outputId = 'objdim',
+                hover = shiny:::hoverOpts(
+                  id = "objdim_hover_location",
+                  delay = 5,
+                  delayType = "debounce",
+                  nullOutside = TRUE
+                )
+              ),
+              uiOutput("objdim_hover_box")
             ),
-            div(
-              style = 'display: inline-block; vertical-align: top; width: 25%',
-              selectizeInput(
-                inputId = 'metacol',
-                label = 'Table columns',
-                choices = ''
-              )
-            ),
-            div(
-              style = 'display: inline-block; vertical-align: top; width: 50%',
-              radioButtons(
-                inputId = 'radio.pct',
-                label = NULL,
-                choices = c('Percentage','Frequency'),
-                inline = TRUE
-              )
-            ),
-            tableOutput(outputId = 'table.metadata'),
-            width = 12
-          )
-        ),
-        # Feature tab
-        tabItem(
-          tabName = 'tab_feature',
-          box(
-            title = 'Feature Plots',
-            div(
-              id = 'featureinput',
-              class = 'thirds',
-              selectizeInput(
-                inputId = 'feature',
-                label = 'Feature',
-                choices = ''
-              )
-            ),
-            div(
-              id = 'imputedinput',
-              class = 'thirds',
-              selectizeInput(
-                inputId = 'adtfeature',
-                label = 'Imputed protein',
-                choices = ''
-              )
-            ),
-            div(
-              id = 'continput',
-              class = 'thirds',
-              selectizeInput(
-                inputId = 'metadata.cont',
-                label = 'Continuous Metadata',
-                choices = ''
-              )
-            ),
-            div(
-              id = 'scoregroupinput',
-              class = 'thirds',
-              selectizeInput(
-                inputId = 'scoregroup',
-                label = 'Predicted Metadata',
-                choices = ''
-              )
-            ),
-            div(
-              id = 'scorefeatureinput',
-              class = 'thirds',
-              selectizeInput(
-                inputId = 'scorefeature',
-                label = 'Prediction Score',
-                choices = ''
-              )
-            ),
-            plotOutput(outputId = 'edim'),
-            selectizeInput(
-              inputId = 'metagroup',
-              label = 'Metadata to group by',
-              choices = '',
-              width = '25%'
-            ),
-            checkboxInput(inputId = 'check.featpoints', label = 'Hide points'),
-            plotOutput(outputId = 'evln'),
             width = 12
           ),
           box(
             title = p(
-              'Predicted cell type cluster biomarkers',
+              'Metadata table',
               bsButton(
-                inputId = 'q3',
+                inputId = 'q5',
                 label = '',
                 icon = icon(name = 'question'),
                 style = 'info',
@@ -356,108 +297,222 @@ AzimuthUI <- tagList(
               )
             ),
             bsPopover(
-              id = 'q3',
-              title = 'Biomarkers Table',
+              id = 'q5',
+              title = 'Metadata table',
               content = paste(
-                'Only available for clusters with at least 15 cells.',
-                paste(
-                  # 'logFC: log fold-change between cells in the cluster specified and other cells',
-                  'auc: area under ROC',
-                  'padj: Benjamini-Hochberg adjusted p value',
-                  'pct_in: percent of cells in the cluster with nonzero feature value',
-                  'pct_out: percent of cells out of the cluster with nonzero feature value',
-                  sep = '; '
+                'A (usually) 2D table where each dimension represents a query metadata field, ',
+                'thus revealing the breakdown of any one query attribute when grouping by another. ',
+                'By default, a 1D table is produced where one dimension has constant value (\\"query\\") and ',
+                'the other is a predicted class (\\"predicted.XXX\\"), thus showing the overall breakdown of the ',
+                'predicted class.'),
+                placement = 'right',
+                trigger = 'focus',
+                options = list(container = 'body')
+              ),
+              div(
+                style = 'display: inline-block; vertical-align: top; width: 25%',
+                selectizeInput(
+                  inputId = 'metarow',
+                  label = 'Table rows',
+                  choices = ''
                 )
               ),
-              placement = 'right',
-              trigger = 'focus',
-              options = list(container = 'body')
-            ),
-            div(
-              id = 'markerclustersgroupinput',
-              class = 'halves',
+              div(
+                style = 'display: inline-block; vertical-align: top; width: 25%',
+                selectizeInput(
+                  inputId = 'metacol',
+                  label = 'Table columns',
+                  choices = ''
+                )
+              ),
+              div(
+                style = 'display: inline-block; vertical-align: top; width: 50%',
+                radioButtons(
+                  inputId = 'radio.pct',
+                  label = NULL,
+                  choices = c('Percentage','Frequency'),
+                  inline = TRUE
+                )
+              ),
+              tableOutput(outputId = 'table.metadata'),
+              width = 12
+            )
+          ),
+          # Feature tab
+          tabItem(
+            tabName = 'tab_feature',
+            box(
+              title = 'Feature Plots',
+              div(
+                id = 'featureinput',
+                class = 'thirds',
+                selectizeInput(
+                  inputId = 'feature',
+                  label = 'Feature',
+                  choices = ''
+                )
+              ),
+              div(
+                id = 'imputedinput',
+                class = 'thirds',
+                selectizeInput(
+                  inputId = 'adtfeature',
+                  label = 'Imputed protein',
+                  choices = ''
+                )
+              ),
+              div(
+                id = 'continput',
+                class = 'thirds',
+                selectizeInput(
+                  inputId = 'metadata.cont',
+                  label = 'Continuous Metadata',
+                  choices = ''
+                )
+              ),
+              div(
+                id = 'scoregroupinput',
+                class = 'thirds',
+                selectizeInput(
+                  inputId = 'scoregroup',
+                  label = 'Predicted Metadata',
+                  choices = ''
+                )
+              ),
+              div(
+                id = 'scorefeatureinput',
+                class = 'thirds',
+                selectizeInput(
+                  inputId = 'scorefeature',
+                  label = 'Prediction Score',
+                  choices = ''
+                )
+              ),
+              plotOutput(outputId = 'edim'),
               selectizeInput(
-                inputId = 'markerclustersgroup',
-                label = 'Metadata group',
-                choices = ''
+                inputId = 'metagroup',
+                label = 'Metadata to group by',
+                choices = '',
+                width = '25%'
+              ),
+              checkboxInput(inputId = 'check.featpoints', label = 'Hide points'),
+              plotOutput(outputId = 'evln'),
+              width = 12
+            ),
+            box(
+              title = p(
+                'Predicted cell type cluster biomarkers',
+                bsButton(
+                  inputId = 'q3',
+                  label = '',
+                  icon = icon(name = 'question'),
+                  style = 'info',
+                  size = 'extra-small'
+                )
+              ),
+              bsPopover(
+                id = 'q3',
+                title = 'Biomarkers Table',
+                content = paste(
+                  'Only available for clusters with at least 15 cells.',
+                  paste(
+                    # 'logFC: log fold-change between cells in the cluster specified and other cells',
+                    'auc: area under ROC',
+                    'padj: Benjamini-Hochberg adjusted p value',
+                    'pct_in: percent of cells in the cluster with nonzero feature value',
+                    'pct_out: percent of cells out of the cluster with nonzero feature value',
+                    sep = '; '
+                  )
+                ),
+                placement = 'right',
+                trigger = 'focus',
+                options = list(container = 'body')
+              ),
+              div(
+                id = 'markerclustersgroupinput',
+                class = 'halves',
+                selectizeInput(
+                  inputId = 'markerclustersgroup',
+                  label = 'Metadata group',
+                  choices = ''
+                )
+              ),
+              div(
+                id = 'markerclustersgroupinput',
+                class = 'halves',
+                selectizeInput(
+                  inputId = 'markerclusters',
+                  label = 'Predicted cell type',
+                  choices = ''
+                )
+              ),
+              div(
+                id = 'biotable',
+                class = 'halves',
+                h3('RNA biomarkers'),
+                DTOutput(outputId = 'biomarkers')
+              ),
+              div(
+                id = 'imputedtable',
+                class = 'halves',
+                uiOutput(outputId = 'imputedlabel'),
+                DTOutput(outputId = 'adtbio')
+              ),
+              width = 12
+            )
+          ),
+          # Downloads tab
+          tabItem(
+            tabName = 'tab_download',
+            div(
+              id = 'scriptdl',
+              box(
+                title = 'Analysis script template ',
+                downloadButton(
+                  outputId = 'dlscript',
+                  label = 'Download'
+                ),
+                width = 6
               )
             ),
             div(
-              id = 'markerclustersgroupinput',
-              class = 'halves',
-              selectizeInput(
-                inputId = 'markerclusters',
-                label = 'Predicted cell type',
-                choices = ''
+              id = 'umapdl',
+              box(
+                title = 'UMAP (Seurat Reduction RDS)',
+                verbatimTextOutput(outputId = 'text.dlumap'),
+                downloadButton(
+                  outputId = 'dlumap',
+                  label = 'Download'
+                ),
+                width = 6
               )
             ),
             div(
-              id = 'biotable',
-              class = 'halves',
-              h3('RNA biomarkers'),
-              DTOutput(outputId = 'biomarkers')
+              id = 'imputeddl',
+              box(
+                title = 'Imputed protein (Seurat Assay RDS)',
+                verbatimTextOutput(outputId = 'text.dladt'),
+                downloadButton(
+                  outputId = 'dladt',
+                  label = 'Download'
+                ),
+                width = 6
+              )
             ),
             div(
-              id = 'imputedtable',
-              class = 'halves',
-              uiOutput(outputId = 'imputedlabel'),
-              DTOutput(outputId = 'adtbio')
-            ),
-            width = 12
-          )
-        ),
-        # Downloads tab
-        tabItem(
-          tabName = 'tab_download',
-          div(
-            id = 'scriptdl',
-            box(
-              title = 'Analysis script template ',
-              downloadButton(
-                outputId = 'dlscript',
-                label = 'Download'
-              ),
-              width = 6
-            )
-          ),
-          div(
-            id = 'umapdl',
-            box(
-              title = 'UMAP (Seurat Reduction RDS)',
-              verbatimTextOutput(outputId = 'text.dlumap'),
-              downloadButton(
-                outputId = 'dlumap',
-                label = 'Download'
-              ),
-              width = 6
-            )
-          ),
-          div(
-            id = 'imputeddl',
-            box(
-              title = 'Imputed protein (Seurat Assay RDS)',
-              verbatimTextOutput(outputId = 'text.dladt'),
-              downloadButton(
-                outputId = 'dladt',
-                label = 'Download'
-              ),
-              width = 6
-            )
-          ),
-          div(
-            id = 'predictionsdl',
-            box(
-              title = 'Predicted cell types and scores (TSV)',
-              verbatimTextOutput(outputId = 'text.dlpred'),
-              downloadButton(
-                outputId = 'dlpred',
-                label = 'Download'
-              ),
-              width = 6
+              id = 'predictionsdl',
+              box(
+                title = 'Predicted cell types and scores (TSV)',
+                verbatimTextOutput(outputId = 'text.dlpred'),
+                downloadButton(
+                  outputId = 'dlpred',
+                  label = 'Download'
+                ),
+                width = 6
+              )
             )
           )
         )
       )
     )
   )
-)

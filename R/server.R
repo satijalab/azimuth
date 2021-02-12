@@ -60,7 +60,9 @@ AzimuthServer <- function(input, output, session) {
     metadata.cont = character(length = 0L),
     scorefeatures = character(length = 0L),
     plot.ranges = list(),
-    plots.refdim = list()
+    plots.refdim_df = NULL,
+    plots.refdim_intro_df = NULL,
+    plots.objdim_df = NULL
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -175,6 +177,10 @@ AzimuthServer <- function(input, output, session) {
   possible.metadata.transfer <- names(x = GetColorMap(object = refs$map))
   if (length(x = possible.metadata.transfer) > 1) {
     react.env$xferopts <- TRUE
+  }
+  default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
+  if (!default_xfer %in% possible.metadata.transfer) {
+    default_xfer <- possible.metadata.transfer[1]
   }
   # React to events
   # Load the data an prepare for QC
@@ -409,10 +415,10 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           react.env$progress <- NULL
         }
-        default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
-        if (!default_xfer %in% possible.metadata.transfer) {
-          default_xfer <- possible.metadata.transfer[1]
-        }
+        # default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
+        # if (!default_xfer %in% possible.metadata.transfer) {
+        #   default_xfer <- possible.metadata.transfer[1]
+        # }
         updateSelectizeInput(
           session = session,
           inputId = 'metadataxfer',
@@ -892,29 +898,32 @@ AzimuthServer <- function(input, output, session) {
                                     )
         )
         for (id in c('metarow', 'metacol', 'metagroup')) {
+          ## select most likely-informative metarow
+          # if (id == 'metarow') {
+          #   matches <- grep(
+          #     pattern = 'celltype|label|annotation',
+          #     x = metadata.discrete,
+          #     value = T,
+          #     ignore.case = T
+          #   )
+          #   matches <- grep(
+          #     pattern = 'predicted',
+          #     x = matches,
+          #     value = T,
+          #     invert = T
+          #   )
+          #   show.metadata <- (
+          #     if (length(x = matches) > 0) {
+          #       count.na <- sapply(X = matches, FUN = function(m) {
+          #         sum(FetchData(object = app.env$object, vars = m)[,1] %in% c(NA, ''))
+          #       })
+          #       matches[which.min(x = count.na)]
+          #     } else {
+          #       'query'
+          #     }
+          #   )
           if (id == 'metarow') {
-            matches <- grep(
-              pattern = 'celltype|label|annotation',
-              x = metadata.discrete,
-              value = T,
-              ignore.case = T
-            )
-            matches <- grep(
-              pattern = 'predicted',
-              x = matches,
-              value = T,
-              invert = T
-            )
-            show.metadata <- (
-              if (length(x = matches) > 0) {
-                count.na <- sapply(X = matches, FUN = function(m) {
-                  sum(FetchData(object = app.env$object, vars = m)[,1] %in% c(NA, ''))
-                })
-                matches[which.min(x = count.na)]
-              } else {
-                'query'
-              }
-            )
+            show.metadata <- 'query'
           } else {
             show.metadata <- paste0("predicted.", app.env$default.metadata)
           }
@@ -1419,94 +1428,255 @@ AzimuthServer <- function(input, output, session) {
       wrap_plots(vlnlist, ncol = length(x = vlnlist))
     }
   })
+  output$refdim_intro <- renderPlot(expr = {
+    # save plot dataframe to minimize on-hover computation
+    app.env$plots.refdim_intro_df <- cbind(
+      as.data.frame(x = refs$plot[['refUMAP']]@cell.embeddings),
+      refs$plot@meta.data
+    )
+    p <- DimPlot(
+      object = refs$plot,
+      combine = FALSE,
+      group.by = default_xfer,
+      cols = GetColorMap(object = refs$map)[[default_xfer]],
+      repel = TRUE,
+      label = TRUE
+    )[[1]]
+    # for later use by query plot:
+    app.env$plot.ranges <- list(
+      layer_scales(p)$x$range$range,
+      layer_scales(p)$y$range$range
+    )
+    # strip down the intro plot-- no title, legend, or axes. # import!!! theme, element_blank, element_rect
+    p <- p + ggplot2:::theme(
+      axis.line = ggplot2:::element_blank(), axis.ticks = ggplot2:::element_blank(),
+      axis.text.x = ggplot2:::element_blank(), axis.text.y = ggplot2:::element_blank(),
+      axis.title.x = ggplot2:::element_blank(), axis.title.y = ggplot2:::element_blank(),
+      legend.position = "none", plot.title = ggplot2:::element_blank(),
+      # if we want backgroundless... (also replace 'box' with 'fluidRow' in UI)
+      panel.background = ggplot2:::element_rect(color = '#ecf0f5', fill = '#ecf0f5'),
+      plot.background = ggplot2:::element_rect(color = '#ecf0f5', fill = '#ecf0f5')
+    )
+    p
+  })
+  output$refdim_intro_hover_box <- renderUI({
+    hover <- input$refdim_intro_hover_location
+    df <- app.env$plots.refdim_intro_df
+    if (!is.null(x = hover)){
+      hover[['mapping']] <- setNames(list('UMAP_1', 'UMAP_2'), nm = c('x', 'y'))
+    }
+    point <- shiny:::nearPoints( # import!!!
+      df,
+      coordinfo = hover,
+      threshold = 10,
+      maxpoints = 1,
+      addDist = TRUE
+    )
+    # print(hover) # for debugging
+    # print(point) # for debugging
+    if (nrow(point) == 0) {
+      return(NULL)
+    }
+    xpad <- 20 # important to avoid collisions between cursor and hover panel
+    ypad <- 20
+    style <- paste0("position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
+                    "left:", (hover$coords_css$x + xpad), "px; top:", (hover$coords_css$y - ypad), "px;")
+    # hovertext <- do.call(
+    #   what = paste0,
+    #   args = as.list(c(
+    #     paste0("<b>", point[[default_xfer]], "</b><br>"),
+    #     sapply(X = setdiff(possible.metadata.transfer, default_xfer), FUN = function(md) {
+    #       paste0("<u>", md, "</u>: ", point[[md]], "<br>")
+    #     }
+    #     ))))
+    hovertext <- do.call(
+      what = paste0,
+      args = lapply(X = possible.metadata.transfer, FUN = function(md) {
+        paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
+      }))
+    shiny:::wellPanel( # import!!!
+      style = style,
+      p(HTML(hovertext))
+    )
+  })
   output$refdim <- renderPlot(expr = {
     if (!is.null(x = input$metacolor.ref)) {
       colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
-      plots <- list()
-      for (i in 1:length(x = colormaps)) {
-        p=ggplot(data=cbind(as.data.frame(refs$plot[['refUMAP']]@cell.embeddings),
-                            refs$plot@meta.data),
-                 ggplot2:::aes(x=refumap_1,y=refumap_2,color=subclass))+ggplot2:::geom_point(size=0.3)
-        plots[[i]] <- DimPlot(
+      # no interactivity if multiple plots per row (less useful in this case)
+      if (length(x = colormaps) == 1) {
+        ## already stored reference dataframe in app.env
+        # p <- (ggplot(data=cbind(as.data.frame(refs$plot[['refUMAP']]@cell.embeddings),
+        #                         refs$plot@meta.data),
+        #              ggplot2:::aes_string(x='UMAP_1',y='UMAP_2',color=input$metacolor.ref)) +
+        #         ggplot2:::geom_point(size=0.3) + #### AUTO PT SIZING sizing for plot and legend
+        #         ggplot2:::scale_color_manual(values = colormaps[[i]]) +
+        #         ggplot2:::ggtitle(input$metacolor.ref)
+        # )
+        # app.env$plots.refdim[[1]] <- p$data
+        app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
+        ## already did this too!
+        # app.env$plot.ranges <- list(
+        #   layer_scales(plots[[i]])$x$range$range,
+        #   layer_scales(plots[[i]])$y$range$range
+        # )
+        plot <- DimPlot(
           object = refs$plot,
           label = input$labels,
-          group.by = input$metacolor.ref[i],
-          cols = colormaps[[i]],
-          repel = TRUE,
-        )
-        app.env$plots.refdim[[i]] <- p
+          group.by = input$metacolor.ref,
+          cols = colormaps[[1]],
+          repel = TRUE
+        )[[1]] # important
+        if (length(x = unique(x = as.vector(x = refs$plot@meta.data[[input$metacolor.ref]]))) >= 30) {
+          plot + Seurat:::NoLegend() # import!!!
+        } else {
+          plot
+        }
+      } else {
+        app.env$plots.refdim_df <- NULL
+        plots <- list()
+        for (i in 1:length(x = colormaps)) {
+          plots[[i]] <- DimPlot(
+            object = refs$plot,
+            label = input$labels,
+            group.by = input$metacolor.ref[i],
+            cols = colormaps[[i]],
+            repel = TRUE,
+          )
+          if (length(x = unique(x = as.vector(x = refs$plot@meta.data[[input$metacolor.ref[i]]]))) >= 30) {
+            plots[[i]] <- plots[[i]] + Seurat:::NoLegend()
+          } else {
+            plots[[i]] <- plots[[i]]
+          }
+        }
+        wrap_plots(plots, nrow = 1)
       }
-      app.env$plot.ranges <- list(
-        layer_scales(plots[[1]])$x$range$range,
-        layer_scales(plots[[1]])$y$range$range
-      )
-      # wrap_plots(plots, nrow = 1)
-      plots[[1]]
     }
   })
-  output$hover_info_refdim <- renderUI({
-    plot <- input$refdim
-    hover <- input$plot_hover_refdim
-    if (!is.null(hover)){
-      hover[['mapping']] <- (setNames(list('refumap_1','refumap_2'),nm=c('x','y')))
+  output$refdim_hover_box <- renderUI({
+    if (!is.null(x = app.env$plots.refdim_df)) {
+      hover <- input$refdim_hover_location
+      df <- app.env$plots.refdim_df
+      if (!is.null(x = hover)){
+        hover[['mapping']] <- setNames(list('UMAP_1', 'UMAP_2'), nm = c('x', 'y'))
+      }
+      point <- shiny:::nearPoints(
+        df,
+        coordinfo = hover,
+        threshold = 10,
+        maxpoints = 1,
+        addDist = TRUE
+      )
+      if (nrow(point) == 0) {
+        return(NULL)
+      }
+      xpad <- ypad <- 20
+      style <- paste0("position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
+                      "left:", (hover$coords_css$x + xpad), "px; top:", (hover$coords_css$y - ypad), "px;")
+      hovertext <- do.call(
+        what = paste0,
+        args = as.list(c(
+          paste0("<b>", point[[input$metacolor.ref]], "</b><br>"),
+          sapply(X = setdiff(possible.metadata.transfer, input$metacolor.ref), FUN = function(md) {
+            paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
+          }))))
+      shiny:::wellPanel( # import!!!
+        style = style,
+        p(HTML(hovertext))
+      )
     }
-    point <- shiny:::nearPoints(app.env$plots.refdim[[1]]$data, hover,
-                        threshold = 5, maxpoints = 1, addDist = TRUE)
-    if (nrow(point) == 0) return(NULL)
-
-    # calculate point position INSIDE the image as percent of total dimensions
-    # from left (horizontal) and from top (vertical)
-    left_pct <- (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-    top_pct <- (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-    # calculate distance from left and bottom side of the picture in pixels
-    left_px <- hover$range$left + left_pct * (hover$range$right - hover$range$left)
-    top_px <- hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-    # left_px=hover$range$left
-    # top_px=hover$range$right
-    #
-    # create style property fot tooltip
-    # background color is set so tooltip is a bit transparent
-    # z-index is set so we are sure are tooltip will be on top
-    style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); ",
-                    "left:", left_px-500, "px; top:", top_px-200, "px;")
-
-    # actual tooltip created as wellPanel
-    shiny:::wellPanel(
-      style = style,
-      p(HTML(paste0("<b> Class: </b>", point$class  ,"<br/>",
-                    "<b> Cluster: </b>", point$cluster  ,"<br/>",
-                    "<b> Cross-species cluster: </b>",point$cross_species_cluster, "<br/>")))
-    )
-
-    # print('skeep')
-    # Sys.sleep(10)
-    # print('skeep2')
-
   })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
-        plots <- list()
-        for (i in 1:length(x = input$metacolor.query)) {
-          group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
+        if (length(x = input$metacolor.query) == 1) {
+          # get colormap if avail
+          group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query)
           colormap <- GetColorMap(object = refs$map)[[group.var]]
-          if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
+          if (!grepl(pattern = "^predicted.", x = input$metacolor.query)) {
             colormap <- NULL
           }
-          plots[[i]] <- DimPlot(
+          # make dataframe so don't need to recompute during hover
+          app.env$plots.objdim_df <- cbind(
+            as.data.frame(x = app.env$object[['umap.proj']]@cell.embeddings),
+            app.env$object@meta.data
+          )
+          p <- DimPlot(
             object = app.env$object,
-            group.by = input$metacolor.query[i],
+            group.by = input$metacolor.query,
             label = input$labels,
-            cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
+            cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
             repel = TRUE,
             reduction = "umap.proj"
-          ) + xlim(app.env$plot.ranges[[1]]) +
+          )[[1]] +
+            xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]])
+          if (length(x = unique(x = as.vector(x = app.env$object@meta.data[[input$metacolor.query]]))) >= 30) {
+            p + Seurat:::NoLegend()
+          } else {
+            p
+          }
+        } else {
+          app.env$plots.objdim_df <- NULL
+          plots <- list()
+          for (i in 1:length(x = input$metacolor.query)) {
+            group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
+            colormap <- GetColorMap(object = refs$map)[[group.var]]
+            if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
+              colormap <- NULL
+            }
+            plots[[i]] <- DimPlot(
+              object = app.env$object,
+              group.by = input$metacolor.query[i],
+              label = input$labels,
+              cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
+              repel = TRUE,
+              reduction = "umap.proj"
+            ) + xlim(app.env$plot.ranges[[1]]) +
+              ylim(app.env$plot.ranges[[2]])
+            if (length(x = unique(x = as.vector(x = app.env$object@meta.data[[input$metacolor.query[i]]]))) >= 30) {
+              plots[[i]] <- plots[[i]] + Seurat:::NoLegend()
+            }
+          }
+          wrap_plots(plots, nrow = 1)
         }
-        wrap_plots(plots, nrow = 1)
       }
+    }
+  })
+  output$objdim_hover_box <- renderUI({
+    if (!is.null(x = app.env$plots.objdim_df)) {
+      hover <- input$objdim_hover_location
+      df <- app.env$plots.objdim_df
+      if (!is.null(x = hover)){
+        hover[['mapping']] <- setNames(list('UMAP_1', 'UMAP_2'), nm = c('x', 'y'))
+      }
+      point <- shiny:::nearPoints(
+        df,
+        coordinfo = hover,
+        threshold = 10,
+        maxpoints = 1,
+        addDist = TRUE
+      )
+      if (nrow(point) == 0) {
+        return(NULL)
+      }
+      xpad <- 20
+      ypad <- 20
+      style <- paste0("position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
+                      "left:", (hover$coords_css$x + xpad), "px; top:", (hover$coords_css$y - ypad), "px;")
+      hovertext <- do.call(
+        what = paste0,
+        args = as.list(c(
+          paste0("<b>", point[[input$metacolor.query]], "</b><br>"),
+          if (grepl(pattern = "^predicted.", x = input$metacolor.query)) {
+            paste0("<i>prediction score</i>: <span>",
+                   round(x = point[[paste0(input$metacolor.query,'.score')]],
+                         digits = 3),
+                   "</span><br>")
+          })))
+      shiny:::wellPanel( # import!!!
+        style = style,
+        p(HTML(hovertext))
+      )
     }
   })
   output$evln <- renderPlot(expr = {
@@ -1825,6 +1995,9 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   # render UI elements that depend on arguments
+  output$refdescriptor <- renderText(
+    expr = eval(expr = HTML(getOption(x = "Azimuth.app.refdescriptor")))
+  )
   output$welcomebox <- renderUI(
     expr = eval(expr = parse(text = getOption(x = "Azimuth.app.welcomebox")))
   )
