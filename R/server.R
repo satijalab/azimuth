@@ -972,7 +972,26 @@ AzimuthServer <- function(input, output, session) {
           x = metadata.cont
         )
         # Add prediction scores for all classes to continuous metadata
-        metadata.cont <- sort(x = metadata.cont)
+        metadata.cont <- sort(x = metadata.cont)[-grep(pattern = "predicted.*.score", x = metadata.cont)]
+        metadata.cont <- metadata.cont[-grep(pattern = "*_refAssay", x = metadata.cont)]
+        app.env$object$predicted.celltype.l2.score
+        max.predictions <- paste0("predicted.", app.env$metadataxfer, ".score")
+        names(x = max.predictions) <- app.env$metadataxfer
+        max.predictions <- as.list(x = max.predictions)
+        prediction.score.names <-
+          lapply(X = app.env$metadataxfer, FUN = function(x) {
+            key <- Key(object = app.env$object[[paste0("prediction.score.", x)]])
+            ids <- paste0(rownames(x = app.env$object[[paste0("prediction.score.", x)]]))
+            values <- paste0(key, ids)
+            names(x = values) <- ids
+            return(values)
+        })
+        names(x = prediction.score.names) <- paste0("Prediction scores - ", app.env$metadataxfer)
+        metadata.cont <- c(
+          list("Max prediction scores" = max.predictions),
+          prediction.score.names,
+          list("Other Metadata" = metadata.cont)
+        )
         app.env$metadata.cont <- metadata.cont
         updateSelectizeInput(
           session = session,
@@ -982,25 +1001,6 @@ AzimuthServer <- function(input, output, session) {
           server = TRUE,
           options = selectize.opts
         )
-        updateSelectizeInput(
-          session = session,
-          inputId = 'scoregroup',
-          choices = paste0("predicted.", app.env$metadataxfer),
-          selected = app.env$default.metadata,
-          server = TRUE,
-          options = selectize.opts
-        )
-        if (!input$scoregroup == "") {
-          predscores <- sort(x = rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]]))
-          updateSelectizeInput(
-            session = session,
-            inputId = 'scorefeature',
-            choices = predscores,
-            selected = predscores[1],
-            server = TRUE,
-            options = selectize.opts
-          )
-        }
         updateSelectizeInput(
           session = session,
           inputId = 'metacolor.ref',
@@ -1129,15 +1129,13 @@ AzimuthServer <- function(input, output, session) {
           ),
           no = input$feature
         )
-        for (f in c('adtfeature', 'metadata.cont', 'scoregroup', 'scorefeature')) {
+        for (f in c('adtfeature', 'metadata.cont')) {
           updateSelectizeInput(
             session = session,
             inputId = f,
             choices = list(
               'adtfeature' = app.env$adt.features,
-              'metadata.cont' = app.env$metadata.cont,
-              'scoregroup' = app.env$metadataxfer,
-              'scorefeature' = ''
+              'metadata.cont' = app.env$metadata.cont
             )[[f]],
             selected = '',
             server = TRUE,
@@ -1164,15 +1162,13 @@ AzimuthServer <- function(input, output, session) {
           Key(object = app.env$object[[adt.key]]),
           input$adtfeature
         )
-        for (f in c('feature', 'metadata.cont', 'scoregroup', 'scorefeature')) {
+        for (f in c('feature', 'metadata.cont')) {
           updateSelectizeInput(
             session = session,
             inputId = f,
             choices = list(
               'feature' = app.env$features,
-              'metadata.cont' = app.env$metadata.cont,
-              'scoregroup' = app.env$metadataxfer,
-              'scorefeature' = ''
+              'metadata.cont' = app.env$metadata.cont
             )[[f]],
             selected = '',
             server = TRUE,
@@ -1201,15 +1197,13 @@ AzimuthServer <- function(input, output, session) {
           }
         }
         app.env$feature <- input$metadata.cont
-        for (f in c('feature', 'adtfeature', 'scoregroup', 'scorefeature')) {
+        for (f in c('feature', 'adtfeature')) {
           updateSelectizeInput(
             session = session,
             inputId = f,
             choices = list(
               'feature' = app.env$features,
-              'adtfeature' = app.env$adt.features,
-              'scoregroup' = app.env$metadataxfer,
-              'scorefeature' = ''
+              'adtfeature' = app.env$adt.features
             )[[f]],
             selected = '',
             server = TRUE,
@@ -1219,68 +1213,6 @@ AzimuthServer <- function(input, output, session) {
         for (tab in list(rna.proxy, adt.proxy)) {
           selectRows(proxy = tab, selected = NULL)
         }
-      }
-    }
-  )
-  observeEvent( # Prediction score group
-    eventExpr = input$scoregroup,
-    handlerExpr = {
-      if (nchar(x = input$scoregroup)) {
-        app.env$feature <- ""
-        for (f in c('feature', 'adtfeature', 'metadata.cont')) {
-          updateSelectizeInput(
-            session = session,
-            inputId = f,
-            choices = list(
-              'feature' = app.env$features,
-              'adtfeature' = app.env$adt.features,
-              'metadata.cont' = app.env$metadata.cont
-            )[[f]],
-            selected = '',
-            server = TRUE,
-            options = selectize.opts
-          )
-        }
-        predscores <- sort(x = rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]]))
-        updateSelectizeInput(
-          session = session,
-          inputId = 'scorefeature',
-          choices = predscores,
-          selected = predscores[1],
-          server = TRUE,
-          options = selectize.opts
-        )
-      }
-      for (tab in list(rna.proxy, adt.proxy)) {
-        selectRows(proxy = tab, selected = NULL)
-      }
-    }
-  )
-  observeEvent( # Prediction score feature
-    eventExpr = input$scorefeature,
-    handlerExpr = {
-      if (nchar(x = input$scorefeature)) {
-        app.env$feature <- paste0(
-          Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
-          input$scorefeature
-        )
-      }
-      for (f in c('feature', 'adtfeature', 'metadata.cont')) {
-        updateSelectizeInput(
-          session = session,
-          inputId = f,
-          choices = list(
-            'feature' = app.env$features,
-            'adtfeature' = app.env$adt.features,
-            'metadata.cont' = app.env$metadata.cont
-          )[[f]],
-          selected = '',
-          server = TRUE,
-          options = selectize.opts
-        )
-      }
-      for (tab in list(rna.proxy, adt.proxy)) {
-        selectRows(proxy = tab, selected = NULL)
       }
     }
   )
@@ -1497,15 +1429,21 @@ AzimuthServer <- function(input, output, session) {
         ),
         colnames(x = app.env$object[[]])
       )
-      if (nchar(input$scoregroup)) {
-        avail <- c(
-          avail,
-          paste0(
-            Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
-            rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]])
+      # prediction assays
+      prediction.names <- unlist(x = lapply(
+        X = app.env$metadataxfer,
+        FUN = function(x) {
+          assay <- paste0("prediction.score.", x)
+          pred <- rep(x = x, times = nrow(x = app.env$object[[assay]]))
+          names(x = pred) <- paste0(
+            Key(object = app.env$object[[assay]]),
+            rownames(x = app.env$object[[assay]])
           )
-        )
-      }
+          return(pred)
+        })
+      )
+      max.pred.names <- paste0("predicted.", app.env$metadataxfer, ".score")
+      avail <- c(avail, names(x = prediction.names))
       if (do.adt) {
         avail <- c(
           avail,
@@ -1515,6 +1453,7 @@ AzimuthServer <- function(input, output, session) {
           )
         )
       }
+
       if (app.env$feature %in% avail) {
         if (app.env$feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
           ggplot() +
@@ -1526,12 +1465,15 @@ AzimuthServer <- function(input, output, session) {
             yes = gsub(pattern = '^refassay_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
-          if (nchar(x = input$scoregroup)) {
-            title <- gsub(
-              pattern = Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
-              replacement = 'Prediction Score - ',
-              x = app.env$feature
-            )
+          if (app.env$feature %in% names(x = prediction.names)) {
+            pred <- strsplit(x = app.env$feature, split = "_")[[1]][2]
+            group <- prediction.names[app.env$feature]
+            title <- paste0("Prediction Score (", group, ") ", pred)
+          }
+          if (app.env$feature %in% max.pred.names) {
+            pred <- gsub(pattern = "predicted.", replacement = "", x = app.env$feature)
+            pred <- gsub(pattern = ".score", replacement = "", x = pred)
+            title <- paste0("Max Prediction Score - ", pred)
           }
           VlnPlot(
             object = app.env$object,
@@ -1562,16 +1504,21 @@ AzimuthServer <- function(input, output, session) {
       if (do.adt) {
         palettes[[Key(object = app.env$object[[adt.key]])]] <-  c('lightgrey', 'darkgreen')
       }
-      md <- colnames(x = app.env$object[[]])
-      if (nchar(x = input$scoregroup)) {
-        md <- c(
-          md,
-          paste0(
-            Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
-            rownames(x = app.env$object[[paste0("prediction.score.", input$scoregroup)]])
+      # prediction assays
+      prediction.names <- unlist(x = lapply(
+        X = app.env$metadataxfer,
+        FUN = function(x) {
+          assay <- paste0("prediction.score.", x)
+          pred <- rep(x = x, times = nrow(x = app.env$object[[assay]]))
+          names(x = pred) <- paste0(
+            Key(object = app.env$object[[assay]]),
+            rownames(x = app.env$object[[assay]])
           )
-        )
-      }
+          return(pred)
+        })
+      )
+      max.pred.names <- paste0("predicted.", app.env$metadataxfer, ".score")
+      md <- c(colnames(x = app.env$object[[]]), names(x = prediction.names))
       feature.key <- if (app.env$feature %in% md) {
         'md_'
       } else {
@@ -1592,12 +1539,15 @@ AzimuthServer <- function(input, output, session) {
             yes = gsub(pattern = '^refassay_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
-          if (nchar(x = input$scoregroup)) {
-            title <- gsub(
-              pattern = Key(object = app.env$object[[paste0("prediction.score.", input$scoregroup)]]),
-              replacement = 'Prediction Score - ',
-              x = app.env$feature
-            )
+          if (app.env$feature %in% names(x = prediction.names)) {
+            pred <- strsplit(x = app.env$feature, split = "_")[[1]][2]
+            group <- prediction.names[app.env$feature]
+            title <- paste0("Prediction Score (", group, ") ", pred)
+          }
+          if (app.env$feature %in% max.pred.names) {
+            pred <- gsub(pattern = "predicted.", replacement = "", x = app.env$feature)
+            pred <- gsub(pattern = ".score", replacement = "", x = pred)
+            title <- paste0("Max Prediction Score - ", pred)
           }
           suppressWarnings(expr = FeaturePlot(
             object = app.env$object,
