@@ -1425,7 +1425,7 @@ AzimuthServer <- function(input, output, session) {
     )
     # print(hover) # for debugging
     # print(point) # for debugging
-    if (nrow(point) == 0) {
+    if (nrow(x = point) == 0) {
       return(NULL)
     }
     xpad <- 20 # important to avoid collisions between cursor and hover panel
@@ -1433,7 +1433,8 @@ AzimuthServer <- function(input, output, session) {
     style <- paste0(
       "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
       "left:", (hover$coords_css$x + xpad), "px; top:",
-      (hover$coords_css$y - ypad), "px;"
+      (hover$coords_css$y - ypad), "px;",
+      "padding: 5px; margin-bottom: 0px;"
     )
     # hovertext <- do.call(
     #   what = paste0,
@@ -1447,7 +1448,8 @@ AzimuthServer <- function(input, output, session) {
       what = paste0,
       args = lapply(X = possible.metadata.transfer, FUN = function(md) {
         paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
-      }))
+      })
+    )
     wellPanel(
       style = style,
       p(HTML(text = hovertext))
@@ -1522,7 +1524,8 @@ AzimuthServer <- function(input, output, session) {
       style <- paste0(
         "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
         "left:", (hover$coords_css$x + xpad), "px; top:",
-        (hover$coords_css$y - ypad), "px;"
+        (hover$coords_css$y - ypad), "px;",
+        "padding: 5px; margin-bottom: 0px;"
       )
       hovertext <- do.call(
         what = paste0,
@@ -1616,7 +1619,8 @@ AzimuthServer <- function(input, output, session) {
       style <- paste0(
         "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
         "left:", (hover$coords_css$x + xpad), "px; top:",
-        (hover$coords_css$y - ypad), "px;"
+        (hover$coords_css$y - ypad), "px;",
+        "padding: 5px; margin-bottom: 0px;"
       )
       hovertext <- do.call(
         what = paste0,
