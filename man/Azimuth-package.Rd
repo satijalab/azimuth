@@ -61,6 +61,9 @@ Seed to shuffle colors for cell types
 URL or directory path to reference dataset; see
 \code{\link{LoadReference}} for more details
 }
+\item{\code{Azimuth.app.refdescriptor}}{
+Provide (as a string) the html to render the reference description on the welcome page
+}
 \item{\code{Azimuth.app.welcomebox}}{
 Provide (as a string) the code to render the box on the welcome page
 (quotes escaped). Example:\preformatted{box(

@@ -11,7 +11,8 @@ NULL
 #' @importFrom DT dataTableProxy renderDT selectRows
 #' @importFrom future future plan resolved value
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
-#' theme_void xlab layer_scales xlim ylim ggplot aes geom_point
+#' theme_void xlab layer_scales xlim ylim ggplot aes geom_point theme
+#' element_blank element_rect
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
@@ -24,13 +25,13 @@ NULL
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI
-#' onStop showNotification wellPanel nearPoints
+#' onStop showNotification wellPanel nearPoints insertUI
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show
 #' @importFrom stringr str_interp
 #' @importFrom patchwork wrap_plots
-#' @importFrom stats na.omit quantile
+#' @importFrom stats na.omit quantile setNames
 #' @importFrom utils write.table packageVersion
 #'
 #' @keywords internal
@@ -243,22 +244,26 @@ AzimuthServer <- function(input, output, session) {
                 if (isFALSE(x = new.mt) & !isFALSE(x = react.env$mt)) {
                   removeUI(selector = '#pctmt', immediate = TRUE)
                 } else if (!isFALSE(x = new.mt) & isFALSE(x = react.env$mt)) {
-                  shiny:::insertUI(selector = '#nfeature', where = 'afterEnd', immediate = TRUE, # import!!!
-                           ui = div(
-                             id = 'pctmt',
-                             numericInput(
-                               inputId = 'minmt',
-                               label = NULL,
-                               value = 0,
-                               width = '90%'
-                             ),
-                             numericInput(
-                               'maxmt',
-                               label = NULL,
-                               value = 0,
-                               width = '90%'
-                             )
-                           ))
+                  insertUI(
+                    selector = '#nfeature',
+                    where = 'afterEnd',
+                    immediate = TRUE,
+                    ui = div(
+                      id = 'pctmt',
+                      numericInput(
+                        inputId = 'minmt',
+                        label = NULL,
+                        value = 0,
+                        width = '90%'
+                      ),
+                      numericInput(
+                        'maxmt',
+                        label = NULL,
+                        value = 0,
+                        width = '90%'
+                      )
+                    )
+                  )
                 }
                 react.env$mt <- new.mt
                 common.features <- intersect(
@@ -458,10 +463,6 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           react.env$progress <- NULL
         }
-        # default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
-        # if (!default_xfer %in% possible.metadata.transfer) {
-        #   default_xfer <- possible.metadata.transfer[1]
-        # }
         updateSelectizeInput(
           session = session,
           inputId = 'metadataxfer',
@@ -822,9 +823,6 @@ AzimuthServer <- function(input, output, session) {
           message = 'Running differential expression'
         )
         for (i in app.env$metadataxfer) {
-          # if (length(x = unique(x = app.env$object[[paste0("predicted.", i)]])) < 2) {
-          #   next
-          # }
           app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
             group_by = paste0("predicted.", i),
@@ -1385,8 +1383,8 @@ AzimuthServer <- function(input, output, session) {
   output$refdim_intro <- renderPlot(expr = {
     # save plot dataframe to minimize on-hover computation
     app.env$plots.refdim_intro_df <- cbind(
-      as.data.frame(x = refs$plot[['refUMAP']]@cell.embeddings),
-      refs$plot@meta.data
+      as.data.frame(x = Embeddings(object = refs$plot[['refUMAP']])),
+      refs$plot[[]]
     )
     p <- DimPlot(
       object = refs$plot,
@@ -1401,26 +1399,25 @@ AzimuthServer <- function(input, output, session) {
       layer_scales(p)$x$range$range,
       layer_scales(p)$y$range$range
     )
-    # strip down the intro plot-- no title, legend, or axes. # import!!! theme, element_blank, element_rect
-    p <- p + ggplot2:::theme(
-      axis.line = ggplot2:::element_blank(), axis.ticks = ggplot2:::element_blank(),
-      axis.text.x = ggplot2:::element_blank(), axis.text.y = ggplot2:::element_blank(),
-      axis.title.x = ggplot2:::element_blank(), axis.title.y = ggplot2:::element_blank(),
-      legend.position = "none", plot.title = ggplot2:::element_blank(),
+    # strip down the intro plot-- no title, legend, or axes
+    p + theme(
+      axis.line = element_blank(), axis.ticks = element_blank(),
+      axis.text.x = element_blank(), axis.text.y = element_blank(),
+      axis.title.x = element_blank(), axis.title.y = element_blank(),
+      legend.position = "none", plot.title = element_blank(),
       # if we want backgroundless... (also replace 'box' with 'fluidRow' in UI)
-      panel.background = ggplot2:::element_rect(color = '#ecf0f5', fill = '#ecf0f5'),
-      plot.background = ggplot2:::element_rect(color = '#ecf0f5', fill = '#ecf0f5')
+      panel.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5'),
+      plot.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5')
     )
-    p
   })
   output$refdim_intro_hover_box <- renderUI({
     hover <- input$refdim_intro_hover_location
     df <- app.env$plots.refdim_intro_df
     if (!is.null(x = hover)){
-      hover[['mapping']] <- setNames(as.list(colnames(app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
+      hover[['mapping']] <- setNames(object = as.list(x = colnames(x = app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
     }
-    point <- shiny:::nearPoints( # import!!!
-      df,
+    point <- nearPoints(
+      df = df,
       coordinfo = hover,
       threshold = 10,
       maxpoints = 1,
@@ -1433,8 +1430,11 @@ AzimuthServer <- function(input, output, session) {
     }
     xpad <- 20 # important to avoid collisions between cursor and hover panel
     ypad <- 20
-    style <- paste0("position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
-                    "left:", (hover$coords_css$x + xpad), "px; top:", (hover$coords_css$y - ypad), "px;")
+    style <- paste0(
+      "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
+      "left:", (hover$coords_css$x + xpad), "px; top:",
+      (hover$coords_css$y - ypad), "px;"
+    )
     # hovertext <- do.call(
     #   what = paste0,
     #   args = as.list(c(
@@ -1448,9 +1448,9 @@ AzimuthServer <- function(input, output, session) {
       args = lapply(X = possible.metadata.transfer, FUN = function(md) {
         paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
       }))
-    shiny:::wellPanel( # import!!!
+    wellPanel(
       style = style,
-      p(HTML(hovertext))
+      p(HTML(text = hovertext))
     )
   })
   output$refdim <- renderPlot(expr = {
@@ -1468,20 +1468,15 @@ AzimuthServer <- function(input, output, session) {
         # )
         # app.env$plots.refdim[[1]] <- p$data
         app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
-        ## already did this too!
-        # app.env$plot.ranges <- list(
-        #   layer_scales(plots[[i]])$x$range$range,
-        #   layer_scales(plots[[i]])$y$range$range
-        # )
         plot <- DimPlot(
           object = refs$plot,
           label = input$labels,
           group.by = input$metacolor.ref,
           cols = colormaps[[1]],
           repel = TRUE
-        )[[1]] # important
-        if (length(x = unique(x = as.vector(x = refs$plot@meta.data[[input$metacolor.ref]]))) >= 30) {
-          plot + Seurat:::NoLegend() # import!!!
+        )[[1]]
+        if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref, drop = TRUE]]))) >= 30) {
+          plot + NoLegend()
         } else {
           plot
         }
@@ -1496,8 +1491,8 @@ AzimuthServer <- function(input, output, session) {
             cols = colormaps[[i]],
             repel = TRUE,
           )
-          if (length(x = unique(x = as.vector(x = refs$plot@meta.data[[input$metacolor.ref[i]]]))) >= 30) {
-            plots[[i]] <- plots[[i]] + Seurat:::NoLegend()
+          if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref[i], drop = TRUE]]))) >= 30) {
+            plots[[i]] <- plots[[i]] + NoLegend()
           } else {
             plots[[i]] <- plots[[i]]
           }
@@ -1511,21 +1506,24 @@ AzimuthServer <- function(input, output, session) {
       hover <- input$refdim_hover_location
       df <- app.env$plots.refdim_df
       if (!is.null(x = hover)){
-        hover[['mapping']] <- setNames(as.list(colnames(app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
+        hover[['mapping']] <- setNames(object = as.list(x = colnames(x = app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
       }
-      point <- shiny:::nearPoints(
-        df,
+      point <- nearPoints(
+        df = df,
         coordinfo = hover,
         threshold = 10,
         maxpoints = 1,
         addDist = TRUE
       )
-      if (nrow(point) == 0) {
+      if (nrow(x = point) == 0) {
         return(NULL)
       }
       xpad <- ypad <- 20
-      style <- paste0("position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
-                      "left:", (hover$coords_css$x + xpad), "px; top:", (hover$coords_css$y - ypad), "px;")
+      style <- paste0(
+        "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
+        "left:", (hover$coords_css$x + xpad), "px; top:",
+        (hover$coords_css$y - ypad), "px;"
+      )
       hovertext <- do.call(
         what = paste0,
         args = as.list(c(
@@ -1533,9 +1531,9 @@ AzimuthServer <- function(input, output, session) {
           sapply(X = setdiff(possible.metadata.transfer, input$metacolor.ref), FUN = function(md) {
             paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
           }))))
-      shiny:::wellPanel( # import!!!
+      wellPanel(
         style = style,
-        p(HTML(hovertext))
+        p(HTML(text = hovertext))
       )
     }
   })
@@ -1551,8 +1549,8 @@ AzimuthServer <- function(input, output, session) {
           }
           # make dataframe so don't need to recompute during hover
           app.env$plots.objdim_df <- cbind(
-            as.data.frame(x = app.env$object[['umap.proj']]@cell.embeddings),
-            app.env$object@meta.data
+            as.data.frame(x = Embeddings(object = app.env$object[['umap.proj']])),
+            app.env$object[[]]
           )
           p <- DimPlot(
             object = app.env$object,
@@ -1564,8 +1562,8 @@ AzimuthServer <- function(input, output, session) {
           )[[1]] +
             xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]])
-          if (length(x = unique(x = as.vector(x = app.env$object@meta.data[[input$metacolor.query]]))) >= 30) {
-            p + Seurat:::NoLegend()
+          if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query, drop = TRUE]]))) >= 30) {
+            p + NoLegend()
           } else {
             p
           }
@@ -1587,8 +1585,8 @@ AzimuthServer <- function(input, output, session) {
               reduction = "umap.proj"
             ) + xlim(app.env$plot.ranges[[1]]) +
               ylim(app.env$plot.ranges[[2]])
-            if (length(x = unique(x = as.vector(x = app.env$object@meta.data[[input$metacolor.query[i]]]))) >= 30) {
-              plots[[i]] <- plots[[i]] + Seurat:::NoLegend()
+            if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]]))) >= 30) {
+              plots[[i]] <- plots[[i]] + NoLegend()
             }
           }
           wrap_plots(plots, nrow = 1)
@@ -1600,24 +1598,26 @@ AzimuthServer <- function(input, output, session) {
     if (!is.null(x = app.env$plots.objdim_df)) {
       hover <- input$objdim_hover_location
       df <- app.env$plots.objdim_df
-
       if (!is.null(x = hover)){
-        hover[['mapping']] <- setNames(as.list(colnames(app.env$plots.objdim_df)[1:2]), nm = c('x', 'y'))
+        hover[['mapping']] <- setNames(object = as.list(x = colnames(x = app.env$plots.objdim_df)[1:2]), nm = c('x', 'y'))
       }
-      point <- shiny:::nearPoints(
-        df,
+      point <- nearPoints(
+        df = df,
         coordinfo = hover,
         threshold = 10,
         maxpoints = 1,
         addDist = TRUE
       )
-      if (nrow(point) == 0) {
+      if (nrow(x = point) == 0) {
         return(NULL)
       }
       xpad <- 20
       ypad <- 20
-      style <- paste0("position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
-                      "left:", (hover$coords_css$x + xpad), "px; top:", (hover$coords_css$y - ypad), "px;")
+      style <- paste0(
+        "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
+        "left:", (hover$coords_css$x + xpad), "px; top:",
+        (hover$coords_css$y - ypad), "px;"
+      )
       hovertext <- do.call(
         what = paste0,
         args = as.list(c(
@@ -1628,9 +1628,9 @@ AzimuthServer <- function(input, output, session) {
                                 digits = 2), nsmall = 2),
                    "</span><br>")
           })))
-      shiny:::wellPanel( # import!!!
+      wellPanel(
         style = style,
-        p(HTML(hovertext))
+        p(HTML(text = hovertext))
       )
     }
   })

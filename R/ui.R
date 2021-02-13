@@ -95,7 +95,7 @@ AzimuthUI <- tagList(
                 style = "position:relative",
                 plotOutput(
                   outputId = 'refdim_intro',
-                  hover = shiny:::hoverOpts(  # import!!! (hoverOpts)
+                  hover = hoverOpts(
                     id = "refdim_intro_hover_location",
                     delay = 5,
                     delayType = "debounce",
@@ -106,10 +106,6 @@ AzimuthUI <- tagList(
               ),
               width = 12
             ),
-            # fluidRow(
-            #   htmlOutput(outputId = 'refdescriptor'),
-            #   width=12
-            # )
           )
         ),
         # Preprocessing + QC Tab
@@ -248,7 +244,7 @@ AzimuthUI <- tagList(
               style = "position:relative",
               plotOutput(
                 outputId = 'refdim',
-                hover = shiny:::hoverOpts(
+                hover = hoverOpts(
                   id = "refdim_hover_location",
                   delay = 5,
                   delayType = "debounce",
@@ -271,7 +267,7 @@ AzimuthUI <- tagList(
               style = "position:relative",
               plotOutput(
                 outputId = 'objdim',
-                hover = shiny:::hoverOpts(
+                hover = hoverOpts(
                   id = "objdim_hover_location",
                   delay = 5,
                   delayType = "debounce",
