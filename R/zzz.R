@@ -52,6 +52,9 @@
 #'    URL or directory path to reference dataset; see
 #'    \code{\link{LoadReference}} for more details
 #'   }
+#'   \item{\code{Azimuth.app.refdescriptor}}{
+#'    Provide (as a string) the html to render the reference description on the welcome page
+#'   }
 #'   \item{\code{Azimuth.app.welcomebox}}{
 #'    Provide (as a string) the code to render the box on the welcome page
 #'    (quotes escaped). Example:
@@ -154,6 +157,7 @@ default.options <- list(
   Azimuth.app.plotseed = NULL,
   Azimuth.app.reference = 'https://seurat.nygenome.org/references/pbmc',
   Azimuth.app.welcomebox = "",
+  Azimuth.app.refdescriptor = "",
   Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,

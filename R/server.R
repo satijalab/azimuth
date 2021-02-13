@@ -11,7 +11,8 @@ NULL
 #' @importFrom DT dataTableProxy renderDT selectRows
 #' @importFrom future future plan resolved value
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
-#' theme_void xlab layer_scales xlim ylim ggplot
+#' theme_void xlab layer_scales xlim ylim ggplot aes geom_point theme
+#' element_blank element_rect
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
@@ -20,17 +21,17 @@ NULL
 #' VariableFeatures
 #' @importFrom Seurat DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
-#' RunUMAP TransferData SCTransform VlnPlot
+#' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI
-#' onStop
+#' onStop showNotification wellPanel nearPoints insertUI
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show onclick
 #' @importFrom stringr str_interp
 #' @importFrom patchwork wrap_plots
-#' @importFrom stats na.omit quantile
+#' @importFrom stats na.omit quantile setNames
 #' @importFrom utils write.table packageVersion
 #'
 #' @keywords internal
@@ -62,7 +63,10 @@ AzimuthServer <- function(input, output, session) {
     object = NULL,
     metadata.cont = character(length = 0L),
     scorefeatures = character(length = 0L),
-    plot.ranges = list()
+    plot.ranges = list(),
+    plots.refdim_df = NULL,
+    plots.refdim_intro_df = NULL,
+    plots.objdim_df = NULL
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -72,7 +76,7 @@ AzimuthServer <- function(input, output, session) {
     map = FALSE,
     markers = FALSE,
     metadata = FALSE,
-    mt = FALSE,
+    mt = NULL,
     xferopts = FALSE,
     path = NULL,
     progress = NULL,
@@ -191,6 +195,10 @@ AzimuthServer <- function(input, output, session) {
   if (length(x = possible.metadata.transfer) > 1) {
     react.env$xferopts <- TRUE
   }
+  default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
+  if (!default_xfer %in% possible.metadata.transfer) {
+    default_xfer <- possible.metadata.transfer[1]
+  }
   # React to events
   # Load the data an prepare for QC
   observeEvent(
@@ -203,7 +211,10 @@ AzimuthServer <- function(input, output, session) {
   )
   observeEvent(
     eventExpr = input$triggerdemo,
-    handlerExpr = react.env$path <- getOption(x = 'Azimuth.app.demodataset')
+    handlerExpr = {
+      ResetEnv()
+      react.env$path <- getOption(x = 'Azimuth.app.demodataset')
+    }
   )
   observeEvent(
     eventExpr = react.env$path,
@@ -226,13 +237,35 @@ AzimuthServer <- function(input, output, session) {
                 Idents(object = app.env$object) <- 'query'
 
                 app.env$default.assay <- DefaultAssay(object = app.env$object)
-                react.env$mt <- any(grepl(
+                new.mt <- any(grepl(
                   pattern = mito.pattern,
                   x = rownames(x = app.env$object)
                 ))
-                if (isFALSE(x = react.env$mt)) {
+                if (isFALSE(x = new.mt) & !isFALSE(x = react.env$mt)) {
                   removeUI(selector = '#pctmt', immediate = TRUE)
+                } else if (!isFALSE(x = new.mt) & isFALSE(x = react.env$mt)) {
+                  insertUI(
+                    selector = '#nfeature',
+                    where = 'afterEnd',
+                    immediate = TRUE,
+                    ui = div(
+                      id = 'pctmt',
+                      numericInput(
+                        inputId = 'minmt',
+                        label = NULL,
+                        value = 0,
+                        width = '90%'
+                      ),
+                      numericInput(
+                        'maxmt',
+                        label = NULL,
+                        value = 0,
+                        width = '90%'
+                      )
+                    )
+                  )
                 }
+                react.env$mt <- new.mt
                 common.features <- intersect(
                   x = rownames(x = app.env$object),
                   y = rownames(x = refs$map)
@@ -261,7 +294,13 @@ AzimuthServer <- function(input, output, session) {
               },
               error = function(e) {
                 app.env$messages <- e$message
-                safeError(error = e$message)
+                showNotification(
+                  e$message,
+                  duration = 10,
+                  type = 'error',
+                  closeButton = TRUE,
+                  id = 'no-progress-notification'
+                )
                 app.env$object <- NULL
                 gc(verbose = FALSE)
                 if (isFALSE(x = react.env$xferopts)) {
@@ -273,39 +312,6 @@ AzimuthServer <- function(input, output, session) {
             setProgress(value = 1)
           }
         )
-        app.env$default.assay <- DefaultAssay(object = app.env$object)
-        react.env$mt <- any(grepl(
-          pattern = mito.pattern,
-          x = rownames(x = app.env$object)
-        ))
-        if (isFALSE(x = react.env$mt)) {
-          removeUI(selector = '#pctmt', immediate = TRUE)
-        }
-        common.features <- intersect(
-          x = rownames(x = app.env$object),
-          y = rownames(x = refs$map)
-        )
-        reject <- c(
-          length(x = common.features) < getOption(x = 'Azimuth.map.ngenes'),
-          length(x = Cells(x = app.env$object)) > getOption(x = 'Azimuth.app.max_cells')
-        )
-        if (any(reject)) {
-          app.env$object <- NULL
-          gc(verbose = FALSE)
-          reject <- min(which(x = reject))
-          app.env$messages <- paste(
-            c(
-              'Not enough genes in common with reference.',
-              'Too many cells.'
-            ),
-            'Try another dataset.'
-          )[reject]
-        }
-        if (isFALSE(x = react.env$xferopts)) {
-          removeUI(selector = '#xferopts', immediate = TRUE)
-        }
-        react.env$qc <- !any(reject)
-        react.env$path <- NULL
       }
     }
   )
@@ -456,10 +462,6 @@ AzimuthServer <- function(input, output, session) {
         if (!is.null(x = react.env$progress)) {
           react.env$progress$close()
           react.env$progress <- NULL
-        }
-        default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
-        if (!default_xfer %in% possible.metadata.transfer) {
-          default_xfer <- possible.metadata.transfer[1]
         }
         updateSelectizeInput(
           session = session,
@@ -977,29 +979,32 @@ AzimuthServer <- function(input, output, session) {
                                     )
         )
         for (id in c('metarow', 'metacol', 'metagroup')) {
+          ## select most likely-informative metarow
+          # if (id == 'metarow') {
+          #   matches <- grep(
+          #     pattern = 'celltype|label|annotation',
+          #     x = metadata.discrete,
+          #     value = T,
+          #     ignore.case = T
+          #   )
+          #   matches <- grep(
+          #     pattern = 'predicted',
+          #     x = matches,
+          #     value = T,
+          #     invert = T
+          #   )
+          #   show.metadata <- (
+          #     if (length(x = matches) > 0) {
+          #       count.na <- sapply(X = matches, FUN = function(m) {
+          #         sum(FetchData(object = app.env$object, vars = m)[,1] %in% c(NA, ''))
+          #       })
+          #       matches[which.min(x = count.na)]
+          #     } else {
+          #       'query'
+          #     }
+          #   )
           if (id == 'metarow') {
-            matches <- grep(
-              pattern = 'celltype|label|annotation',
-              x = metadata.discrete,
-              value = T,
-              ignore.case = T
-            )
-            matches <- grep(
-              pattern = 'predicted',
-              x = matches,
-              value = T,
-              invert = T
-            )
-            show.metadata <- (
-              if (length(x = matches) > 0) {
-                count.na <- sapply(X = matches, FUN = function(m) {
-                  sum(FetchData(object = app.env$object, vars = m)[,1] %in% c(NA, ''))
-                })
-                matches[which.min(x = count.na)]
-              } else {
-                'query'
-              }
-            )
+            show.metadata <- 'query'
           } else {
             show.metadata <- paste0("predicted.", app.env$default.metadata)
           }
@@ -1034,7 +1039,6 @@ AzimuthServer <- function(input, output, session) {
         # Add prediction scores for all classes to continuous metadata
         metadata.cont <- sort(x = metadata.cont)[-grep(pattern = "predicted.*.score", x = metadata.cont)]
         metadata.cont <- metadata.cont[-grep(pattern = "*_refAssay", x = metadata.cont)]
-        app.env$object$predicted.celltype.l2.score
         max.predictions <- paste0("predicted.", app.env$metadataxfer, ".score")
         names(x = max.predictions) <- app.env$metadataxfer
         max.predictions <- as.list(x = max.predictions)
@@ -1045,7 +1049,7 @@ AzimuthServer <- function(input, output, session) {
             values <- paste0(key, ids)
             names(x = values) <- ids
             return(values)
-        })
+          })
         names(x = prediction.score.names) <- paste0("Prediction scores - ", app.env$metadataxfer)
         metadata.cont <- c(
           list("Max prediction scores" = max.predictions),
@@ -1436,48 +1440,239 @@ AzimuthServer <- function(input, output, session) {
       wrap_plots(vlnlist, ncol = length(x = vlnlist))
     }
   })
+  output$refdim_intro <- renderPlot(expr = {
+    # save plot dataframe to minimize on-hover computation
+    app.env$plots.refdim_intro_df <- cbind(
+      as.data.frame(x = Embeddings(object = refs$plot[['refUMAP']])),
+      refs$plot[[]]
+    )
+    p <- DimPlot(
+      object = refs$plot,
+      combine = FALSE,
+      group.by = default_xfer,
+      cols = GetColorMap(object = refs$map)[[default_xfer]],
+      repel = TRUE,
+      label = TRUE
+    )[[1]]
+    # for later use by query plot:
+    app.env$plot.ranges <- list(
+      layer_scales(p)$x$range$range,
+      layer_scales(p)$y$range$range
+    )
+    # strip down the intro plot-- no title, legend, or axes
+    p + WelcomePlot()
+  })
+  output$refdim_intro_hover_box <- renderUI({
+    hover <- input$refdim_intro_hover_location
+    df <- app.env$plots.refdim_intro_df
+    if (!is.null(x = hover)){
+      hover[['mapping']] <- setNames(object = as.list(x = colnames(x = app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
+    }
+    point <- nearPoints(
+      df = df,
+      coordinfo = hover,
+      threshold = 10,
+      maxpoints = 1,
+      addDist = TRUE
+    )
+    # print(hover) # for debugging
+    # print(point) # for debugging
+    if (nrow(x = point) == 0) {
+      return(NULL)
+    }
+    # hovertext <- do.call(
+    #   what = paste0,
+    #   args = as.list(c(
+    #     paste0("<b>", point[[default_xfer]], "</b><br>"),
+    #     sapply(X = setdiff(possible.metadata.transfer, default_xfer), FUN = function(md) {
+    #       paste0("<u>", md, "</u>: ", point[[md]], "<br>")
+    #     }
+    #     ))))
+    hovertext <- do.call(
+      what = paste0,
+      args = lapply(X = possible.metadata.transfer, FUN = function(md) {
+        paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
+      })
+    )
+    wellPanel(
+      style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
+      p(HTML(text = hovertext))
+    )
+  })
   output$refdim <- renderPlot(expr = {
     if (!is.null(x = input$metacolor.ref)) {
       colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
-      plots <- list()
-      for (i in 1:length(x = colormaps)) {
-        plots[[i]] <- DimPlot(
+      # no interactivity if multiple plots per row (less useful in this case)
+      if (length(x = colormaps) == 1) {
+        ## already stored reference dataframe in app.env
+        # p <- (ggplot(data=cbind(as.data.frame(refs$plot[['refUMAP']]@cell.embeddings),
+        #                         refs$plot@meta.data),
+        #              ggplot2:::aes_string(x='UMAP_1',y='UMAP_2',color=input$metacolor.ref)) +
+        #         ggplot2:::geom_point(size=0.3) + #### AUTO PT SIZING sizing for plot and legend
+        #         ggplot2:::scale_color_manual(values = colormaps[[i]]) +
+        #         ggplot2:::ggtitle(input$metacolor.ref)
+        # )
+        # app.env$plots.refdim[[1]] <- p$data
+        app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
+        plot <- DimPlot(
           object = refs$plot,
           label = input$labels,
-          group.by = input$metacolor.ref[i],
-          cols = colormaps[[i]],
-          repel = TRUE,
-        )
+          group.by = input$metacolor.ref,
+          cols = colormaps[[1]],
+          repel = TRUE
+        )[[1]]
+        if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref, drop = TRUE]]))) >= 30) {
+          plot + NoLegend()
+        } else {
+          plot
+        }
+      } else {
+        app.env$plots.refdim_df <- NULL
+        plots <- list()
+        for (i in 1:length(x = colormaps)) {
+          plots[[i]] <- DimPlot(
+            object = refs$plot,
+            label = input$labels,
+            group.by = input$metacolor.ref[i],
+            cols = colormaps[[i]],
+            repel = TRUE,
+          )
+          if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref[i], drop = TRUE]]))) >= 30) {
+            plots[[i]] <- plots[[i]] + NoLegend()
+          } else {
+            plots[[i]] <- plots[[i]]
+          }
+        }
+        wrap_plots(plots, nrow = 1)
       }
-      app.env$plot.ranges <- list(
-        layer_scales(plots[[1]])$x$range$range,
-        layer_scales(plots[[1]])$y$range$range
+    }
+  })
+  output$refdim_hover_box <- renderUI({
+    if (!is.null(x = app.env$plots.refdim_df)) {
+      hover <- input$refdim_hover_location
+      df <- app.env$plots.refdim_df
+      if (!is.null(x = hover)){
+        hover[['mapping']] <- setNames(object = as.list(x = colnames(x = app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
+      }
+      point <- nearPoints(
+        df = df,
+        coordinfo = hover,
+        threshold = 10,
+        maxpoints = 1,
+        addDist = TRUE
       )
-      wrap_plots(plots, nrow = 1)
+      if (nrow(x = point) == 0) {
+        return(NULL)
+      }
+      hovertext <- do.call(
+        what = paste0,
+        args = as.list(c(
+          paste0("<b>", point[[input$metacolor.ref]], "</b><br>"),
+          sapply(X = setdiff(possible.metadata.transfer, input$metacolor.ref), FUN = function(md) {
+            paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
+          })
+        ))
+      )
+      wellPanel(
+        style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
+        p(HTML(text = hovertext))
+      )
     }
   })
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
-        plots <- list()
-        for (i in 1:length(x = input$metacolor.query)) {
-          group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
+        if (length(x = input$metacolor.query) == 1) {
+          # get colormap if avail
+          group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query)
           colormap <- GetColorMap(object = refs$map)[[group.var]]
-          if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
+          if (!grepl(pattern = "^predicted.", x = input$metacolor.query)) {
             colormap <- NULL
           }
-          plots[[i]] <- DimPlot(
+          # make dataframe so don't need to recompute during hover
+          app.env$plots.objdim_df <- cbind(
+            as.data.frame(x = Embeddings(object = app.env$object[['umap.proj']])),
+            app.env$object[[]]
+          )
+          p <- DimPlot(
             object = app.env$object,
-            group.by = input$metacolor.query[i],
+            group.by = input$metacolor.query,
             label = input$labels,
-            cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
+            cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
             repel = TRUE,
             reduction = "umap.proj"
-          ) + xlim(app.env$plot.ranges[[1]]) +
+          )[[1]] +
+            xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]])
+          if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query, drop = TRUE]]))) >= 30) {
+            p + NoLegend()
+          } else {
+            p
+          }
+        } else {
+          app.env$plots.objdim_df <- NULL
+          plots <- list()
+          for (i in 1:length(x = input$metacolor.query)) {
+            group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
+            colormap <- GetColorMap(object = refs$map)[[group.var]]
+            if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
+              colormap <- NULL
+            }
+            plots[[i]] <- DimPlot(
+              object = app.env$object,
+              group.by = input$metacolor.query[i],
+              label = input$labels,
+              cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
+              repel = TRUE,
+              reduction = "umap.proj"
+            ) + xlim(app.env$plot.ranges[[1]]) +
+              ylim(app.env$plot.ranges[[2]])
+            if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]]))) >= 30) {
+              plots[[i]] <- plots[[i]] + NoLegend()
+            }
+          }
+          wrap_plots(plots, nrow = 1)
         }
-        wrap_plots(plots, nrow = 1)
       }
+    }
+  })
+  output$objdim_hover_box <- renderUI({
+    if (!is.null(x = app.env$plots.objdim_df)) {
+      hover <- input$objdim_hover_location
+      df <- app.env$plots.objdim_df
+      if (!is.null(x = hover)){
+        hover[['mapping']] <- setNames(object = as.list(x = colnames(x = app.env$plots.objdim_df)[1:2]), nm = c('x', 'y'))
+      }
+      point <- nearPoints(
+        df = df,
+        coordinfo = hover,
+        threshold = 10,
+        maxpoints = 1,
+        addDist = TRUE
+      )
+      if (nrow(x = point) == 0) {
+        return(NULL)
+      }
+      hovertext <- do.call(
+        what = paste0,
+        args = as.list(c(
+          paste0("<b>", point[[input$metacolor.query]], "</b><br>"),
+          if (grepl(pattern = "^predicted.", x = input$metacolor.query)) {
+            paste0(
+              "<i>prediction score</i>: <span>",
+              format(
+                x = round(x = point[[paste0(input$metacolor.query,'.score')]], digits = 2),
+                nsmall = 2
+              ),
+              "</span><br>"
+            )
+          }
+        ))
+      )
+      wellPanel(
+        style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
+        p(HTML(text = hovertext))
+      )
     }
   })
   output$evln <- renderPlot(expr = {
@@ -1614,7 +1809,9 @@ AzimuthServer <- function(input, output, session) {
             features = app.env$feature,
             cols = pal.use,
             reduction = "umap.proj"
-          )) + ggtitle(label = title)
+          )) + xlim(app.env$plot.ranges[[1]]) +
+            ylim(app.env$plot.ranges[[2]]) +
+            ggtitle(label = title)
         }
       }
     }
@@ -1814,6 +2011,9 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   # render UI elements that depend on arguments
+  output$refdescriptor <- renderText(
+    expr = eval(expr = HTML(getOption(x = "Azimuth.app.refdescriptor")))
+  )
   output$welcomebox <- renderUI(
     expr = eval(expr = parse(text = getOption(x = "Azimuth.app.welcomebox")))
   )
