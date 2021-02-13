@@ -1400,15 +1400,7 @@ AzimuthServer <- function(input, output, session) {
       layer_scales(p)$y$range$range
     )
     # strip down the intro plot-- no title, legend, or axes
-    p + theme(
-      axis.line = element_blank(), axis.ticks = element_blank(),
-      axis.text.x = element_blank(), axis.text.y = element_blank(),
-      axis.title.x = element_blank(), axis.title.y = element_blank(),
-      legend.position = "none", plot.title = element_blank(),
-      # if we want backgroundless... (also replace 'box' with 'fluidRow' in UI)
-      panel.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5'),
-      plot.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5')
-    )
+    p + WelcomePlot()
   })
   output$refdim_intro_hover_box <- renderUI({
     hover <- input$refdim_intro_hover_location
@@ -1428,14 +1420,6 @@ AzimuthServer <- function(input, output, session) {
     if (nrow(x = point) == 0) {
       return(NULL)
     }
-    xpad <- 20 # important to avoid collisions between cursor and hover panel
-    ypad <- 20
-    style <- paste0(
-      "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
-      "left:", (hover$coords_css$x + xpad), "px; top:",
-      (hover$coords_css$y - ypad), "px;",
-      "padding: 5px; margin-bottom: 0px;"
-    )
     # hovertext <- do.call(
     #   what = paste0,
     #   args = as.list(c(
@@ -1451,7 +1435,7 @@ AzimuthServer <- function(input, output, session) {
       })
     )
     wellPanel(
-      style = style,
+      style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
       p(HTML(text = hovertext))
     )
   })
@@ -1520,22 +1504,17 @@ AzimuthServer <- function(input, output, session) {
       if (nrow(x = point) == 0) {
         return(NULL)
       }
-      xpad <- ypad <- 20
-      style <- paste0(
-        "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
-        "left:", (hover$coords_css$x + xpad), "px; top:",
-        (hover$coords_css$y - ypad), "px;",
-        "padding: 5px; margin-bottom: 0px;"
-      )
       hovertext <- do.call(
         what = paste0,
         args = as.list(c(
           paste0("<b>", point[[input$metacolor.ref]], "</b><br>"),
           sapply(X = setdiff(possible.metadata.transfer, input$metacolor.ref), FUN = function(md) {
             paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
-          }))))
+          })
+        ))
+      )
       wellPanel(
-        style = style,
+        style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
         p(HTML(text = hovertext))
       )
     }
@@ -1614,26 +1593,24 @@ AzimuthServer <- function(input, output, session) {
       if (nrow(x = point) == 0) {
         return(NULL)
       }
-      xpad <- 20
-      ypad <- 20
-      style <- paste0(
-        "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
-        "left:", (hover$coords_css$x + xpad), "px; top:",
-        (hover$coords_css$y - ypad), "px;",
-        "padding: 5px; margin-bottom: 0px;"
-      )
       hovertext <- do.call(
         what = paste0,
         args = as.list(c(
           paste0("<b>", point[[input$metacolor.query]], "</b><br>"),
           if (grepl(pattern = "^predicted.", x = input$metacolor.query)) {
-            paste0("<i>prediction score</i>: <span>",
-                   format(round(x = point[[paste0(input$metacolor.query,'.score')]],
-                                digits = 2), nsmall = 2),
-                   "</span><br>")
-          })))
+            paste0(
+              "<i>prediction score</i>: <span>",
+              format(
+                x = round(x = point[[paste0(input$metacolor.query,'.score')]], digits = 2),
+                nsmall = 2
+              ),
+              "</span><br>"
+            )
+          }
+        ))
+      )
       wellPanel(
-        style = style,
+        style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
         p(HTML(text = hovertext))
       )
     }

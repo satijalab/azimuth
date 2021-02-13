@@ -1,3 +1,21 @@
+# Return CSS styling for hover box on interactive plots
+#
+# @param x X hover position (hover$coords_css$x)
+# @param y Y hover position (hover$coords_css$y)
+#
+# @return Returns a string of CSS to pass to style param
+#
+HoverBoxStyle <- function(x, y) {
+  xpad <- 20 # important to avoid collisions between cursor and hover panel
+  ypad <- 20
+  paste0(
+    "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
+    "left:", (x + xpad), "px; top:",
+    (y - ypad), "px;",
+    "padding: 5px; margin-bottom: 0px;"
+  )
+}
+
 #' Load file input into a \code{Seurat} object
 #'
 #' Take a file and load it into a \code{\link[Seurat]{Seurat}} object. Supports
@@ -438,4 +456,19 @@ Oxford <- function(..., join = c('and', 'or')) {
     paste0(', ', join, ' '),
     args[length(x = args)]
   ))
+}
+
+# Theme for the plot on welcome page
+#
+WelcomePlot <- function(...) {
+  welcomeplot.theme <- theme(
+    axis.line = element_blank(), axis.ticks = element_blank(),
+    axis.text.x = element_blank(), axis.text.y = element_blank(),
+    axis.title.x = element_blank(), axis.title.y = element_blank(),
+    legend.position = "none", plot.title = element_blank(),
+    # if we want backgroundless... (also replace 'box' with 'fluidRow' in UI)
+    panel.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5'),
+    plot.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5')
+  )
+  return(welcomeplot.theme)
 }
