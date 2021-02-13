@@ -25,13 +25,13 @@ NULL
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput withProgress renderUI
-#' onStop showNotification wellPanel nearPoints insertUI modalDialog showModal
+#' onStop showNotification wellPanel nearPoints insertUI
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
-#' @importFrom shinyjs addClass enable disable hide removeClass show onclick
+#' @importFrom shinyjs addClass enable disable hide removeClass show
 #' @importFrom stringr str_interp
 #' @importFrom patchwork wrap_plots
-#' @importFrom stats na.omit quantile setNames median
+#' @importFrom stats na.omit quantile setNames
 #' @importFrom utils write.table packageVersion
 #'
 #' @keywords internal
@@ -625,36 +625,6 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           gc(verbose = FALSE)
         } else {
-          query.unique <- length(x = unique(x = slot(object = app.env$anchors, name = "anchors")[, "cell2"]))
-          percent.anchors <- round(x = query.unique / ncol(x = app.env$object) * 100, digits = 2)
-          if (percent.anchors <  getOption(x = "Azimuth.map.panchorscolors")[1]) {
-            output$valuebox_panchors <- renderValueBox(expr = {
-              valueBox(
-                value = paste0(percent.anchors, "%"),
-                subtitle = "anchor QC",
-                color = 'red',
-                icon = icon(name = 'times')
-              )
-            })
-          } else if (percent.anchors <  getOption(x = "Azimuth.map.panchorscolors")[2]) {
-            output$valuebox_panchors <- renderValueBox(expr = {
-              valueBox(
-                value = paste0(percent.anchors, "%"),
-                subtitle = "anchor QC",
-                color = 'yellow',
-                icon = icon(name = 'exclamation-circle')
-              )
-            })
-          } else {
-            output$valuebox_panchors <- renderValueBox(expr = {
-              valueBox(
-                value = paste0(percent.anchors, "%"),
-                subtitle = "anchor QC",
-                color = 'green',
-                icon = icon(name = 'check')
-              )
-            })
-          }
           react.env$map <- TRUE
         }
         react.env$anchors <- FALSE
@@ -725,42 +695,6 @@ AzimuthServer <- function(input, output, session) {
           value = 0.7,
           message = 'Calculating mapping score'
         )
-        # post mapping QC
-        qc.stat <- round(
-          x = MappingQCMetric(
-            query = app.env$object,
-            ds.amount = getOption(x = "Azimuth.map.postmapqcds")
-            ),
-          digits = 2
-        )
-        if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
-          output$valuebox_mappingqcstat <- renderValueBox(expr = {
-            valueBox(
-              value = qc.stat,
-              subtitle = "mapping QC stat",
-              color = 'red',
-              icon = icon(name = 'times')
-            )
-          })
-        } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
-          output$valuebox_mappingqcstat <- renderValueBox(expr = {
-            valueBox(
-              value = qc.stat,
-              subtitle = "mapping QC stat",
-              color = 'yellow',
-              icon = icon(name = 'exclamation-circle')
-            )
-          })
-        } else {
-          output$valuebox_mappingqcstat <- renderValueBox(expr = {
-            valueBox(
-              value = qc.stat,
-              subtitle = "mapping QC stat",
-              color = 'green',
-              icon = icon(name = 'check')
-            )
-          })
-        }
         refdr <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = app.env$object), "_query")
@@ -1486,14 +1420,6 @@ AzimuthServer <- function(input, output, session) {
     if (nrow(x = point) == 0) {
       return(NULL)
     }
-    # hovertext <- do.call(
-    #   what = paste0,
-    #   args = as.list(c(
-    #     paste0("<b>", point[[default_xfer]], "</b><br>"),
-    #     sapply(X = setdiff(possible.metadata.transfer, default_xfer), FUN = function(md) {
-    #       paste0("<u>", md, "</u>: ", point[[md]], "<br>")
-    #     }
-    #     ))))
     hovertext <- do.call(
       what = paste0,
       args = lapply(X = possible.metadata.transfer, FUN = function(md) {
@@ -1510,15 +1436,6 @@ AzimuthServer <- function(input, output, session) {
       colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
       # no interactivity if multiple plots per row (less useful in this case)
       if (length(x = colormaps) == 1) {
-        ## already stored reference dataframe in app.env
-        # p <- (ggplot(data=cbind(as.data.frame(refs$plot[['refUMAP']]@cell.embeddings),
-        #                         refs$plot@meta.data),
-        #              ggplot2:::aes_string(x='UMAP_1',y='UMAP_2',color=input$metacolor.ref)) +
-        #         ggplot2:::geom_point(size=0.3) + #### AUTO PT SIZING sizing for plot and legend
-        #         ggplot2:::scale_color_manual(values = colormaps[[i]]) +
-        #         ggplot2:::ggtitle(input$metacolor.ref)
-        # )
-        # app.env$plots.refdim[[1]] <- p$data
         app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
         plot <- DimPlot(
           object = refs$plot,
@@ -1527,7 +1444,7 @@ AzimuthServer <- function(input, output, session) {
           cols = colormaps[[1]],
           repel = TRUE
         )[[1]]
-        if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref, drop = TRUE]]))) >= 30) {
+        if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref, drop = TRUE]]))) >= 40) {
           plot + NoLegend()
         } else {
           plot
@@ -1543,7 +1460,7 @@ AzimuthServer <- function(input, output, session) {
             cols = colormaps[[i]],
             repel = TRUE,
           )
-          if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref[i], drop = TRUE]]))) >= 30) {
+          if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref[i], drop = TRUE]]))) >= 40) {
             plots[[i]] <- plots[[i]] + NoLegend()
           } else {
             plots[[i]] <- plots[[i]]
@@ -1610,7 +1527,7 @@ AzimuthServer <- function(input, output, session) {
           )[[1]] +
             xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]])
-          if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query, drop = TRUE]]))) >= 30) {
+          if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query, drop = TRUE]]))) >= 40) {
             p + NoLegend()
           } else {
             p
@@ -1633,7 +1550,7 @@ AzimuthServer <- function(input, output, session) {
               reduction = "umap.proj"
             ) + xlim(app.env$plot.ranges[[1]]) +
               ylim(app.env$plot.ranges[[2]])
-            if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]]))) >= 30) {
+            if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]]))) >= 40) {
               plots[[i]] <- plots[[i]] + NoLegend()
             }
           }
@@ -2023,75 +1940,4 @@ AzimuthServer <- function(input, output, session) {
   output$welcomebox <- renderUI(
     expr = eval(expr = parse(text = getOption(x = "Azimuth.app.welcomebox")))
   )
-
-  # render popup UI elements
-  onclick('panchors_popup', showModal(modalDialog(
-    title = "Anchors QC Metric",
-    div(
-      paste(
-        "Here we compute the percentage of query cells that participate ",
-        "in anchor pairs with the reference. The color of the box corresponds ",
-        "to the following bins that we have found empirically to flag ",
-        "potentially problematic query datasets well: "
-      ),
-      tags$ul(list(
-        tags$li(paste0("0% to ", getOption(x = "Azimuth.map.panchorscolors")[1], "%: Likely problematic (red)")),
-        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[1], "% to ", getOption(x = "Azimuth.map.panchorscolors")[2], "%: Possibly problematic (yellow)")),
-        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[2], "% to 100%: Likely accurate (green)"))
-      )),
-      tags$h4("Caveats"),
-      paste0(
-        "If you have a query dataset in which there is a batch effect, the ",
-        "number of cells is small, the query population is homogeneous, or ",
-        "represents only a small proportion of the reference diversity, the ",
-        "mapping may still be accurate but the QC stats may indicate a possible ",
-        "failure. Users in these cases should check results carefully, and in ",
-        "particular, markers for individual cell types to verify mapping."
-      )
-    )
-  )))
-  onclick('mappingqcstat_popup', showModal(modalDialog(
-    title = "Mapping Stat QC",
-    div(
-      tags$h4("Overview"),
-      paste0(
-        "Here we compute a post-mapping statistic intended to quantify how well ",
-        "the structure of the query dataset is preserved after mapping. This ",
-        "number ranges from 0 to 5, with 0 reflecting poor preservation and 5 ",
-        "representing strong preservation. We define the following ",
-        "broad categories: "
-      ),
-      tags$ul(list(
-        tags$li(paste0("0 to ", getOption(x = "Azimuth.map.postmapqccolors")[1], ": Likely problematic (red)")),
-        tags$li(paste0(getOption(x = "Azimuth.map.postmapqccolors")[1], " to ", getOption(x = "Azimuth.map.postmapqccolors")[2], ": Possibly problematic (yellow)")),
-        tags$li(paste0(getOption(x = "Azimuth.map.postmapqccolors")[2], " to 5: Likely accurate (green)"))
-      )),
-      tags$h4("Caveats"),
-      paste0(
-        "If you have a query dataset in which there is a batch effect, the ",
-        "number of cells is small, the query population is homogeneous, or ",
-        "represents only a small proportion of the reference diversity, the ",
-        "mapping may still be accurate but the QC stats may indicate a possible ",
-        "failure. Users in these cases should check results carefully, and in ",
-        "particular, markers for individual cell types to verify mapping."
-      ),
-      tags$h4("Details"),
-      paste0(
-        "To compute the mapping statistic, we first randomly downsample the ",
-        "query to ", getOption(x = "Azimuth.map.postmapqcds"), " cells for ",
-        "computational efficiency. We then compute an independent unsupervised ",
-        "clustering on the query. Using these cluster IDs, we then examine the ",
-        "neighborhoods of each cell in query PCA space and also in the mapped ",
-        "(projected) space. We compute an entropy of cluster labels and then ",
-        "take the mean entropy averaged over each cluster in both spaces. For ",
-        "each cluster we take the difference and report a single statistic as ",
-        "the median -log2 of these values, clipped to range between 0 and 5.",
-        "For the exact implementation details, please see the MappingQCMetric ",
-        "function in the azimuth github repo."
-      ),
-
-    )
-  )))
-
-
 }
