@@ -27,7 +27,7 @@ NULL
 #' onStop
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
-#' @importFrom shinyjs addClass enable disable hide removeClass show
+#' @importFrom shinyjs addClass enable disable hide removeClass show onclick
 #' @importFrom stringr str_interp
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile
@@ -623,6 +623,36 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           gc(verbose = FALSE)
         } else {
+          query.unique <- length(x = unique(x = slot(object = app.env$anchors, name = "anchors")[, "cell2"]))
+          percent.anchors <- query.unique / ncol(x = app.env$object) * 100
+          if (percent.anchors <  getOption(x = "Azimuth.map.panchorscolors")[1]) {
+            output$valuebox_panchors <- renderValueBox(expr = {
+              valueBox(
+                value = paste0(percent.anchors, "%"),
+                subtitle = "Anchor QC",
+                color = 'red',
+                icon = icon(name = 'times')
+              )
+            })
+          } else if (percent.anchors <  getOption(x = "Azimuth.map.panchorscolors")[2]) {
+            output$valuebox_panchors <- renderValueBox(expr = {
+              valueBox(
+                value = paste0(percent.anchors, "%"),
+                subtitle = "Anchor QC",
+                color = 'yellow',
+                icon = icon(name = 'exclamation-circle')
+              )
+            })
+          } else {
+            output$valuebox_panchors <- renderValueBox(expr = {
+              valueBox(
+                value = paste0(percent.anchors, "%"),
+                subtitle = "Anchor QC",
+                color = 'green',
+                icon = icon(name = 'check')
+              )
+            })
+          }
           react.env$map <- TRUE
         }
         react.env$anchors <- FALSE
@@ -693,6 +723,36 @@ AzimuthServer <- function(input, output, session) {
           value = 0.7,
           message = 'Calculating mapping score'
         )
+        # post mapping QC
+        qc.stat <- round(x = MappingQCMetric(query = app.env$object), digits = 2)
+        if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = qc.stat,
+              subtitle = "Mapping QC Stat",
+              color = 'red',
+              icon = icon(name = 'cross')
+            )
+          })
+        } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = qc.stat,
+              subtitle = "Mapping QC Stat",
+              color = 'yellow',
+              icon = icon(name = 'exclamation-circle')
+            )
+          })
+        } else {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = qc.stat,
+              subtitle = "Mapping QC Stat",
+              color = 'green',
+              icon = icon(name = 'check')
+            )
+          })
+        }
         refdr <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = app.env$object), "_query")
@@ -1757,4 +1817,20 @@ AzimuthServer <- function(input, output, session) {
   output$welcomebox <- renderUI(
     expr = eval(expr = parse(text = getOption(x = "Azimuth.app.welcomebox")))
   )
+
+  onclick('panchors_popup', showModal(modalDialog(
+    title = "Anchors QC",
+    div(
+      "Description of the metric"
+    )
+  )))
+
+  onclick('mappingqcstat_popup', showModal(modalDialog(
+    title = "Mapping Stat QC",
+    div(
+      "Description of the metric"
+    )
+  )))
+
+
 }

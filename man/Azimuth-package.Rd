@@ -90,6 +90,23 @@ Defaults to \code{250}
 Minimum number of anchors that must be found to complete mapping.
 Defaults to \code{50}
 }
+\item{\code{Azimuth.map.panchorscolors}}{
+Configure the valuebox on the main page corresponding to the values for
+failure, warning, success for fraction of unique query cells that
+participate in anchor pairs. Failure corresponds to
+[0:\code{Azimuth.map.fracanchorscolors[1]}), warning to
+[\code{Azimuth.map.fracanchorscolors[1]}:\code{Azimuth.map.fracanchorscolors[2]}),
+and success is >= \code{Azimuth.map.fracanchorscolors[2]}.
+Defaults to \code{c(5, 15)}
+}
+\item{\code{Azimuth.map.postmapqccolors}}{
+Configure the valuebox on the main page corresponding to the values for
+failure, warning, success for the post mapping cluster based QC metric.
+Failure corresponds to [0:\code{Azimuth.map.postmapqc[1]}), warning to
+[\code{Azimuth.map.postmapqc[1]}:\code{Azimuth.map.postmapqc[2]}),
+and success is >= \code{Azimuth.map.postmapqc[2]}.
+Defaults to \code{c(0.15, 0.25)}
+}
 \item{\code{Azimuth.map.ntrees}}{
 Annoy (approximate nearest neighbor) n.trees parameter
 Defaults to \code{20}

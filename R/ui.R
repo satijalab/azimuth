@@ -186,7 +186,16 @@ AzimuthUI <- tagList(
           fluidRow(
             valueBoxOutput(outputId = 'valuebox.upload', width = 3),
             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
-            valueBoxOutput(outputId = 'valuebox.mapped', width = 3)
+            div(
+              id = 'panchors_popup',
+              valueBoxOutput(outputId = "valuebox_panchors", width = 3),
+              bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "bottom", trigger = 'hover'),
+            ),
+            div(
+              id = 'mappingqcstat_popup',
+              valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
+              bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "bottom", trigger = 'hover'),
+            ),
           ),
         ),
         # Cell tab
