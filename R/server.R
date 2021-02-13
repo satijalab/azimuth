@@ -75,7 +75,7 @@ AzimuthServer <- function(input, output, session) {
     map = FALSE,
     markers = FALSE,
     metadata = FALSE,
-    mt = FALSE,
+    mt = NULL,
     xferopts = FALSE,
     path = NULL,
     progress = NULL,
@@ -236,13 +236,31 @@ AzimuthServer <- function(input, output, session) {
                 Idents(object = app.env$object) <- 'query'
 
                 app.env$default.assay <- DefaultAssay(object = app.env$object)
-                react.env$mt <- any(grepl(
+                new.mt <- any(grepl(
                   pattern = mito.pattern,
                   x = rownames(x = app.env$object)
                 ))
-                if (isFALSE(x = react.env$mt)) {
+                if (isFALSE(x = new.mt) & !isFALSE(x = react.env$mt)) {
                   removeUI(selector = '#pctmt', immediate = TRUE)
+                } else if (!isFALSE(x = new.mt) & isFALSE(x = react.env$mt)) {
+                  shiny:::insertUI(selector = '#nfeature', where = 'afterEnd', immediate = TRUE, # import!!!
+                           ui = div(
+                             id = 'pctmt',
+                             numericInput(
+                               inputId = 'minmt',
+                               label = NULL,
+                               value = 0,
+                               width = '90%'
+                             ),
+                             numericInput(
+                               'maxmt',
+                               label = NULL,
+                               value = 0,
+                               width = '90%'
+                             )
+                           ))
                 }
+                react.env$mt <- new.mt
                 common.features <- intersect(
                   x = rownames(x = app.env$object),
                   y = rownames(x = refs$map)
@@ -973,7 +991,7 @@ AzimuthServer <- function(input, output, session) {
             values <- paste0(key, ids)
             names(x = values) <- ids
             return(values)
-        })
+          })
         names(x = prediction.score.names) <- paste0("Prediction scores - ", app.env$metadataxfer)
         metadata.cont <- c(
           list("Max prediction scores" = max.predictions),
@@ -1130,13 +1148,11 @@ AzimuthServer <- function(input, output, session) {
             options = selectize.opts
           )
         }
-        print('ok1')
         table.check <- input$feature %in% rownames(x = RenderDiffExp(
           diff.exp = app.env$diff.expr[[paste(app.env$default.assay, app.env$default.metadata, sep = "_")]],
           groups.use = input$markerclusters,
           n = Inf
         ))
-        print("ok2")
         tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, !table.check)]
         for (tab in tables.clear) {
           selectRows(proxy = tab, selected = NULL)
@@ -1584,8 +1600,9 @@ AzimuthServer <- function(input, output, session) {
     if (!is.null(x = app.env$plots.objdim_df)) {
       hover <- input$objdim_hover_location
       df <- app.env$plots.objdim_df
+
       if (!is.null(x = hover)){
-        hover[['mapping']] <- setNames(as.list(colnames(app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
+        hover[['mapping']] <- setNames(as.list(colnames(app.env$plots.objdim_df)[1:2]), nm = c('x', 'y'))
       }
       point <- shiny:::nearPoints(
         df,
@@ -1607,8 +1624,8 @@ AzimuthServer <- function(input, output, session) {
           paste0("<b>", point[[input$metacolor.query]], "</b><br>"),
           if (grepl(pattern = "^predicted.", x = input$metacolor.query)) {
             paste0("<i>prediction score</i>: <span>",
-                   round(x = point[[paste0(input$metacolor.query,'.score')]],
-                         digits = 3),
+                   format(round(x = point[[paste0(input$metacolor.query,'.score')]],
+                                digits = 2), nsmall = 2),
                    "</span><br>")
           })))
       shiny:::wellPanel( # import!!!
