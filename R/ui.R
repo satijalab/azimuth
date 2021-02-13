@@ -6,7 +6,7 @@
 #' @importFrom shiny actionButton checkboxInput downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
 #' tableOutput textOutput uiOutput verbatimTextOutput hoverOpts
-#' @importFrom shinyBS bsButton bsPopover
+#' @importFrom shinyBS bsButton bsPopover bsTooltip
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
 #' valueBoxOutput

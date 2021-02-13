@@ -110,6 +110,11 @@ Failure corresponds to [0:\code{Azimuth.map.postmapqc[1]}), warning to
 and success is >= \code{Azimuth.map.postmapqc[2]}.
 Defaults to \code{c(0.15, 0.25)}
 }
+\item{\code{Azimuth.map.postmapqcds}}{
+Set the amount of query random downsampling to perform before computing
+the mapping QC metric.
+Defaults to \code{5000}
+}
 \item{\code{Azimuth.map.ntrees}}{
 Annoy (approximate nearest neighbor) n.trees parameter
 Defaults to \code{20}

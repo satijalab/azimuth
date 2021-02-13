@@ -102,6 +102,11 @@
 #'    and success is >= \code{Azimuth.map.postmapqc[2]}.
 #'    Defaults to \code{c(0.15, 0.25)}
 #'   }
+#'   \item{\code{Azimuth.map.postmapqcds}}{
+#'    Set the amount of query random downsampling to perform before computing
+#'    the mapping QC metric.
+#'    Defaults to \code{5000}
+#'   }
 #'   \item{\code{Azimuth.map.ntrees}}{
 #'    Annoy (approximate nearest neighbor) n.trees parameter
 #'    Defaults to \code{20}
@@ -165,6 +170,7 @@ default.options <- list(
   Azimuth.map.nanchors = 50L,
   Azimuth.map.panchorscolors = c(5, 15),
   Azimuth.map.postmapqccolors = c(2, 3.75),
+  Azimuth.map.postmapqcds = 5000L,
   Azimuth.map.ntrees = 20L,
   Azimuth.sct.ncells = 2000L,
   Azimuth.sct.nfeats = 2000L

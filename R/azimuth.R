@@ -516,7 +516,8 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #' @keywords internal
 #
 #
-MappingQCMetric <- function(query, ds.amount = 5000) {
+MappingQCMetric <- function(query, ds.amount) {
+  query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
   if (ncol(x = query) > ds.amount) {
     query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
   }
@@ -526,16 +527,18 @@ MappingQCMetric <- function(query, ds.amount = 5000) {
   query <- FindClusters(object = query, resolution = 0.6, graph.name = 'pca_snn')
   query <- FindNeighbors(object = query, reduction = 'integrated_dr', dims = 1:50, return.neighbor = TRUE, graph.name = "integrated_neighbors")
   ids <- Idents(object = query)
+  integrated.neighbor.indices <- Indices(object = query[["integrated_neighbors"]])
   proj_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
-    neighbors <- Indices(object = query[["integrated_neighbors"]])[x, ]
+    neighbors <- integrated.neighbor.indices[x, ]
     nn_ids <- ids[neighbors]
     p_x <- prop.table(x = table(nn_ids))
     nn_entropy <- sum(p_x * log(x = p_x), na.rm = TRUE)
     return(nn_entropy)
   }))
   names(x = proj_ent) <- Cells(x = query)
+  orig.neighbor.indices <- Indices(object = query[["orig_neighbors"]])
   orig_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
-    neighbors <- Indices(object = query[["orig_neighbors"]])[x, ]
+    neighbors <- orig.neighbor.indices[x, ]
     nn_ids <- ids[neighbors]
     p_x <- prop.table(x = table(nn_ids))
     nn_entropy <- sum(p_x * log(x = p_x), na.rm = TRUE)
