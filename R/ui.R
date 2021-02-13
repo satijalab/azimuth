@@ -5,7 +5,7 @@
 #' @importFrom shinyjs disabled useShinyjs
 #' @importFrom shiny actionButton checkboxInput downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
-#' tableOutput textOutput uiOutput verbatimTextOutput
+#' tableOutput textOutput uiOutput verbatimTextOutput hoverOpts
 #' @importFrom shinyBS bsButton bsPopover
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
@@ -53,7 +53,9 @@ AzimuthUI <- tagList(
       sidebarMenu(
         menuItem(
           text = 'Welcome',
-          tabName = 'tab_welcome'
+          tabName = 'tab_welcome',
+          icon = icon(name = 'map'),
+          selected = TRUE
         ),
         sidebarMenuOutput(outputId = 'menu1'),
         sidebarMenuOutput(outputId = 'menu2')
@@ -61,12 +63,50 @@ AzimuthUI <- tagList(
       htmlOutput(outputId = 'containerid', inline = FALSE)
     ),
     dashboardBody(
-      tags$head(tags$style(HTML('.content-wrapper { overflow: auto; }'))),
+      tags$head(
+        tags$style(
+          HTML(".content-wrapper { overflow: auto }
+          .shiny-notification {
+            position: fixed;
+            font-size: 15px;
+            left: calc(50% - 100px);
+            top: calc(90%);
+            width: 350px;
+          }
+            "
+          )
+        )
+      ),
       tabItems(
         # Welcome tab
         tabItem(
           tabName = 'tab_welcome',
-          htmlOutput(outputId = 'welcomebox')
+          div(
+            fluidRow(
+              box(
+                htmlOutput(outputId = 'welcomebox'),
+                htmlOutput(outputId = 'refdescriptor'),
+                width=12
+              ),
+              width=12
+            ),
+            fluidRow(
+              div(
+                style = "position:relative",
+                plotOutput(
+                  outputId = 'refdim_intro',
+                  hover = hoverOpts(
+                    id = "refdim_intro_hover_location",
+                    delay = 5,
+                    delayType = "debounce",
+                    nullOutside = TRUE
+                  )
+                ),
+                uiOutput("refdim_intro_hover_box")
+              ),
+              width = 12
+            ),
+          )
         ),
         # Preprocessing + QC Tab
         tabItem(
@@ -189,7 +229,6 @@ AzimuthUI <- tagList(
             valueBoxOutput(outputId = 'valuebox.mapped', width = 3)
           ),
         ),
-        # Cell tab
         tabItem(
           tabName = 'tab_cell',
           box(
@@ -201,7 +240,19 @@ AzimuthUI <- tagList(
               choices = '',
               multiple = TRUE,
             ),
-            plotOutput(outputId = 'refdim'),
+            div(
+              style = "position:relative",
+              plotOutput(
+                outputId = 'refdim',
+                hover = hoverOpts(
+                  id = "refdim_hover_location",
+                  delay = 5,
+                  delayType = "debounce",
+                  nullOutside = TRUE
+                )
+              ),
+              uiOutput("refdim_hover_box")
+            ),
             width = 12
           ),
           box(
@@ -212,11 +263,45 @@ AzimuthUI <- tagList(
               choices = '',
               multiple = TRUE,
             ),
-            plotOutput(outputId = 'objdim'),
+            div(
+              style = "position:relative",
+              plotOutput(
+                outputId = 'objdim',
+                hover = hoverOpts(
+                  id = "objdim_hover_location",
+                  delay = 5,
+                  delayType = "debounce",
+                  nullOutside = TRUE
+                )
+              ),
+              uiOutput("objdim_hover_box")
+            ),
             width = 12
           ),
           box(
-            title = 'Metadata table',
+            title = p(
+              'Metadata table',
+              bsButton(
+                inputId = 'q5',
+                label = '',
+                icon = icon(name = 'question'),
+                style = 'info',
+                size = 'extra-small'
+              )
+            ),
+            bsPopover(
+              id = 'q5',
+              title = 'Metadata table',
+              content = paste(
+                'A (usually) 2D table where each dimension represents a query metadata field, ',
+                'thus revealing the breakdown of any one query attribute when grouping by another. ',
+                'By default, a 1D table is produced where one dimension has constant value (\\"query\\") and ',
+                'the other is a predicted class (\\"predicted.XXX\\"), thus showing the overall breakdown of the ',
+                'predicted class.'),
+              placement = 'right',
+              trigger = 'focus',
+              options = list(container = 'body')
+            ),
             div(
               style = 'display: inline-block; vertical-align: top; width: 25%',
               selectizeInput(

@@ -44,3 +44,15 @@
 .thirds {
   width: 33%;
 }
+
+.refdescriptor {
+  padding: 0% 0%;
+  text-align: left;
+}
+
+.refdescriptor-title {
+  font-size: 14px;
+  line-height: 26px;
+  /*background: #CBCDE8;
+  background: linear-gradient(to right, #CBCDE8 0%, #E2E6EB 14%, #ECF0F5 30%);*/
+}
