@@ -462,6 +462,8 @@ AzimuthServer <- function(input, output, session) {
         }
         if (!is.null(x = react.env$progress)) {
           react.env$progress$close()
+          enable(id = 'file')
+          enable(id = 'triggerdemo')
           react.env$progress <- NULL
         }
         updateSelectizeInput(
@@ -492,6 +494,8 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = input$map,
     handlerExpr = {
       react.env$start <- Sys.time()
+      disable(id = 'file')
+      disable(id = 'triggerdemo')
       for (id in qc.ids) {
         try(expr = disable(id = id), silent = TRUE)
       }
@@ -624,6 +628,8 @@ AzimuthServer <- function(input, output, session) {
           app.env$object <- NULL
           app.env$anchors <- NULL
           react.env$progress$close()
+          enable(id = 'file')
+          enable(id = 'triggerdemo')
           gc(verbose = FALSE)
         } else {
           query.unique <- length(x = unique(x = slot(object = app.env$anchors, name = "anchors")[, "cell2"]))
@@ -731,6 +737,8 @@ AzimuthServer <- function(input, output, session) {
           react.env$path <- NULL
           react.env$map <- FALSE
           react.env$progress$close()
+          enable(id = 'file')
+          enable(id = 'triggerdemo')
           gc(verbose = FALSE)
         } else {
           app.env$object <- IntegrateEmbeddings(
@@ -995,6 +1003,8 @@ AzimuthServer <- function(input, output, session) {
           )
         })
         react.env$progress$close()
+        enable(id = 'file')
+        enable(id = 'triggerdemo')
         react.env$metadata <- TRUE
         react.env$biomarkers <- FALSE
       }
