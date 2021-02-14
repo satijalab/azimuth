@@ -1521,7 +1521,7 @@ AzimuthServer <- function(input, output, session) {
           cols = colormaps[[1]],
           repel = TRUE
         )[[1]]
-        if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref, drop = TRUE]]))) >= 30) {
+        if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref, drop = TRUE]]))) >= 40) {
           plot + NoLegend()
         } else {
           plot
@@ -1537,7 +1537,7 @@ AzimuthServer <- function(input, output, session) {
             cols = colormaps[[i]],
             repel = TRUE,
           )
-          if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref[i], drop = TRUE]]))) >= 30) {
+          if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref[i], drop = TRUE]]))) >= 40) {
             plots[[i]] <- plots[[i]] + NoLegend()
           } else {
             plots[[i]] <- plots[[i]]
@@ -1604,7 +1604,7 @@ AzimuthServer <- function(input, output, session) {
           )[[1]] +
             xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]])
-          if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query, drop = TRUE]]))) >= 30) {
+          if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query, drop = TRUE]]))) >= 40) {
             p + NoLegend()
           } else {
             p
@@ -1627,7 +1627,7 @@ AzimuthServer <- function(input, output, session) {
               reduction = "umap.proj"
             ) + xlim(app.env$plot.ranges[[1]]) +
               ylim(app.env$plot.ranges[[2]])
-            if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]]))) >= 30) {
+            if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]]))) >= 40) {
               plots[[i]] <- plots[[i]] + NoLegend()
             }
           }
