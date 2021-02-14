@@ -73,6 +73,7 @@ AzimuthUI <- tagList(
             top: calc(90%);
             width: 350px;
           }
+          .small-box {height: 110px}
             "
           )
         )
@@ -220,7 +221,7 @@ AzimuthUI <- tagList(
               fluidRow(
                 shiny:::column(
                   5,
-                  shiny:::column( #import!
+                  shiny:::column(
                     6, checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis')
                   ),
                   shiny:::column(
@@ -246,6 +247,7 @@ AzimuthUI <- tagList(
               valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
               bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
             ),
+            valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
           ),
         ),
         tabItem(
@@ -256,10 +258,10 @@ AzimuthUI <- tagList(
               shiny:::column(
                 9,
                 shiny:::column(
-                  2, checkboxInput(inputId = 'labels', label = 'Show labels')
+                  2, checkboxInput(inputId = 'labels', label = 'Show labels', value = FALSE)
                 ),
                 shiny:::column(
-                  2, checkboxInput(inputId = 'legend', label = 'Show legend')
+                  2, checkboxInput(inputId = 'legend', label = 'Show legend', value = TRUE)
                 )
               )
             ),

@@ -67,7 +67,8 @@ AzimuthServer <- function(input, output, session) {
     plots.refdim_df = NULL,
     plots.refdim_intro_df = NULL,
     plots.objdim_df = NULL,
-    fresh.plot = TRUE
+    fresh.plot = TRUE,
+    singlepred = NULL
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -631,7 +632,7 @@ AzimuthServer <- function(input, output, session) {
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(
                 value = paste0(percent.anchors, "%"),
-                subtitle = "anchor QC",
+                subtitle = "% of query cells with anchors",
                 color = 'red',
                 icon = icon(name = 'times')
               )
@@ -640,7 +641,7 @@ AzimuthServer <- function(input, output, session) {
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(
                 value = paste0(percent.anchors, "%"),
-                subtitle = "anchor QC",
+                subtitle = "% of query cells with anchors",
                 color = 'yellow',
                 icon = icon(name = 'exclamation-circle')
               )
@@ -649,7 +650,7 @@ AzimuthServer <- function(input, output, session) {
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(
                 value = paste0(percent.anchors, "%"),
-                subtitle = "anchor QC",
+                subtitle = "% of query cells with anchors",
                 color = 'green',
                 icon = icon(name = 'check')
               )
@@ -662,7 +663,7 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   observeEvent(
-    eventExpr = react.env$map,
+    eventExpr = list(react.env$map, input$metadataxfer),
     handlerExpr = {
       if (isTRUE(x = react.env$map)) {
         if (is.null(x = input$metadataxfer)) {
@@ -690,30 +691,67 @@ AzimuthServer <- function(input, output, session) {
           n.trees = n.trees,
           store.weights = TRUE
         )
+        app.env$singlepred <- NULL
         for(i in app.env$metadataxfer) {
+          app.env$singlepred <- c(app.env$singlepred, length(x = unique(x = as.vector(x = app.env$object[[paste0("predicted.", i), drop = TRUE]]))) == 1)
           app.env$object[[paste0("predicted.", i), drop = TRUE]] <- factor(
             x = app.env$object[[paste0("predicted.", i), drop = TRUE]],
             levels = levels(x = refs$map[[i, drop = TRUE]])
           )
         }
-        app.env$object <- IntegrateEmbeddings(
-          anchorset = app.env$anchors,
-          reference = refs$map,
-          query = app.env$object,
-          reductions = "pcaproject",
-          reuse.weights.matrix = TRUE
-        )
-        if (is.null(x = getOption(x = "Azimuth.app.default_metadata"))) {
-          app.env$default.metadata <- names(x = refdata)[1]
+        singlepred <- all(app.env$singlepred)
+        if (singlepred & (length(x = setdiff(possible.metadata.transfer, app.env$metadataxfer)) > 0)) {
+          showNotification(
+            paste0("Only one predicted class. Re-running with all metadata."),
+            duration = 5,
+            type = 'warning',
+            closeButton = TRUE,
+            id = 'no-progress-notification'
+          )
+          updateSelectizeInput(
+            session = getDefaultReactiveDomain(),
+            inputId = 'metadataxfer',
+            choices = possible.metadata.transfer,
+            selected = possible.metadata.transfer,
+          )
+          app.env$metadataxfer <- input$metadataxfer
+        } else if (singlepred) {
+          showNotification(
+            paste0(
+              "Only one predicted class: ",
+              app.env$object[[paste0("predicted.",
+                                     app.env$metadataxfer[1]), drop = TRUE]][1]),
+            duration = 5,
+            type = 'warning',
+            closeButton = TRUE,
+            id = 'no-progress-notification'
+          )
+          app.env$object <- NULL
+          app.env$anchors <- NULL
+          react.env$path <- NULL
+          react.env$map <- FALSE
+          react.env$progress$close()
+          gc(verbose = FALSE)
         } else {
-          if (getOption(x = "Azimuth.app.default_metadata") %in% names(x = refdata)) {
-            app.env$default.metadata <- getOption(x = "Azimuth.app.default_metadata")
-          } else {
+          app.env$object <- IntegrateEmbeddings(
+            anchorset = app.env$anchors,
+            reference = refs$map,
+            query = app.env$object,
+            reductions = "pcaproject",
+            reuse.weights.matrix = TRUE
+          )
+          if (is.null(x = getOption(x = "Azimuth.app.default_metadata"))) {
             app.env$default.metadata <- names(x = refdata)[1]
+          } else {
+            if (getOption(x = "Azimuth.app.default_metadata") %in% names(x = refdata)) {
+              app.env$default.metadata <- getOption(x = "Azimuth.app.default_metadata")
+            } else {
+              app.env$default.metadata <- names(x = refdata)[1]
+            }
           }
+          react.env$score <- TRUE
+          react.env$map <- FALSE
         }
-        react.env$score <- TRUE
-        react.env$map <- FALSE
       }
     }
   )
@@ -736,8 +774,8 @@ AzimuthServer <- function(input, output, session) {
         if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
           output$valuebox_mappingqcstat <- renderValueBox(expr = {
             valueBox(
-              value = qc.stat,
-              subtitle = "mapping QC stat",
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
               color = 'red',
               icon = icon(name = 'times')
             )
@@ -745,8 +783,8 @@ AzimuthServer <- function(input, output, session) {
         } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
           output$valuebox_mappingqcstat <- renderValueBox(expr = {
             valueBox(
-              value = qc.stat,
-              subtitle = "mapping QC stat",
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
               color = 'yellow',
               icon = icon(name = 'exclamation-circle')
             )
@@ -754,8 +792,8 @@ AzimuthServer <- function(input, output, session) {
         } else {
           output$valuebox_mappingqcstat <- renderValueBox(expr = {
             valueBox(
-              value = qc.stat,
-              subtitle = "mapping QC stat",
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
               color = 'green',
               icon = icon(name = 'check')
             )
@@ -867,14 +905,6 @@ AzimuthServer <- function(input, output, session) {
           app.env$messages,
           paste(ncol(x = app.env$object), "cells mapped")
         )
-        output$valuebox.mapped <- renderValueBox(expr = {
-          valueBox(
-            value = 'Success',
-            subtitle = 'Mapping complete',
-            icon = icon(name = 'check'),
-            color = 'green'
-          )
-        })
         react.env$biomarkers <- TRUE
         react.env$transform <- FALSE
       }
@@ -888,7 +918,7 @@ AzimuthServer <- function(input, output, session) {
           value = 0.95,
           message = 'Running differential expression'
         )
-        for (i in app.env$metadataxfer) {
+        for (i in app.env$metadataxfer[!app.env$singlepred]) {
           app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
             group_by = paste0("predicted.", i),
@@ -1074,7 +1104,8 @@ AzimuthServer <- function(input, output, session) {
         updateSelectizeInput(
           session = session,
           inputId = 'metacolor.ref',
-          choices = app.env$metadataxfer,
+          choices = c(grep('^predicted.', app.env$metadataxfer, value = T), # re-ordering not working...
+                      grep('^predicted.', app.env$metadataxfer, value = T, invert = T)),
           selected = app.env$default.metadata,
           server = TRUE,
           options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
@@ -1159,7 +1190,7 @@ AzimuthServer <- function(input, output, session) {
         updateSelectizeInput(
           session = session,
           inputId = 'markerclustersgroup',
-          choices = app.env$metadataxfer,
+          choices = app.env$metadataxfer[!app.env$singlepred],
           selected = app.env$default.metadata,
           server = TRUE,
           options = selectize.opts
