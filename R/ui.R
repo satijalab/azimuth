@@ -73,6 +73,7 @@ AzimuthUI <- tagList(
             top: calc(90%);
             width: 350px;
           }
+          .small-box {height: 110px}
             "
           )
         )
@@ -236,6 +237,7 @@ AzimuthUI <- tagList(
               valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
               bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "bottom", trigger = 'hover'),
             ),
+            valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
           ),
         ),
         tabItem(

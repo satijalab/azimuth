@@ -104,6 +104,8 @@ AzimuthServer <- function(input, output, session) {
     output$valubox.upload <- NULL
     output$valuebox.preproc <- NULL
     output$valuebox.mapped <- NULL
+    output$valuebox_panchors <- NULL
+    output$valuebox_mappingqcstat <- NULL
     disable(id = 'map')
     hide(selector = '.rowhide')
   }
@@ -631,7 +633,7 @@ AzimuthServer <- function(input, output, session) {
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(
                 value = paste0(percent.anchors, "%"),
-                subtitle = "anchor QC",
+                subtitle = "% of query cells with anchors",
                 color = 'red',
                 icon = icon(name = 'times')
               )
@@ -640,7 +642,7 @@ AzimuthServer <- function(input, output, session) {
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(
                 value = paste0(percent.anchors, "%"),
-                subtitle = "anchor QC",
+                subtitle = "% of query cells with anchors",
                 color = 'yellow',
                 icon = icon(name = 'exclamation-circle')
               )
@@ -649,7 +651,7 @@ AzimuthServer <- function(input, output, session) {
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(
                 value = paste0(percent.anchors, "%"),
-                subtitle = "anchor QC",
+                subtitle = "% of query cells with anchors",
                 color = 'green',
                 icon = icon(name = 'check')
               )
@@ -736,8 +738,8 @@ AzimuthServer <- function(input, output, session) {
         if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
           output$valuebox_mappingqcstat <- renderValueBox(expr = {
             valueBox(
-              value = qc.stat,
-              subtitle = "mapping QC stat",
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
               color = 'red',
               icon = icon(name = 'times')
             )
@@ -745,8 +747,8 @@ AzimuthServer <- function(input, output, session) {
         } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
           output$valuebox_mappingqcstat <- renderValueBox(expr = {
             valueBox(
-              value = qc.stat,
-              subtitle = "mapping QC stat",
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
               color = 'yellow',
               icon = icon(name = 'exclamation-circle')
             )
@@ -754,8 +756,8 @@ AzimuthServer <- function(input, output, session) {
         } else {
           output$valuebox_mappingqcstat <- renderValueBox(expr = {
             valueBox(
-              value = qc.stat,
-              subtitle = "mapping QC stat",
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
               color = 'green',
               icon = icon(name = 'check')
             )
@@ -867,14 +869,6 @@ AzimuthServer <- function(input, output, session) {
           app.env$messages,
           paste(ncol(x = app.env$object), "cells mapped")
         )
-        output$valuebox.mapped <- renderValueBox(expr = {
-          valueBox(
-            value = 'Success',
-            subtitle = 'Mapping complete',
-            icon = icon(name = 'check'),
-            color = 'green'
-          )
-        })
         react.env$biomarkers <- TRUE
         react.env$transform <- FALSE
       }
