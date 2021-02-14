@@ -1416,7 +1416,8 @@ AzimuthServer <- function(input, output, session) {
   )
   # Plots
   output$plot.qc <- renderPlot(expr = {
-    if (!is.null(x = isolate(app.env$object))) {
+    if (!is.null(x = isolate(app.env$object)) &
+        all(paste0(c('nCount_', 'nFeature_'), app.env$default.assay) %in% colnames(app.env$object@meta.data)) ) {
       qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
       if (isTRUE(x = react.env$mt)) {
         qc <- c(qc, mt.key)
