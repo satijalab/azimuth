@@ -3,7 +3,7 @@
 #' @importFrom DT DTOutput
 #' @importFrom htmltools div h3 h4 HTML includeCSS p tagList tags
 #' @importFrom shinyjs disabled useShinyjs
-#' @importFrom shiny actionButton checkboxInput downloadButton fileInput
+#' @importFrom shiny actionButton checkboxInput column downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
 #' tableOutput textOutput uiOutput verbatimTextOutput hoverOpts
 #' @importFrom shinyBS bsButton bsPopover bsTooltip
@@ -216,8 +216,18 @@ AzimuthUI <- tagList(
               options = list(container = 'body')
             ),
             box(
-              checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis'),
-              checkboxInput(inputId = 'check.qcpoints', label = 'Hide points'),
+              # nested columns for non-integer 2.5 width: 2.5/12 = 5/12 * 6/12
+              fluidRow(
+                shiny:::column(
+                  5,
+                  shiny:::column( #import!
+                    6, checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis')
+                  ),
+                  shiny:::column(
+                    6, checkboxInput(inputId = 'check.qcpoints', label = 'Hide points')
+                  )
+                )
+              ),
               plotOutput(outputId = 'plot.qc'),
               tableOutput(outputId = 'table.qc'),
               width = 8
@@ -229,12 +239,12 @@ AzimuthUI <- tagList(
             div(
               id = 'panchors_popup',
               valueBoxOutput(outputId = "valuebox_panchors", width = 3),
-              bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "bottom", trigger = 'hover'),
+              bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
             ),
             div(
               id = 'mappingqcstat_popup',
               valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
-              bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "bottom", trigger = 'hover'),
+              bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
             ),
           ),
         ),
@@ -242,7 +252,17 @@ AzimuthUI <- tagList(
           tabName = 'tab_cell',
           box(
             title = 'Reference',
-            checkboxInput(inputId = 'labels', label = 'Show labels'),
+            fluidRow(
+              shiny:::column(
+                9,
+                shiny:::column(
+                  2, checkboxInput(inputId = 'labels', label = 'Show labels')
+                ),
+                shiny:::column(
+                  2, checkboxInput(inputId = 'legend', label = 'Show legend')
+                )
+              )
+            ),
             selectizeInput(
               inputId = 'metacolor.ref',
               label = 'Metadata to color by',
