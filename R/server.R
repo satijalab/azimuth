@@ -103,6 +103,7 @@ AzimuthServer <- function(input, output, session) {
   }
   ResetEnv <- function() {
     app.env$messages <- NULL
+    app.env$object <- NULL
     output$valubox.upload <- NULL
     output$valuebox.preproc <- NULL
     output$valuebox.mapped <- NULL
@@ -208,6 +209,7 @@ AzimuthServer <- function(input, output, session) {
   observeEvent(
     eventExpr = input$file,
     handlerExpr = {
+      ResetEnv()
       if (nchar(x = input$file$datapath)) {
         react.env$path <- input$file$datapath
       }
