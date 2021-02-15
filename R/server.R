@@ -82,6 +82,7 @@ AzimuthServer <- function(input, output, session) {
     xferopts = FALSE,
     path = NULL,
     progress = NULL,
+    plot.qc = FALSE,
     qc = FALSE,
     score = FALSE,
     sctransform = FALSE,
@@ -102,6 +103,7 @@ AzimuthServer <- function(input, output, session) {
     addClass(id = 'biotable', class = 'fulls')
   }
   ResetEnv <- function() {
+    react.env$plot.qc <- FALSE
     app.env$messages <- NULL
     app.env$object <- NULL
     output$valubox.upload <- NULL
@@ -477,6 +479,7 @@ AzimuthServer <- function(input, output, session) {
           options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
         )
         react.env$qc <- FALSE
+        react.env$plot.qc <- TRUE
       }
     }
   )
@@ -1416,8 +1419,8 @@ AzimuthServer <- function(input, output, session) {
   )
   # Plots
   output$plot.qc <- renderPlot(expr = {
-    if (!is.null(x = isolate(app.env$object)) &
-        all(paste0(c('nCount_', 'nFeature_'), app.env$default.assay) %in% colnames(app.env$object@meta.data)) ) {
+    if (!is.null(x = isolate(app.env$object)) & isTRUE(react.env$plot.qc)) {
+        # all(paste0(c('nCount_', 'nFeature_'), app.env$default.assay) %in% colnames(app.env$object@meta.data)) ) {
       qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
       if (isTRUE(x = react.env$mt)) {
         qc <- c(qc, mt.key)
