@@ -24,8 +24,9 @@ NULL
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
-#' safeError updateNumericInput updateSelectizeInput updateCheckboxInput withProgress renderUI
-#' onStop showNotification wellPanel nearPoints insertUI modalDialog showModal
+#' safeError updateNumericInput updateSelectizeInput updateCheckboxInput
+#' withProgress renderUI onStop showNotification wellPanel nearPoints insertUI
+#' modalDialog showModal getDefaultReactiveDomain
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show onclick
@@ -731,7 +732,8 @@ AzimuthServer <- function(input, output, session) {
             paste0(
               "Only one predicted class: ",
               app.env$object[[paste0("predicted.",
-                                     app.env$metadataxfer[1]), drop = TRUE]][1]),
+              app.env$metadataxfer[1]), drop = TRUE]][1]
+            ),
             duration = 5,
             type = 'warning',
             closeButton = TRUE,
@@ -1119,8 +1121,8 @@ AzimuthServer <- function(input, output, session) {
         updateSelectizeInput(
           session = session,
           inputId = 'metacolor.ref',
-          choices = c(grep('^predicted.', app.env$metadataxfer, value = T), # re-ordering not working...
-                      grep('^predicted.', app.env$metadataxfer, value = T, invert = T)),
+          choices = c(grep(pattern = '^predicted.', x = app.env$metadataxfer, value = TRUE), # re-ordering not working...
+                      grep(pattern = '^predicted.', x = app.env$metadataxfer, value = TRUE, invert = TRUE)),
           selected = app.env$default.metadata,
           server = TRUE,
           options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
@@ -1422,23 +1424,25 @@ AzimuthServer <- function(input, output, session) {
   )
   # Plots
   output$plot.qc <- renderPlot(expr = {
-    if (!is.null(x = isolate(app.env$object)) & isTRUE(react.env$plot.qc)) {
+    if (!is.null(x = isolate(expr = app.env$object)) & isTRUE(x = react.env$plot.qc)) {
         # all(paste0(c('nCount_', 'nFeature_'), app.env$default.assay) %in% colnames(app.env$object@meta.data)) ) {
       qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
       if (isTRUE(x = react.env$mt)) {
         qc <- c(qc, mt.key)
       }
+      check.qcpoints <- "qcpoints" %in% input$check.qc
+      check.qcscale <- "qcscale" %in% input$check.qc
       vlnlist <- VlnPlot(
         object = isolate(app.env$object),
         features = qc,
         group.by = 'query',
         combine = FALSE,
         pt.size = ifelse(
-          test = input$check.qcpoints,
+          test = check.qcpoints,
           yes = 0,
           no = Seurat:::AutoPointSize(data = isolate(app.env$object))
         ),
-        log = input$check.qcscale
+        log = check.qcscale
       )
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
@@ -1457,7 +1461,7 @@ AzimuthServer <- function(input, output, session) {
           geom = "rect",
           alpha = 0.2,
           fill = "red",
-          ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+          ymin = ifelse(test = check.qcscale, yes = 0, no = -Inf),
           ymax = input$num.ncountmin,
           xmin = 0.5,
           xmax = 1.5
@@ -1481,7 +1485,7 @@ AzimuthServer <- function(input, output, session) {
           geom = "rect",
           alpha = 0.2,
           fill = "red",
-          ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+          ymin = ifelse(test = check.qcscale, yes = 0, no = -Inf),
           ymax = input$num.nfeaturemin,
           xmin = 0.5,
           xmax = 1.5
@@ -1505,7 +1509,7 @@ AzimuthServer <- function(input, output, session) {
             geom = "rect",
             alpha = 0.2,
             fill = "red",
-            ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+            ymin = ifelse(test = check.qcscale, yes = 0, no = -Inf),
             ymax = input$minmt,
             xmin = 0.5,
             xmax = 1.5
@@ -1592,22 +1596,22 @@ AzimuthServer <- function(input, output, session) {
         app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
         DimPlot(
           object = refs$plot,
-          label = input$labels,
+          label = "labels" %in% input$dimplot.opts,
           group.by = input$metacolor.ref,
           cols = colormaps[[1]],
           repel = TRUE
-        )[[1]] + if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref,drop=T]])) NoLegend()
+        )[[1]] + if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
       } else {
         app.env$plots.refdim_df <- NULL
         plots <- list()
         for (i in 1:length(x = colormaps)) {
           plots[[i]] <- DimPlot(
             object = refs$plot,
-            label = input$labels,
+            label = "labels" %in% input$dimplot.opts,
             group.by = input$metacolor.ref[i],
             cols = colormaps[[i]],
             repel = TRUE,
-          ) + if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref[i],drop=T]])) NoLegend()
+          ) + if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
         }
         wrap_plots(plots, nrow = 1)
       }
@@ -1663,14 +1667,14 @@ AzimuthServer <- function(input, output, session) {
           DimPlot(
             object = app.env$object,
             group.by = input$metacolor.query,
-            label = input$labels,
+            label = "labels" %in% input$dimplot.opts,
             cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
             repel = TRUE,
             reduction = "umap.proj"
           )[[1]] +
             xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]]) +
-            if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query,drop=T]])) NoLegend()
+            if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(app.env$object[[input$metacolor.query, drop = TRUE]])) NoLegend()
         } else {
           app.env$plots.objdim_df <- NULL
           plots <- list()
@@ -1683,13 +1687,13 @@ AzimuthServer <- function(input, output, session) {
             plots[[i]] <- DimPlot(
               object = app.env$object,
               group.by = input$metacolor.query[i],
-              label = input$labels,
+              label = "labels" %in% input$dimplot.opts,
               cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
               repel = TRUE,
               reduction = "umap.proj"
             ) + xlim(app.env$plot.ranges[[1]]) +
               ylim(app.env$plot.ranges[[2]]) +
-              if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query[i],drop=T]])) NoLegend()
+              if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
           }
           wrap_plots(plots, nrow = 1)
         }

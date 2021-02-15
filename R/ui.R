@@ -6,6 +6,7 @@
 #' @importFrom shiny actionButton checkboxInput column downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
 #' tableOutput textOutput uiOutput verbatimTextOutput hoverOpts
+#' checkboxGroupInput
 #' @importFrom shinyBS bsButton bsPopover bsTooltip
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
@@ -217,18 +218,7 @@ AzimuthUI <- tagList(
               options = list(container = 'body')
             ),
             box(
-              # nested columns for non-integer 2.5 width: 2.5/12 = 5/12 * 6/12
-              fluidRow(
-                shiny:::column(
-                  5,
-                  shiny:::column(
-                    6, checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis')
-                  ),
-                  shiny:::column(
-                    6, checkboxInput(inputId = 'check.qcpoints', label = 'Hide points')
-                  )
-                )
-              ),
+              checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
               plotOutput(outputId = 'plot.qc'),
               tableOutput(outputId = 'table.qc'),
               width = 8
@@ -254,17 +244,7 @@ AzimuthUI <- tagList(
           tabName = 'tab_cell',
           box(
             title = 'Reference',
-            fluidRow(
-              shiny:::column(
-                9,
-                shiny:::column(
-                  2, checkboxInput(inputId = 'labels', label = 'Show labels', value = FALSE)
-                ),
-                shiny:::column(
-                  2, checkboxInput(inputId = 'legend', label = 'Show legend', value = TRUE)
-                )
-              )
-            ),
+            checkboxGroupInput(inputId = "dimplot.opts", label = NULL, choiceNames = c("Show labels", "Show legend"), choiceValues = c("labels", "legend"), selected = "legend", inline = TRUE),
             selectizeInput(
               inputId = 'metacolor.ref',
               label = 'Metadata to color by',
