@@ -1152,9 +1152,12 @@ AzimuthServer <- function(input, output, session) {
           options = selectize.opts
         )
         if (isTRUE(x = do.adt)) {
-          app.env$adt.features <- sort(x = FilterFeatures(features = rownames(
+          # app.env$adt.features <- sort(x = FilterFeatures(features = rownames(
+          #   x = app.env$object[[adt.key]]
+          # )))
+          app.env$adt.features <- sort(x = rownames(
             x = app.env$object[[adt.key]]
-          )))
+          ))
           updateSelectizeInput(
             session = session,
             inputId = 'adtfeature',
