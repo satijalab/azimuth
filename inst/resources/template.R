@@ -64,8 +64,8 @@ cells.use <- query[["nCount_RNA", drop = TRUE]] <= ${ncount.max} &
 # If the query contains mitochondrial genes, filter cells based on the
 # thresholds for ${mito.key} you set in the app
 if ("${mito.key}" %in% c(colnames(x = query[[]]))) {
-  cells.use <- query[["${mito.key}", drop = TRUE]] <= ${mito.max} &
-    query[["${mito.key}", drop = TRUE]] >= ${mito.min}
+  cells.use <- cells.use & (query[["${mito.key}", drop = TRUE]] <= ${mito.max} &
+    query[["${mito.key}", drop = TRUE]] >= ${mito.min})
 }
 
 # Remove filtered cells from the query
