@@ -504,6 +504,60 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
   return(colors)
 }
 
+# Post mapping QC metric
+#
+# @param query Query object
+# @param ds.amount Amount to downsample query
+# @return Returns
+#
+#' @importFrom SeuratObject Cells Idents Indices as.Neighbor
+#' @importFrom Seurat RunPCA FindNeighbors FindClusters MinMax
+#
+#' @keywords internal
+#
+#
+MappingQCMetric <- function(query, ds.amount) {
+  query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
+  if (ncol(x = query) > ds.amount) {
+    query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
+  }
+  query <- RunPCA(object = query, verbose = FALSE)
+  query <- FindNeighbors(object = query, reduction = 'pca', dims = 1:50, graph.name = 'pca_snn')
+  query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_snn"]])
+  query <- FindClusters(object = query, resolution = 0.6, graph.name = 'pca_snn')
+  query <- FindNeighbors(object = query, reduction = 'integrated_dr', dims = 1:50, return.neighbor = TRUE, graph.name = "integrated_neighbors")
+  ids <- Idents(object = query)
+  integrated.neighbor.indices <- Indices(object = query[["integrated_neighbors"]])
+  proj_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
+    neighbors <- integrated.neighbor.indices[x, ]
+    nn_ids <- ids[neighbors]
+    p_x <- prop.table(x = table(nn_ids))
+    nn_entropy <- sum(p_x * log(x = p_x), na.rm = TRUE)
+    return(nn_entropy)
+  }))
+  names(x = proj_ent) <- Cells(x = query)
+  orig.neighbor.indices <- Indices(object = query[["orig_neighbors"]])
+  orig_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
+    neighbors <- orig.neighbor.indices[x, ]
+    nn_ids <- ids[neighbors]
+    p_x <- prop.table(x = table(nn_ids))
+    nn_entropy <- sum(p_x * log(x = p_x), na.rm = TRUE)
+    return(nn_entropy)
+  }))
+  names(x = orig_ent) <- Cells(x = query)
+  stat <- median(
+    x = tapply(X = orig_ent, INDEX = ids, FUN = mean) -
+      tapply(X = proj_ent, INDEX = ids, FUN = mean)
+  )
+  if (stat <= 0) {
+    stat <- 5.00
+  } else {
+    stat <- -1 * log2(x = stat)
+    stat <- MinMax(data = stat, min = 0.00, max = 5.00)
+  }
+  return(stat)
+}
+
 #' Validate References for Azimuth
 #'
 #' Validate aspects of a Seurat object to be used as an Azimuth reference

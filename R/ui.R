@@ -3,10 +3,11 @@
 #' @importFrom DT DTOutput
 #' @importFrom htmltools div h3 h4 HTML includeCSS p tagList tags
 #' @importFrom shinyjs disabled useShinyjs
-#' @importFrom shiny actionButton checkboxInput downloadButton fileInput
+#' @importFrom shiny actionButton checkboxInput column downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
 #' tableOutput textOutput uiOutput verbatimTextOutput hoverOpts
-#' @importFrom shinyBS bsButton bsPopover
+#' checkboxGroupInput
+#' @importFrom shinyBS bsButton bsPopover bsTooltip
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
 #' valueBoxOutput
@@ -73,6 +74,7 @@ AzimuthUI <- tagList(
             top: calc(90%);
             width: 350px;
           }
+          .small-box {height: 110px}
             "
           )
         )
@@ -216,8 +218,7 @@ AzimuthUI <- tagList(
               options = list(container = 'body')
             ),
             box(
-              checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis'),
-              checkboxInput(inputId = 'check.qcpoints', label = 'Hide points'),
+              checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
               plotOutput(outputId = 'plot.qc'),
               tableOutput(outputId = 'table.qc'),
               width = 8
@@ -226,14 +227,24 @@ AzimuthUI <- tagList(
           fluidRow(
             valueBoxOutput(outputId = 'valuebox.upload', width = 3),
             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
-            valueBoxOutput(outputId = 'valuebox.mapped', width = 3)
+            div(
+              id = 'panchors_popup',
+              valueBoxOutput(outputId = "valuebox_panchors", width = 3),
+              bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
+            ),
+            div(
+              id = 'mappingqcstat_popup',
+              valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
+              bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
+            ),
+            valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
           ),
         ),
         tabItem(
           tabName = 'tab_cell',
           box(
             title = 'Reference',
-            checkboxInput(inputId = 'labels', label = 'Show labels'),
+            checkboxGroupInput(inputId = "dimplot.opts", label = NULL, choiceNames = c("Show labels", "Show legend"), choiceValues = c("labels", "legend"), selected = "legend", inline = TRUE),
             selectizeInput(
               inputId = 'metacolor.ref',
               label = 'Metadata to color by',

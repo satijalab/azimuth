@@ -85,6 +85,28 @@
 #'    Minimum number of anchors that must be found to complete mapping.
 #'    Defaults to \code{50}
 #'   }
+#'   \item{\code{Azimuth.map.panchorscolors}}{
+#'    Configure the valuebox on the main page corresponding to the values for
+#'    failure, warning, success for fraction of unique query cells that
+#'    participate in anchor pairs. Failure corresponds to
+#'    [0:\code{Azimuth.map.fracanchorscolors[1]}), warning to
+#'    [\code{Azimuth.map.fracanchorscolors[1]}:\code{Azimuth.map.fracanchorscolors[2]}),
+#'    and success is >= \code{Azimuth.map.fracanchorscolors[2]}.
+#'    Defaults to \code{c(5, 15)}
+#'   }
+#'   \item{\code{Azimuth.map.postmapqccolors}}{
+#'    Configure the valuebox on the main page corresponding to the values for
+#'    failure, warning, success for the post mapping cluster based QC metric.
+#'    Failure corresponds to [0:\code{Azimuth.map.postmapqc[1]}), warning to
+#'    [\code{Azimuth.map.postmapqc[1]}:\code{Azimuth.map.postmapqc[2]}),
+#'    and success is >= \code{Azimuth.map.postmapqc[2]}.
+#'    Defaults to \code{c(0.15, 0.25)}
+#'   }
+#'   \item{\code{Azimuth.map.postmapqcds}}{
+#'    Set the amount of query random downsampling to perform before computing
+#'    the mapping QC metric.
+#'    Defaults to \code{5000}
+#'   }
 #'   \item{\code{Azimuth.map.ntrees}}{
 #'    Annoy (approximate nearest neighbor) n.trees parameter
 #'    Defaults to \code{20}
@@ -146,6 +168,9 @@ default.options <- list(
   Azimuth.map.ncells = 100L,
   Azimuth.map.ngenes = 250L,
   Azimuth.map.nanchors = 50L,
+  Azimuth.map.panchorscolors = c(5, 15),
+  Azimuth.map.postmapqccolors = c(2, 3.75),
+  Azimuth.map.postmapqcds = 5000L,
   Azimuth.map.ntrees = 20L,
   Azimuth.sct.ncells = 2000L,
   Azimuth.sct.nfeats = 2000L

@@ -458,6 +458,11 @@ Oxford <- function(..., join = c('and', 'or')) {
   ))
 }
 
+# Determine if there are a prohibitive # of annotations for legend
+OversizedLegend <- function(annotation.list) {
+  return(length(x = unique(x = as.vector(x = annotation.list))) > 50)
+}
+
 # Theme for the plot on welcome page
 #
 WelcomePlot <- function(...) {

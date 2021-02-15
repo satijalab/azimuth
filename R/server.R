@@ -24,14 +24,15 @@ NULL
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
-#' safeError updateNumericInput updateSelectizeInput withProgress renderUI
-#' onStop showNotification wellPanel nearPoints insertUI
+#' safeError updateNumericInput updateSelectizeInput updateCheckboxInput
+#' withProgress renderUI onStop showNotification wellPanel nearPoints insertUI
+#' modalDialog showModal getDefaultReactiveDomain
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
-#' @importFrom shinyjs addClass enable disable hide removeClass show
+#' @importFrom shinyjs addClass enable disable hide removeClass show onclick
 #' @importFrom stringr str_interp
 #' @importFrom patchwork wrap_plots
-#' @importFrom stats na.omit quantile setNames
+#' @importFrom stats na.omit quantile setNames median
 #' @importFrom utils write.table packageVersion
 #'
 #' @keywords internal
@@ -66,7 +67,9 @@ AzimuthServer <- function(input, output, session) {
     plot.ranges = list(),
     plots.refdim_df = NULL,
     plots.refdim_intro_df = NULL,
-    plots.objdim_df = NULL
+    plots.objdim_df = NULL,
+    fresh.plot = TRUE,
+    singlepred = NULL
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -80,6 +83,7 @@ AzimuthServer <- function(input, output, session) {
     xferopts = FALSE,
     path = NULL,
     progress = NULL,
+    plot.qc = FALSE,
     qc = FALSE,
     score = FALSE,
     sctransform = FALSE,
@@ -100,10 +104,14 @@ AzimuthServer <- function(input, output, session) {
     addClass(id = 'biotable', class = 'fulls')
   }
   ResetEnv <- function() {
+    react.env$plot.qc <- FALSE
     app.env$messages <- NULL
+    app.env$object <- NULL
     output$valubox.upload <- NULL
     output$valuebox.preproc <- NULL
     output$valuebox.mapped <- NULL
+    output$valuebox_panchors <- NULL
+    output$valuebox_mappingqcstat <- NULL
     disable(id = 'map')
     hide(selector = '.rowhide')
   }
@@ -204,6 +212,7 @@ AzimuthServer <- function(input, output, session) {
   observeEvent(
     eventExpr = input$file,
     handlerExpr = {
+      ResetEnv()
       if (nchar(x = input$file$datapath)) {
         react.env$path <- input$file$datapath
       }
@@ -303,9 +312,6 @@ AzimuthServer <- function(input, output, session) {
                 )
                 app.env$object <- NULL
                 gc(verbose = FALSE)
-                if (isFALSE(x = react.env$xferopts)) {
-                  removeUI(selector = '#xferopts', immediate = TRUE)
-                }
                 react.env$path <- NULL
               }
             )
@@ -461,6 +467,8 @@ AzimuthServer <- function(input, output, session) {
         }
         if (!is.null(x = react.env$progress)) {
           react.env$progress$close()
+          enable(id = 'file')
+          enable(id = 'triggerdemo')
           react.env$progress <- NULL
         }
         updateSelectizeInput(
@@ -472,6 +480,7 @@ AzimuthServer <- function(input, output, session) {
           options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
         )
         react.env$qc <- FALSE
+        react.env$plot.qc <- TRUE
       }
     }
   )
@@ -491,6 +500,8 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = input$map,
     handlerExpr = {
       react.env$start <- Sys.time()
+      disable(id = 'file')
+      disable(id = 'triggerdemo')
       for (id in qc.ids) {
         try(expr = disable(id = id), silent = TRUE)
       }
@@ -623,8 +634,40 @@ AzimuthServer <- function(input, output, session) {
           app.env$object <- NULL
           app.env$anchors <- NULL
           react.env$progress$close()
+          enable(id = 'file')
+          enable(id = 'triggerdemo')
           gc(verbose = FALSE)
         } else {
+          query.unique <- length(x = unique(x = slot(object = app.env$anchors, name = "anchors")[, "cell2"]))
+          percent.anchors <- round(x = query.unique / ncol(x = app.env$object) * 100, digits = 2)
+          if (percent.anchors <  getOption(x = "Azimuth.map.panchorscolors")[1]) {
+            output$valuebox_panchors <- renderValueBox(expr = {
+              valueBox(
+                value = paste0(percent.anchors, "%"),
+                subtitle = "% of query cells with anchors",
+                color = 'red',
+                icon = icon(name = 'times')
+              )
+            })
+          } else if (percent.anchors <  getOption(x = "Azimuth.map.panchorscolors")[2]) {
+            output$valuebox_panchors <- renderValueBox(expr = {
+              valueBox(
+                value = paste0(percent.anchors, "%"),
+                subtitle = "% of query cells with anchors",
+                color = 'yellow',
+                icon = icon(name = 'exclamation-circle')
+              )
+            })
+          } else {
+            output$valuebox_panchors <- renderValueBox(expr = {
+              valueBox(
+                value = paste0(percent.anchors, "%"),
+                subtitle = "% of query cells with anchors",
+                color = 'green',
+                icon = icon(name = 'check')
+              )
+            })
+          }
           react.env$map <- TRUE
         }
         react.env$anchors <- FALSE
@@ -632,7 +675,7 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   observeEvent(
-    eventExpr = react.env$map,
+    eventExpr = list(react.env$map, input$metadataxfer),
     handlerExpr = {
       if (isTRUE(x = react.env$map)) {
         if (is.null(x = input$metadataxfer)) {
@@ -660,30 +703,70 @@ AzimuthServer <- function(input, output, session) {
           n.trees = n.trees,
           store.weights = TRUE
         )
+        app.env$singlepred <- NULL
         for(i in app.env$metadataxfer) {
+          app.env$singlepred <- c(app.env$singlepred, length(x = unique(x = as.vector(x = app.env$object[[paste0("predicted.", i), drop = TRUE]]))) == 1)
           app.env$object[[paste0("predicted.", i), drop = TRUE]] <- factor(
             x = app.env$object[[paste0("predicted.", i), drop = TRUE]],
             levels = levels(x = refs$map[[i, drop = TRUE]])
           )
         }
-        app.env$object <- IntegrateEmbeddings(
-          anchorset = app.env$anchors,
-          reference = refs$map,
-          query = app.env$object,
-          reductions = "pcaproject",
-          reuse.weights.matrix = TRUE
-        )
-        if (is.null(x = getOption(x = "Azimuth.app.default_metadata"))) {
-          app.env$default.metadata <- names(x = refdata)[1]
+        singlepred <- all(app.env$singlepred)
+        if (singlepred & (length(x = setdiff(possible.metadata.transfer, app.env$metadataxfer)) > 0)) {
+          showNotification(
+            paste0("Only one predicted class. Re-running with all metadata."),
+            duration = 5,
+            type = 'warning',
+            closeButton = TRUE,
+            id = 'no-progress-notification'
+          )
+          updateSelectizeInput(
+            session = getDefaultReactiveDomain(),
+            inputId = 'metadataxfer',
+            choices = possible.metadata.transfer,
+            selected = possible.metadata.transfer,
+          )
+          app.env$metadataxfer <- input$metadataxfer
+        } else if (singlepred) {
+          showNotification(
+            paste0(
+              "Only one predicted class: ",
+              app.env$object[[paste0("predicted.",
+              app.env$metadataxfer[1]), drop = TRUE]][1]
+            ),
+            duration = 5,
+            type = 'warning',
+            closeButton = TRUE,
+            id = 'no-progress-notification'
+          )
+          app.env$object <- NULL
+          app.env$anchors <- NULL
+          react.env$path <- NULL
+          react.env$map <- FALSE
+          react.env$progress$close()
+          enable(id = 'file')
+          enable(id = 'triggerdemo')
+          gc(verbose = FALSE)
         } else {
-          if (getOption(x = "Azimuth.app.default_metadata") %in% names(x = refdata)) {
-            app.env$default.metadata <- getOption(x = "Azimuth.app.default_metadata")
-          } else {
+          app.env$object <- IntegrateEmbeddings(
+            anchorset = app.env$anchors,
+            reference = refs$map,
+            query = app.env$object,
+            reductions = "pcaproject",
+            reuse.weights.matrix = TRUE
+          )
+          if (is.null(x = getOption(x = "Azimuth.app.default_metadata"))) {
             app.env$default.metadata <- names(x = refdata)[1]
+          } else {
+            if (getOption(x = "Azimuth.app.default_metadata") %in% names(x = refdata)) {
+              app.env$default.metadata <- getOption(x = "Azimuth.app.default_metadata")
+            } else {
+              app.env$default.metadata <- names(x = refdata)[1]
+            }
           }
+          react.env$score <- TRUE
+          react.env$map <- FALSE
         }
-        react.env$score <- TRUE
-        react.env$map <- FALSE
       }
     }
   )
@@ -695,6 +778,42 @@ AzimuthServer <- function(input, output, session) {
           value = 0.7,
           message = 'Calculating mapping score'
         )
+        # post mapping QC
+        qc.stat <- round(
+          x = MappingQCMetric(
+            query = app.env$object,
+            ds.amount = getOption(x = "Azimuth.map.postmapqcds")
+          ),
+          digits = 2
+        )
+        if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'red',
+              icon = icon(name = 'times')
+            )
+          })
+        } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'yellow',
+              icon = icon(name = 'exclamation-circle')
+            )
+          })
+        } else {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'green',
+              icon = icon(name = 'check')
+            )
+          })
+        }
         refdr <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = app.env$object), "_query")
@@ -801,14 +920,6 @@ AzimuthServer <- function(input, output, session) {
           app.env$messages,
           paste(ncol(x = app.env$object), "cells mapped")
         )
-        output$valuebox.mapped <- renderValueBox(expr = {
-          valueBox(
-            value = 'Success',
-            subtitle = 'Mapping complete',
-            icon = icon(name = 'check'),
-            color = 'green'
-          )
-        })
         react.env$biomarkers <- TRUE
         react.env$transform <- FALSE
       }
@@ -822,7 +933,7 @@ AzimuthServer <- function(input, output, session) {
           value = 0.95,
           message = 'Running differential expression'
         )
-        for (i in app.env$metadataxfer) {
+        for (i in app.env$metadataxfer[!app.env$singlepred]) {
           app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
             group_by = paste0("predicted.", i),
@@ -899,6 +1010,8 @@ AzimuthServer <- function(input, output, session) {
           )
         })
         react.env$progress$close()
+        enable(id = 'file')
+        enable(id = 'triggerdemo')
         react.env$metadata <- TRUE
         react.env$biomarkers <- FALSE
       }
@@ -1008,7 +1121,8 @@ AzimuthServer <- function(input, output, session) {
         updateSelectizeInput(
           session = session,
           inputId = 'metacolor.ref',
-          choices = app.env$metadataxfer,
+          choices = c(grep(pattern = '^predicted.', x = app.env$metadataxfer, value = TRUE), # re-ordering not working...
+                      grep(pattern = '^predicted.', x = app.env$metadataxfer, value = TRUE, invert = TRUE)),
           selected = app.env$default.metadata,
           server = TRUE,
           options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
@@ -1040,9 +1154,12 @@ AzimuthServer <- function(input, output, session) {
           options = selectize.opts
         )
         if (isTRUE(x = do.adt)) {
-          app.env$adt.features <- sort(x = FilterFeatures(features = rownames(
+          # app.env$adt.features <- sort(x = FilterFeatures(features = rownames(
+          #   x = app.env$object[[adt.key]]
+          # )))
+          app.env$adt.features <- sort(x = rownames(
             x = app.env$object[[adt.key]]
-          )))
+          ))
           updateSelectizeInput(
             session = session,
             inputId = 'adtfeature',
@@ -1093,7 +1210,7 @@ AzimuthServer <- function(input, output, session) {
         updateSelectizeInput(
           session = session,
           inputId = 'markerclustersgroup',
-          choices = app.env$metadataxfer,
+          choices = app.env$metadataxfer[!app.env$singlepred],
           selected = app.env$default.metadata,
           server = TRUE,
           options = selectize.opts
@@ -1285,24 +1402,47 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
+  observeEvent( # Once reference metadata is initialized, set the default legend/labels based on ref only
+    eventExpr = input$metacolor.ref,
+    handlerExpr = {
+      if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref[1], drop = TRUE]]))) >= 30) {
+        if (isTRUE(app.env$fresh.plot)) {
+          updateCheckboxInput(
+            session = session,
+            inputId = 'labels',
+            value = TRUE
+          )
+          updateCheckboxInput(
+            session = session,
+            inputId = 'legend',
+            value = FALSE
+          )
+          app.env$fresh.plot <- FALSE
+        }
+      }
+    }
+  )
   # Plots
   output$plot.qc <- renderPlot(expr = {
-    if (!is.null(x = isolate(app.env$object))) {
+    if (!is.null(x = isolate(expr = app.env$object)) & isTRUE(x = react.env$plot.qc)) {
+        # all(paste0(c('nCount_', 'nFeature_'), app.env$default.assay) %in% colnames(app.env$object@meta.data)) ) {
       qc <- paste0(c('nCount_', 'nFeature_'), app.env$default.assay)
       if (isTRUE(x = react.env$mt)) {
         qc <- c(qc, mt.key)
       }
+      check.qcpoints <- "qcpoints" %in% input$check.qc
+      check.qcscale <- "qcscale" %in% input$check.qc
       vlnlist <- VlnPlot(
         object = isolate(app.env$object),
         features = qc,
         group.by = 'query',
         combine = FALSE,
         pt.size = ifelse(
-          test = input$check.qcpoints,
+          test = check.qcpoints,
           yes = 0,
           no = Seurat:::AutoPointSize(data = isolate(app.env$object))
         ),
-        log = input$check.qcscale
+        log = check.qcscale
       )
       # nCount
       vlnlist[[1]] <- vlnlist[[1]] +
@@ -1321,7 +1461,7 @@ AzimuthServer <- function(input, output, session) {
           geom = "rect",
           alpha = 0.2,
           fill = "red",
-          ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+          ymin = ifelse(test = check.qcscale, yes = 0, no = -Inf),
           ymax = input$num.ncountmin,
           xmin = 0.5,
           xmax = 1.5
@@ -1345,7 +1485,7 @@ AzimuthServer <- function(input, output, session) {
           geom = "rect",
           alpha = 0.2,
           fill = "red",
-          ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+          ymin = ifelse(test = check.qcscale, yes = 0, no = -Inf),
           ymax = input$num.nfeaturemin,
           xmin = 0.5,
           xmax = 1.5
@@ -1369,7 +1509,7 @@ AzimuthServer <- function(input, output, session) {
             geom = "rect",
             alpha = 0.2,
             fill = "red",
-            ymin = ifelse(test = input$check.qcscale, yes = 0, no = -Inf),
+            ymin = ifelse(test = check.qcscale, yes = 0, no = -Inf),
             ymax = input$minmt,
             xmin = 0.5,
             xmax = 1.5
@@ -1454,34 +1594,24 @@ AzimuthServer <- function(input, output, session) {
         # )
         # app.env$plots.refdim[[1]] <- p$data
         app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
-        plot <- DimPlot(
+        DimPlot(
           object = refs$plot,
-          label = input$labels,
+          label = "labels" %in% input$dimplot.opts,
           group.by = input$metacolor.ref,
           cols = colormaps[[1]],
           repel = TRUE
-        )[[1]]
-        if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref, drop = TRUE]]))) >= 30) {
-          plot + NoLegend()
-        } else {
-          plot
-        }
+        )[[1]] + if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
       } else {
         app.env$plots.refdim_df <- NULL
         plots <- list()
         for (i in 1:length(x = colormaps)) {
           plots[[i]] <- DimPlot(
             object = refs$plot,
-            label = input$labels,
+            label = "labels" %in% input$dimplot.opts,
             group.by = input$metacolor.ref[i],
             cols = colormaps[[i]],
             repel = TRUE,
-          )
-          if (length(x = unique(x = as.vector(x = refs$plot[[input$metacolor.ref[i], drop = TRUE]]))) >= 30) {
-            plots[[i]] <- plots[[i]] + NoLegend()
-          } else {
-            plots[[i]] <- plots[[i]]
-          }
+          ) + if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
         }
         wrap_plots(plots, nrow = 1)
       }
@@ -1534,21 +1664,17 @@ AzimuthServer <- function(input, output, session) {
             as.data.frame(x = Embeddings(object = app.env$object[['umap.proj']])),
             app.env$object[[]]
           )
-          p <- DimPlot(
+          DimPlot(
             object = app.env$object,
             group.by = input$metacolor.query,
-            label = input$labels,
+            label = "labels" %in% input$dimplot.opts,
             cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
             repel = TRUE,
             reduction = "umap.proj"
           )[[1]] +
             xlim(app.env$plot.ranges[[1]]) +
-            ylim(app.env$plot.ranges[[2]])
-          if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query, drop = TRUE]]))) >= 30) {
-            p + NoLegend()
-          } else {
-            p
-          }
+            ylim(app.env$plot.ranges[[2]]) +
+            if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(app.env$object[[input$metacolor.query, drop = TRUE]])) NoLegend()
         } else {
           app.env$plots.objdim_df <- NULL
           plots <- list()
@@ -1561,15 +1687,13 @@ AzimuthServer <- function(input, output, session) {
             plots[[i]] <- DimPlot(
               object = app.env$object,
               group.by = input$metacolor.query[i],
-              label = input$labels,
+              label = "labels" %in% input$dimplot.opts,
               cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
               repel = TRUE,
               reduction = "umap.proj"
             ) + xlim(app.env$plot.ranges[[1]]) +
-              ylim(app.env$plot.ranges[[2]])
-            if (length(x = unique(x = as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]]))) >= 30) {
-              plots[[i]] <- plots[[i]] + NoLegend()
-            }
+              ylim(app.env$plot.ranges[[2]]) +
+              if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
           }
           wrap_plots(plots, nrow = 1)
         }
@@ -1957,4 +2081,75 @@ AzimuthServer <- function(input, output, session) {
   output$welcomebox <- renderUI(
     expr = eval(expr = parse(text = getOption(x = "Azimuth.app.welcomebox")))
   )
+
+  # render popup UI elements
+  onclick('panchors_popup', showModal(modalDialog(
+    title = "Anchors QC Metric",
+    div(
+      paste(
+        "Here we compute the percentage of query cells that participate ",
+        "in anchor pairs with the reference. The color of the box corresponds ",
+        "to the following bins that we have found empirically to flag ",
+        "potentially problematic query datasets well: "
+      ),
+      tags$ul(list(
+        tags$li(paste0("0% to ", getOption(x = "Azimuth.map.panchorscolors")[1], "%: Likely problematic (red)")),
+        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[1], "% to ", getOption(x = "Azimuth.map.panchorscolors")[2], "%: Possibly problematic (yellow)")),
+        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[2], "% to 100%: Likely accurate (green)"))
+      )),
+      tags$h4("Caveats"),
+      paste0(
+        "If you have a query dataset in which there is a batch effect, the ",
+        "number of cells is small, the query population is homogeneous, or ",
+        "represents only a small proportion of the reference diversity, the ",
+        "mapping may still be accurate but the QC stats may indicate a possible ",
+        "failure. Users in these cases should check results carefully, and in ",
+        "particular, markers for individual cell types to verify mapping."
+      )
+    )
+  )))
+  onclick('mappingqcstat_popup', showModal(modalDialog(
+    title = "Mapping Stat QC",
+    div(
+      tags$h4("Overview"),
+      paste0(
+        "Here we compute a post-mapping statistic intended to quantify how well ",
+        "the structure of the query dataset is preserved after mapping. This ",
+        "number ranges from 0 to 5, with 0 reflecting poor preservation and 5 ",
+        "representing strong preservation. We define the following ",
+        "broad categories: "
+      ),
+      tags$ul(list(
+        tags$li(paste0("0 to ", getOption(x = "Azimuth.map.postmapqccolors")[1], ": Likely problematic (red)")),
+        tags$li(paste0(getOption(x = "Azimuth.map.postmapqccolors")[1], " to ", getOption(x = "Azimuth.map.postmapqccolors")[2], ": Possibly problematic (yellow)")),
+        tags$li(paste0(getOption(x = "Azimuth.map.postmapqccolors")[2], " to 5: Likely accurate (green)"))
+      )),
+      tags$h4("Caveats"),
+      paste0(
+        "If you have a query dataset in which there is a batch effect, the ",
+        "number of cells is small, the query population is homogeneous, or ",
+        "represents only a small proportion of the reference diversity, the ",
+        "mapping may still be accurate but the QC stats may indicate a possible ",
+        "failure. Users in these cases should check results carefully, and in ",
+        "particular, markers for individual cell types to verify mapping."
+      ),
+      tags$h4("Details"),
+      paste0(
+        "To compute the mapping statistic, we first randomly downsample the ",
+        "query to ", getOption(x = "Azimuth.map.postmapqcds"), " cells for ",
+        "computational efficiency. We then compute an independent unsupervised ",
+        "clustering on the query. Using these cluster IDs, we then examine the ",
+        "neighborhoods of each cell in query PCA space and also in the mapped ",
+        "(projected) space. We compute an entropy of cluster labels and then ",
+        "take the mean entropy averaged over each cluster in both spaces. For ",
+        "each cluster we take the difference and report a single statistic as ",
+        "the median -log2 of these values, clipped to range between 0 and 5.",
+        "For the exact implementation details, please see the MappingQCMetric ",
+        "function in the azimuth github repo."
+      ),
+
+    )
+  )))
+
+
 }
