@@ -74,6 +74,9 @@ AzimuthUI <- tagList(
             top: calc(90%);
             width: 350px;
           }
+          .shiny-notification-close {
+            display: none;
+          }
           .small-box {height: 110px}
             "
           )
