@@ -504,7 +504,7 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
   return(colors)
 }
 
-# Post mapping QC metric
+# Cluster preservation score
 #
 # @param query Query object
 # @param ds.amount Amount to downsample query
@@ -516,7 +516,7 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #' @keywords internal
 #
 #
-MappingQCMetric <- function(query, ds.amount) {
+ClusterPreservationScore <- function(query, ds.amount) {
   query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
   if (ncol(x = query) > ds.amount) {
     query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))

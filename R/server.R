@@ -12,7 +12,7 @@ NULL
 #' @importFrom future future plan resolved value
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
 #' theme_void xlab layer_scales xlim ylim ggplot aes geom_point theme
-#' element_blank element_rect
+#' element_blank element_rect labs
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
@@ -780,7 +780,7 @@ AzimuthServer <- function(input, output, session) {
         )
         # post mapping QC
         qc.stat <- round(
-          x = MappingQCMetric(
+          x = ClusterPreservationScore(
             query = app.env$object,
             ds.amount = getOption(x = "Azimuth.map.postmapqcds")
           ),
@@ -1600,7 +1600,9 @@ AzimuthServer <- function(input, output, session) {
           group.by = input$metacolor.ref,
           cols = colormaps[[1]],
           repel = TRUE
-        )[[1]] + if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
+        )[[1]] +
+          labs(x = "UMAP 1", y = "UMAP 2") +
+          if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
       } else {
         app.env$plots.refdim_df <- NULL
         plots <- list()
@@ -1611,7 +1613,8 @@ AzimuthServer <- function(input, output, session) {
             group.by = input$metacolor.ref[i],
             cols = colormaps[[i]],
             repel = TRUE,
-          ) + if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
+          ) + labs(x = "UMAP 1", y = "UMAP 2") +
+            if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
         }
         wrap_plots(plots, nrow = 1)
       }
@@ -1674,6 +1677,7 @@ AzimuthServer <- function(input, output, session) {
           )[[1]] +
             xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]]) +
+            labs(x = "UMAP 1", y = "UMAP 2") +
             if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(app.env$object[[input$metacolor.query, drop = TRUE]])) NoLegend()
         } else {
           app.env$plots.objdim_df <- NULL
@@ -1693,6 +1697,7 @@ AzimuthServer <- function(input, output, session) {
               reduction = "umap.proj"
             ) + xlim(app.env$plot.ranges[[1]]) +
               ylim(app.env$plot.ranges[[2]]) +
+              labs(x = "UMAP 1", y = "UMAP 2") +
               if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
           }
           wrap_plots(plots, nrow = 1)
@@ -2084,7 +2089,7 @@ AzimuthServer <- function(input, output, session) {
 
   # render popup UI elements
   onclick('panchors_popup', showModal(modalDialog(
-    title = "Anchors QC Metric",
+    title = "Query Anchors QC Metric",
     div(
       paste(
         "Here we compute the percentage of query cells that participate ",
@@ -2109,7 +2114,7 @@ AzimuthServer <- function(input, output, session) {
     )
   )))
   onclick('mappingqcstat_popup', showModal(modalDialog(
-    title = "Mapping Stat QC",
+    title = "Cluster Preservation QC Metric",
     div(
       tags$h4("Overview"),
       paste0(
@@ -2144,8 +2149,8 @@ AzimuthServer <- function(input, output, session) {
         "take the mean entropy averaged over each cluster in both spaces. For ",
         "each cluster we take the difference and report a single statistic as ",
         "the median -log2 of these values, clipped to range between 0 and 5.",
-        "For the exact implementation details, please see the MappingQCMetric ",
-        "function in the azimuth github repo."
+        "For the exact implementation details, please see the ",
+        "ClusterPreservationScore function in the azimuth github repo."
       ),
 
     )
