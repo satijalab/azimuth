@@ -50,6 +50,7 @@ AzimuthServer <- function(input, output, session) {
   app.env <- reactiveValues(
     adt.features = character(length = 0L),
     anchors = NULL,
+    clusterpreservationqc = NULL,
     demo = FALSE,
     default.assay = NULL,
     default.feature = NULL,
@@ -59,6 +60,7 @@ AzimuthServer <- function(input, output, session) {
     features = character(length = 0L),
     mapping.score = NULL,
     messages = 'Upload a file',
+    nanchors = 0L,
     ncellsupload = 0L,
     ncellspreproc = 0L,
     object = NULL,
@@ -629,6 +631,17 @@ AzimuthServer <- function(input, output, session) {
           mapping.score.k = 100
         )
         nanchors <- nrow(x = slot(object = app.env$anchors, name = "anchors"))
+        app.env$nanchors <- nanchors
+        if (!is.null(googlesheet)) {
+          try(sheet_append(
+            ss = googlesheet,
+            data = data.frame(
+              "NANCHORS",
+              app_session_id,
+              nanchors
+            )
+          ))
+        }
         if (nanchors < getOption(x = 'Azimuth.map.nanchors')) {
           output$valuebox.mapped <- renderValueBox(expr = {
             valueBox(
@@ -794,6 +807,17 @@ AzimuthServer <- function(input, output, session) {
           ),
           digits = 2
         )
+        if (!is.null(googlesheet)) {
+          try(sheet_append(
+            ss = googlesheet,
+            data = data.frame(
+              "CLUSTERPRESERVATIONQC",
+              app_session_id,
+              qc.stat
+            )
+          ))
+        }
+        app.env$clusterpreservationqc <- qc.stat
         if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
           output$valuebox_mappingqcstat <- renderValueBox(expr = {
             valueBox(
@@ -992,7 +1016,9 @@ AzimuthServer <- function(input, output, session) {
                 app.env$ncellsupload,
                 app.env$ncellspreproc,
                 as.numeric(x = mapping.time),
-                Sys.Date()
+                Sys.Date(),
+                app.env$nanchors,
+                app.env$clusterpreservationqc
               )
             ),
             silent = TRUE
