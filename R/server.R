@@ -24,7 +24,7 @@ NULL
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
-#' safeError updateNumericInput updateSelectizeInput updateCheckboxInput
+#' safeError updateNumericInput updateSelectizeInput updateCheckboxInput updateTextAreaInput
 #' withProgress renderUI onStop showNotification wellPanel nearPoints insertUI
 #' modalDialog showModal getDefaultReactiveDomain
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
@@ -163,6 +163,14 @@ AzimuthServer <- function(input, output, session) {
         Sys.time()
       )
     ))
+    output$menu3 <- renderMenu(expr = {
+      sidebarMenu(menuItem(
+        text = 'Feedback',
+        tabName = 'tab_feedback',
+        icon = icon(name = 'comments'),
+        selected = FALSE
+      ))
+    })
   }
   withProgress(
     message = "Loading reference",
@@ -1422,6 +1430,26 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
+  observeEvent( # Record feedback and update UI if feedback submitted
+    eventExpr = input$submit_feedback,
+    handlerExpr = {
+      if (!is.null(x = googlesheet)) {
+        try(expr = sheet_append(
+          ss = googlesheet,
+          data = data.frame(
+            "FEEDBACK",
+            app_session_id,
+            paste0('feedback: \"', input$feedback, '\"')
+          )
+        ))
+      }
+      updateTextAreaInput(
+        session = session,
+        inputId = 'feedback',
+        label = NULL,
+        value = 'Thank you for your feedback!')
+    }
+  )
   # Plots
   output$plot.qc <- renderPlot(expr = {
     if (!is.null(x = isolate(expr = app.env$object)) & isTRUE(x = react.env$plot.qc)) {
@@ -2089,13 +2117,13 @@ AzimuthServer <- function(input, output, session) {
 
   # render popup UI elements
   onclick('panchors_popup', showModal(modalDialog(
-    title = "Query Anchors QC Metric",
+    title = "Anchor QC",
     div(
       paste(
-        "Here we compute the percentage of query cells that participate ",
-        "in anchor pairs with the reference. The color of the box corresponds ",
-        "to the following bins that we have found empirically to flag ",
-        "potentially problematic query datasets well: "
+        "The Azimuth reference-mapping procedure first identifies a set of 'anchors', ",
+        "or pairwise correspondences between cells predicted to be in a similar biological state, ",
+        "between query and reference datasets. Here we report the percentage of query cells ",
+        "participating in an anchor correspondence. The box color corresponds to the following bins: "
       ),
       tags$ul(list(
         tags$li(paste0("0% to ", getOption(x = "Azimuth.map.panchorscolors")[1], "%: Likely problematic (red)")),
@@ -2104,25 +2132,23 @@ AzimuthServer <- function(input, output, session) {
       )),
       tags$h4("Caveats"),
       paste0(
-        "If you have a query dataset in which there is a batch effect, the ",
-        "number of cells is small, the query population is homogeneous, or ",
-        "represents only a small proportion of the reference diversity, the ",
-        "mapping may still be accurate but the QC stats may indicate a possible ",
-        "failure. Users in these cases should check results carefully, and in ",
-        "particular, markers for individual cell types to verify mapping."
+        "If the query dataset consists of a homogeneous group of cells, or if the ",
+        "query dataset contains cells from multiple batches (which would be corrected ",
+        "by Azimuth), this metric may return a low value even in cases where mapping is ",
+        "successful. Users in these cases should check results carefully. In particular, ",
+        "we encourage users to verify identified differentially expressed marker genes for annotated cell types."
       )
     )
   )))
   onclick('mappingqcstat_popup', showModal(modalDialog(
-    title = "Cluster Preservation QC Metric",
+    title = "Cluster Preservation",
     div(
       tags$h4("Overview"),
       paste0(
-        "Here we compute a post-mapping statistic intended to quantify how well ",
-        "the structure of the query dataset is preserved after mapping. This ",
-        "number ranges from 0 to 5, with 0 reflecting poor preservation and 5 ",
-        "representing strong preservation. We define the following ",
-        "broad categories: "
+        "For each query dataset, we downsample to at most 5,000 cells, and perform an ",
+        "unsupervised clustering. This score reflects the preservation of the unsupervised ",
+        "cluster structure, and is based on the entropy of unsupervised cluster labels in ",
+        "each query cell's local neighborhood after mapping. Scores are scaled from 0 (poor) to 5 (best)"
       ),
       tags$ul(list(
         tags$li(paste0("0 to ", getOption(x = "Azimuth.map.postmapqccolors")[1], ": Likely problematic (red)")),
@@ -2131,27 +2157,28 @@ AzimuthServer <- function(input, output, session) {
       )),
       tags$h4("Caveats"),
       paste0(
-        "If you have a query dataset in which there is a batch effect, the ",
-        "number of cells is small, the query population is homogeneous, or ",
-        "represents only a small proportion of the reference diversity, the ",
-        "mapping may still be accurate but the QC stats may indicate a possible ",
-        "failure. Users in these cases should check results carefully, and in ",
-        "particular, markers for individual cell types to verify mapping."
+        "This metric relies on the unsupervised clustering representing corresponding to ",
+        "biologically distinct cell states. If the query dataset consists of a homogeneous ",
+        "group of cells, or if the query dataset contains cells from multiple batches ",
+        "(which would be corrected by Azimuth), this metric may return a low value even ",
+        "in cases where mapping is successful. Users in these cases should check results ",
+        "carefully. In particular, we encourage users to verify identified differentially ",
+        "expressed marker genes for annotated cell types."
       ),
-      tags$h4("Details"),
-      paste0(
-        "To compute the mapping statistic, we first randomly downsample the ",
-        "query to ", getOption(x = "Azimuth.map.postmapqcds"), " cells for ",
-        "computational efficiency. We then compute an independent unsupervised ",
-        "clustering on the query. Using these cluster IDs, we then examine the ",
-        "neighborhoods of each cell in query PCA space and also in the mapped ",
-        "(projected) space. We compute an entropy of cluster labels and then ",
-        "take the mean entropy averaged over each cluster in both spaces. For ",
-        "each cluster we take the difference and report a single statistic as ",
-        "the median -log2 of these values, clipped to range between 0 and 5.",
-        "For the exact implementation details, please see the ",
-        "ClusterPreservationScore function in the azimuth github repo."
-      ),
+      # tags$h4("Details"),
+      # paste0(
+      #   "To compute the mapping statistic, we first randomly downsample the ",
+      #   "query to ", getOption(x = "Azimuth.map.postmapqcds"), " cells for ",
+      #   "computational efficiency. We then compute an independent unsupervised ",
+      #   "clustering on the query. Using these cluster IDs, we then examine the ",
+      #   "neighborhoods of each cell in query PCA space and also in the mapped ",
+      #   "(projected) space. We compute an entropy of cluster labels and then ",
+      #   "take the mean entropy averaged over each cluster in both spaces. For ",
+      #   "each cluster we take the difference and report a single statistic as ",
+      #   "the median -log2 of these values, clipped to range between 0 and 5.",
+      #   "For the exact implementation details, please see the ",
+      #   "ClusterPreservationScore function in the azimuth github repo."
+      # ),
 
     )
   )))

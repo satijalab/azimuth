@@ -5,7 +5,7 @@
 #' @importFrom shinyjs disabled useShinyjs
 #' @importFrom shiny actionButton checkboxInput column downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
-#' tableOutput textOutput uiOutput verbatimTextOutput hoverOpts
+#' tableOutput textOutput textAreaInput uiOutput verbatimTextOutput hoverOpts
 #' checkboxGroupInput
 #' @importFrom shinyBS bsButton bsPopover bsTooltip
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
@@ -59,7 +59,8 @@ AzimuthUI <- tagList(
           selected = TRUE
         ),
         sidebarMenuOutput(outputId = 'menu1'),
-        sidebarMenuOutput(outputId = 'menu2')
+        sidebarMenuOutput(outputId = 'menu2'),
+        sidebarMenuOutput(outputId = 'menu3')
       ),
       htmlOutput(outputId = 'containerid', inline = FALSE)
     ),
@@ -500,6 +501,26 @@ AzimuthUI <- tagList(
               ),
               width = 6
             )
+          )
+        ),
+        # Feedback tab
+        tabItem(
+          tabName = 'tab_feedback',
+          box(
+            div(
+              h3('Tell us anything!'),
+              textAreaInput(
+                inputId = 'feedback',
+                label = NULL,
+                value = '',
+                width = '100%',
+                height = '300px',
+                resize = 'none',
+                placeholder = 'Were the results helpful? Did you encounter any bugs? Any new feature requests?'
+              ),
+              actionButton(inputId = "submit_feedback", label = "Submit"),
+            ),
+            width = 8
           )
         )
       )
