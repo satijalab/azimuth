@@ -1299,7 +1299,7 @@ AzimuthServer <- function(input, output, session) {
           )
         }
         table.check <- input$feature %in% rownames(x = RenderDiffExp(
-          diff.exp = app.env$diff.expr[[paste(app.env$default.assay, app.env$default.metadata, sep = "_")]],
+          diff.exp = app.env$diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep = "_")]],
           groups.use = input$markerclusters,
           n = Inf
         ))
