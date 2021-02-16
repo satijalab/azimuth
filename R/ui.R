@@ -510,7 +510,7 @@ AzimuthUI <- tagList(
             div(
               h3('Tell us anything!'),
               textAreaInput(
-                'feedback',
+                inputId = 'feedback',
                 label = NULL,
                 value = '',
                 width = '100%',
@@ -518,7 +518,7 @@ AzimuthUI <- tagList(
                 resize = 'none',
                 placeholder = 'Were the results helpful? Did you encounter any bugs? Any new feature requests?'
               ),
-              actionButton("submit_feedback", "Submit"),
+              actionButton(inputId = "submit_feedback", label = "Submit"),
             ),
             width = 8
           )

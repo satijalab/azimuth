@@ -1439,7 +1439,7 @@ AzimuthServer <- function(input, output, session) {
           data = data.frame(
             "FEEDBACK",
             app_session_id,
-            paste0('feedback: \"', output$feedback, '\"')
+            paste0('feedback: \"', input$feedback, '\"')
           )
         ))
       }
