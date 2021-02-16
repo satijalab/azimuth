@@ -163,6 +163,14 @@ AzimuthServer <- function(input, output, session) {
         Sys.time()
       )
     ))
+    output$menu3 <- renderMenu(expr = {
+      sidebarMenu(menuItem(
+        text = 'Feedback',
+        tabName = 'tab_feedback',
+        icon = icon(name = 'comments'),
+        selected = FALSE
+      ))
+    })
   }
   withProgress(
     message = "Loading reference",
@@ -1431,7 +1439,7 @@ AzimuthServer <- function(input, output, session) {
           data = data.frame(
             "FEEDBACK",
             app_session_id,
-            output$feedback
+            paste0('feedback: \"', output$feedback, '\"')
           )
         ))
       }

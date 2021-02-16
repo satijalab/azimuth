@@ -60,12 +60,7 @@ AzimuthUI <- tagList(
         ),
         sidebarMenuOutput(outputId = 'menu1'),
         sidebarMenuOutput(outputId = 'menu2'),
-        menuItem(
-          text = 'Feedback',
-          tabName = 'tab_feedback',
-          icon = icon(name = 'comments'),
-          selected = FALSE
-        )
+        sidebarMenuOutput(outputId = 'menu3')
       ),
       htmlOutput(outputId = 'containerid', inline = FALSE)
     ),
