@@ -527,16 +527,6 @@ AzimuthUI <- tagList(
             ),
             width = 8
           )
-          # div(
-          #   fluidRow(
-          #     box(
-          #       # textInput('feedback','Tell us anything!'),
-          #       actionButton("submit_feedback", "Submit"),
-          #       width=12
-          #     ),
-          #     width=12
-          #   )
-          # )
         )
       )
     )
