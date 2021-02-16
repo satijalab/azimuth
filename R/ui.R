@@ -59,7 +59,13 @@ AzimuthUI <- tagList(
           selected = TRUE
         ),
         sidebarMenuOutput(outputId = 'menu1'),
-        sidebarMenuOutput(outputId = 'menu2')
+        sidebarMenuOutput(outputId = 'menu2'),
+        menuItem(
+          text = 'Feedback',
+          tabName = 'tab_feedback',
+          icon = icon(name = 'comments'),
+          selected = FALSE
+        )
       ),
       htmlOutput(outputId = 'containerid', inline = FALSE)
     ),
@@ -501,6 +507,36 @@ AzimuthUI <- tagList(
               width = 6
             )
           )
+        ),
+        # Feedback tab
+        tabItem(
+          tabName = 'tab_feedback',
+          box(
+            div(
+              h3('Tell us anything!'),
+              shiny:::textAreaInput(
+                'feedback',
+                label = NULL,
+                value = '',
+                width = '100%',
+                height = '300px',
+                resize = 'none',
+                placeholder = 'Were the results helpful? Did you encounter any bugs? Any new feature requests?'
+              ),
+              actionButton("submit_feedback", "Submit"),
+            ),
+            width = 8
+          )
+          # div(
+          #   fluidRow(
+          #     box(
+          #       # textInput('feedback','Tell us anything!'),
+          #       actionButton("submit_feedback", "Submit"),
+          #       width=12
+          #     ),
+          #     width=12
+          #   )
+          # )
         )
       )
     )
