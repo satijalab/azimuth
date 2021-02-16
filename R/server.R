@@ -24,7 +24,7 @@ NULL
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
-#' safeError updateNumericInput updateSelectizeInput updateCheckboxInput
+#' safeError updateNumericInput updateSelectizeInput updateCheckboxInput updateTextAreaInput
 #' withProgress renderUI onStop showNotification wellPanel nearPoints insertUI
 #' modalDialog showModal getDefaultReactiveDomain
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
@@ -1435,7 +1435,7 @@ AzimuthServer <- function(input, output, session) {
           )
         ))
       }
-      shiny:::updateTextAreaInput(
+      updateTextAreaInput(
         session = session,
         inputId = 'feedback',
         label = NULL,

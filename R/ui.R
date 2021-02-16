@@ -5,7 +5,7 @@
 #' @importFrom shinyjs disabled useShinyjs
 #' @importFrom shiny actionButton checkboxInput column downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
-#' tableOutput textOutput uiOutput verbatimTextOutput hoverOpts
+#' tableOutput textOutput textAreaInput uiOutput verbatimTextOutput hoverOpts
 #' checkboxGroupInput
 #' @importFrom shinyBS bsButton bsPopover bsTooltip
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
@@ -514,7 +514,7 @@ AzimuthUI <- tagList(
           box(
             div(
               h3('Tell us anything!'),
-              shiny:::textAreaInput(
+              textAreaInput(
                 'feedback',
                 label = NULL,
                 value = '',
