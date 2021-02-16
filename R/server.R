@@ -443,7 +443,10 @@ AzimuthServer <- function(input, output, session) {
           output$valuebox.upload <- renderValueBox(expr = {
             valueBox(
               value = ncellsupload,
-              subtitle = 'cells uploaded',
+              subtitle = paste0(
+                'cells uploaded - ',
+                 getOption(x = 'Azimuth.map.ncells'), ' required'
+              ),
               icon = icon(name = 'times'),
               color = 'red'
             )
@@ -533,7 +536,10 @@ AzimuthServer <- function(input, output, session) {
       if (ncellspreproc < getOption(x = "Azimuth.map.ncells")) {
         output$valuebox.preproc <- renderValueBox(expr = valueBox(
           value = ncellspreproc,
-          subtitle = "cells after filtering",
+          subtitle = paste0(
+            'cells after filtering - ',
+            getOption(x = 'Azimuth.map.ncells'), ' required'
+          ),
           icon = icon("times"),
           color = "red"
         ))
@@ -638,7 +644,11 @@ AzimuthServer <- function(input, output, session) {
             )
           ))
         }
-        if (nanchors < getOption(x = 'Azimuth.map.nanchors')) {
+        if (nanchors < getOption(x = 'Azimuth.map.nanchors') |
+            length(x = unique(x = slot(
+              object = app.env$anchors, name = "anchors")[, 2]
+            )) < 50
+        ) {
           output$valuebox.mapped <- renderValueBox(expr = {
             valueBox(
               value = 'Failure',
