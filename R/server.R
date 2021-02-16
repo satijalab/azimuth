@@ -126,8 +126,9 @@ AzimuthServer <- function(input, output, session) {
     },
     FUN.VALUE = logical(length = 1L)
   ))
+  googlesheet <- NULL
   if (logging) {
-    tryCatch(
+    try(
       expr = {
         gs4_auth(
           email = getOption(x = "Azimuth.app.googletokenemail"),
@@ -148,13 +149,8 @@ AzimuthServer <- function(input, output, session) {
             ))
           }
         )
-      },
-      error = function(e) {
-        googlesheet <- NULL
       }
     )
-  } else {
-    googlesheet <- NULL
   }
   if (!is.null(x = googlesheet)) {
     try(expr = sheet_append(
