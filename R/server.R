@@ -106,9 +106,9 @@ AzimuthServer <- function(input, output, session) {
     addClass(id = 'biotable', class = 'fulls')
   }
   ResetEnv <- function() {
+    output$menu2 <- NULL
     react.env$plot.qc <- FALSE
     app.env$messages <- NULL
-    app.env$object <- NULL
     output$valubox.upload <- NULL
     output$valuebox.preproc <- NULL
     output$valuebox.mapped <- NULL
@@ -239,7 +239,6 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = react.env$path,
     handlerExpr = {
       if (!is.null(x = react.env$path) && nchar(x = react.env$path)) {
-        ResetEnv()
         withProgress(
           message = 'Reading Input',
           expr = {
