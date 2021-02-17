@@ -1181,8 +1181,9 @@ AzimuthServer <- function(input, output, session) {
           yes = getOption(x = 'Azimuth.app.default_gene'),
           no = VariableFeatures(object = app.env$object)[1]
         )
+        show.features <- sort(x = VariableFeatures(object = app.env$object)[1:selectize.opts$maxOptions])
         app.env$features <- FilterFeatures(
-          features = rownames(x = app.env$object)
+          features = c(show.features, setdiff(x = rownames(x = app.env$object), y = show.features))
         )
         updateSelectizeInput(
           session = session,
@@ -1304,7 +1305,7 @@ AzimuthServer <- function(input, output, session) {
           )
         }
         table.check <- input$feature %in% rownames(x = RenderDiffExp(
-          diff.exp = app.env$diff.expr[[paste(app.env$default.assay, app.env$default.metadata, sep = "_")]],
+          diff.exp = app.env$diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep = "_")]],
           groups.use = input$markerclusters,
           n = Inf
         ))

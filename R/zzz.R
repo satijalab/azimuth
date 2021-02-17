@@ -189,7 +189,7 @@ qc.ids <- c(
 )
 
 selectize.opts <- list(
-  maxOptions = 10000L,
+  maxOptions = 1000L,
   maxItems = 1L
 )
 
@@ -279,12 +279,12 @@ CategoryTable <- function(
 #' @seealso \code{\link[shiny]{selectInput}}
 #'
 FilterFeatures <- function(features) {
-  return(sort(x = grep(
+  return(grep(
     pattern = '\\.\\d+$',
     x = features,
     value = TRUE,
     invert = TRUE
-  )))
+  ))
 }
 
 #' Format Time Differences
