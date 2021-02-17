@@ -173,6 +173,8 @@ AzimuthServer <- function(input, output, session) {
   withProgress(
     message = "Loading reference",
     expr = {
+      disable(id = 'file')
+      disable(id = 'triggerdemo')
       setProgress(value = 0)
       refs <- LoadReference(
         path = getOption(
@@ -181,6 +183,8 @@ AzimuthServer <- function(input, output, session) {
         )
       )
       setProgress(value = 1)
+      enable(id = 'file')
+      enable(id = 'triggerdemo')
     }
   )
   if (!is.null(x = googlesheet)) {
