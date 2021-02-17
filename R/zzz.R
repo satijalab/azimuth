@@ -279,12 +279,12 @@ CategoryTable <- function(
 #' @seealso \code{\link[shiny]{selectInput}}
 #'
 FilterFeatures <- function(features) {
-  return(grep(
+  return(sort(x = grep(
     pattern = '\\.\\d+$',
     x = features,
     value = TRUE,
     invert = TRUE
-  ))
+  )))
 }
 
 #' Format Time Differences
