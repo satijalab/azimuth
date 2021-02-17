@@ -1,8 +1,8 @@
 Package: Azimuth
 Type: Package
 Title: A Shiny App Demonstrating a Query-Reference Mapping Algorithm for Single-Cell Data
-Version: 0.2.0.9019
-Date: 2021-02-16
+Version: 0.2.0.9020
+Date: 2021-02-17
 Authors@R: c(
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
   person(given = "Charlotte", family = "Darby", email = "cdarby@nygenome.org", role = "aut", comment = c(ORCID = "0000-0003-2195-5300")),
