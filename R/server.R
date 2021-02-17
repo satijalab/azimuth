@@ -187,12 +187,6 @@ AzimuthServer <- function(input, output, session) {
         )
       )
       setProgress(value = 1)
-      hide(
-        id = "load_intro",
-        anim = TRUE,
-        animType = 'slide',
-        time = 3 # delay while UI renders
-      )
       enable(id = 'file')
       enable(id = 'triggerdemo')
     }
