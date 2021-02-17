@@ -90,6 +90,10 @@ AzimuthUI <- tagList(
           div(
             fluidRow(
               box(
+                tags$div(
+                  id = 'load_intro',
+                  HTML("<strong style='font-size:20px'>Loading...</strong>")
+                ),
                 htmlOutput(outputId = 'welcomebox'),
                 htmlOutput(outputId = 'refdescriptor'),
                 width=12

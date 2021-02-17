@@ -3,10 +3,10 @@ FROM satijalab/seurat:4.0.0
 RUN apt-get update
 RUN apt-get install -y libv8-dev
 
-RUN mkdir lzf 
+RUN mkdir lzf
 WORKDIR /lzf
-RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.h 
-RUN mkdir lzf 
+RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.h
+RUN mkdir lzf
 WORKDIR /lzf/lzf
 RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf_c.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf_d.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzfP.h https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf.h
 WORKDIR /lzf
