@@ -903,6 +903,11 @@ AzimuthServer <- function(input, output, session) {
         )
         app.env$anchors@object.list[[1]]@meta.data <- data.frame()
         app.env$anchors@object.list[[1]]@active.ident <- factor()
+        mapping.score.k <- min(c(
+          50,
+          length(x = unique(x = app.env$anchors@anchors[, 1])),
+          length(x = unique(x = app.env$anchors@anchors[, 2])))
+        )
         app.env$mapping.score <- future(
           expr = {
             MappingScore(
@@ -913,7 +918,8 @@ AzimuthServer <- function(input, output, session) {
               query.embeddings = Embeddings(object = refdr),
               ref.embeddings = Embeddings(object = refdr.ref),
               nn.method = "annoy",
-              n.trees = n.trees
+              n.trees = n.trees,
+              kanchors = mapping.score.k
             )
           }
         )
