@@ -61,8 +61,13 @@ Seed to shuffle colors for cell types
 URL or directory path to reference dataset; see
 \code{\link{LoadReference}} for more details
 }
+\item{\code{Azimuth.app.refuri}}{
+URL for publicly available reference dataset, used in the downloadable
+analysis script in case \code{Azimuth.app.reference} points to a directory
+}
 \item{\code{Azimuth.app.refdescriptor}}{
-Provide (as a string) the html to render the reference description on the welcome page
+Provide (as a string) the html to render the reference description on the
+welcome page
 }
 \item{\code{Azimuth.app.welcomebox}}{
 Provide (as a string) the code to render the box on the welcome page
@@ -82,12 +87,12 @@ Provide (as a string) the code to render the box on the welcome page
 These options control mapping and analysis behavior
 \describe{
 \item{\code{Azimuth.map.ncells}}{
-Minimum number of cells required to accept uploaded file.
-Defaults to \code{100}
+Minimum number of cells required to accept uploaded file
+defaults to \code{100}
 }
 \item{\code{Azimuth.map.ngenes}}{
-Minimum number of genes in common with reference to accept uploaded file.
-Defaults to \code{250}
+Minimum number of genes in common with reference to accept uploaded file;
+defaults to \code{250}
 }
 \item{\code{Azimuth.map.nanchors}}{
 Minimum number of anchors that must be found to complete mapping.

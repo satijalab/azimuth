@@ -2127,7 +2127,11 @@ AzimuthServer <- function(input, output, session) {
       ))
       template <- paste(template, collapse = '\n')
       e <- new.env()
-      e$ref.uri <- 'https://seurat.nygenome.org/references/pbmc/'
+      # e$ref.uri <- 'https://seurat.nygenome.org/references/pbmc/'
+      e$ref.uri <- getOption(
+        x = 'Azimuth.app.refuri',
+        default = getOption(x = 'Azimuth.app.reference')
+      )
       e$path <- input$file$name
       e$mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
       e$mito.key <- mt.key
