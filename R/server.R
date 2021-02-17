@@ -126,8 +126,9 @@ AzimuthServer <- function(input, output, session) {
     },
     FUN.VALUE = logical(length = 1L)
   ))
+  googlesheet <- NULL
   if (logging) {
-    tryCatch(
+    try(
       expr = {
         gs4_auth(
           email = getOption(x = "Azimuth.app.googletokenemail"),
@@ -148,13 +149,8 @@ AzimuthServer <- function(input, output, session) {
             ))
           }
         )
-      },
-      error = function(e) {
-        googlesheet <- NULL
       }
     )
-  } else {
-    googlesheet <- NULL
   }
   if (!is.null(x = googlesheet)) {
     try(expr = sheet_append(
@@ -447,7 +443,10 @@ AzimuthServer <- function(input, output, session) {
           output$valuebox.upload <- renderValueBox(expr = {
             valueBox(
               value = ncellsupload,
-              subtitle = 'cells uploaded',
+              subtitle = paste0(
+                'cells uploaded - ',
+                 getOption(x = 'Azimuth.map.ncells'), ' required'
+              ),
               icon = icon(name = 'times'),
               color = 'red'
             )
@@ -537,7 +536,10 @@ AzimuthServer <- function(input, output, session) {
       if (ncellspreproc < getOption(x = "Azimuth.map.ncells")) {
         output$valuebox.preproc <- renderValueBox(expr = valueBox(
           value = ncellspreproc,
-          subtitle = "cells after filtering",
+          subtitle = paste0(
+            'cells after filtering - ',
+            getOption(x = 'Azimuth.map.ncells'), ' required'
+          ),
           icon = icon("times"),
           color = "red"
         ))
@@ -642,7 +644,11 @@ AzimuthServer <- function(input, output, session) {
             )
           ))
         }
-        if (nanchors < getOption(x = 'Azimuth.map.nanchors')) {
+        if (nanchors < getOption(x = 'Azimuth.map.nanchors') |
+            length(x = unique(x = slot(
+              object = app.env$anchors, name = "anchors")[, 2]
+            )) < 50
+        ) {
           output$valuebox.mapped <- renderValueBox(expr = {
             valueBox(
               value = 'Failure',
