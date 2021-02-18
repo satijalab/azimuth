@@ -5,10 +5,12 @@
 \title{Return names of metadata columns in a Seurat object that have an
 appropriate number of levels for plotting when converted to a factor}
 \usage{
-PlottableMetadataNames(object, min.levels = 2, max.levels = 20)
+PlottableMetadataNames(object, exceptions, min.levels = 2, max.levels = 20)
 }
 \arguments{
 \item{object}{a Seurat object}
+
+\item{exceptions}{vector of metadata names to explicitly allow}
 
 \item{min.levels}{minimum number of levels in a metadata factor to include}
 

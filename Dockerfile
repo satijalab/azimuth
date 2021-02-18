@@ -1,30 +1,25 @@
-FROM satijalab/seurat:3.2.2
+FROM satijalab/seurat:4.0.0
 
 RUN apt-get update
 RUN apt-get install -y libv8-dev
 
-RUN mkdir lzf 
+RUN mkdir lzf
 WORKDIR /lzf
-RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.h 
-RUN mkdir lzf 
+RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.h
+RUN mkdir lzf
 WORKDIR /lzf/lzf
 RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf_c.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf_d.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzfP.h https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf.h
 WORKDIR /lzf
-RUN gcc -O2 -fPIC -shared lzf/*.c lzf_filter.c $(pkg-config --cflags --libs hdf5) -o liblzf_filter.so
+RUN gcc -O2 -fPIC -shared lzf/*.c lzf_filter.c -I /usr/include/hdf5/serial/ -lhdf5_serial -o liblzf_filter.so
 WORKDIR /
 ENV HDF5_PLUGIN_PATH=/lzf
 
-RUN R --no-echo -e "install.packages('remotes')"
+COPY Rprofile.site /usr/local/lib/R/etc/Rprofile.site
 
-COPY Rprofile.site /usr/lib/R/etc/
-RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr', 'BiocManager'), repo='https://cloud.r-project.org')"
-RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'jlmelville/uwot', 'mojaveazure/seurat-disk', 'satijalab/seurat@release/4.0.0'))"
-RUN R --no-echo -e "BiocManager::install(version = '3.12', ask = FALSE)"
-RUN R --no-echo -e "BiocManager::install('glmGamPoi')"
+RUN R --no-echo -e "BiocManager::install(c('glmGamPoi'))"
+RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr'), repo='https://cloud.r-project.org')"
+RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveazure/seurat-disk'), dependencies = FALSE)"
 
-ARG SEURAT_VER=unknown
-RUN echo "$SEURAT_VER"
-RUN R --no-echo -e "remotes::install_github('satijalab/seurat@release/4.0.0')"
 
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"

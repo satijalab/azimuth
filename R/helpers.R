@@ -1,3 +1,21 @@
+# Return CSS styling for hover box on interactive plots
+#
+# @param x X hover position (hover$coords_css$x)
+# @param y Y hover position (hover$coords_css$y)
+#
+# @return Returns a string of CSS to pass to style param
+#
+HoverBoxStyle <- function(x, y) {
+  xpad <- 20 # important to avoid collisions between cursor and hover panel
+  ypad <- 20
+  paste0(
+    "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
+    "left:", (x + xpad), "px; top:",
+    (y - ypad), "px;",
+    "padding: 5px; margin-bottom: 0px;"
+  )
+}
+
 #' Load file input into a \code{Seurat} object
 #'
 #' Take a file and load it into a \code{\link[Seurat]{Seurat}} object. Supports
@@ -14,8 +32,9 @@
 #'
 #' @importFrom tools file_ext
 #' @importFrom SeuratDisk Connect
-#' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse Assays
-#' GetAssayData DefaultAssay<- DietSeurat as.Seurat
+#' @importFrom SeuratObject CreateSeuratObject Assays GetAssayData
+#' DefaultAssay<-
+#' @importFrom Seurat Read10X_h5 as.sparse Assays DietSeurat as.Seurat
 #'
 #' @keywords internal
 #'
@@ -65,7 +84,7 @@ LoadFileInput <- function(path) {
         if (!'RNA' %in% Assays(object = object)) {
           stop("No RNA assay provided", call. = FALSE)
         } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
-          stop("No RNA counts matrix present", call. = )
+          stop("No RNA counts matrix present", call. = FALSE)
         }
         DefaultAssay(object = object) <- "RNA"
         object <- DietSeurat(
@@ -112,7 +131,7 @@ LoadFileInput <- function(path) {
 #' @return A \code{Seurat} object
 #'
 #' @importFrom hdf5r H5File h5attr
-#' @importFrom Seurat AddMetaData CreateSeuratObject
+#' @importFrom SeuratObject AddMetaData CreateSeuratObject
 #'
 #' @keywords internal
 #'
@@ -252,11 +271,7 @@ LoadH5AD <- function(path) {
 #' \itemize{
 #'  \item \dQuote{ref.Rds} for the downsampled reference \code{Seurat}
 #'  object (for mapping)
-#'  \item \dQuote{plotref.Rds} for the reference \code{Seurat}
-#'  object (for plotting)
 #'  \item \dQuote{idx.annoy} for the nearest-neighbor index object
-#'  \item \dQuote{vf_avg_rna.Rds} for the average expression of variable
-#'  features of the reference (for pseudobulk check)
 #' }
 #'
 #' @param path Path or URL to the two RDS files
@@ -272,9 +287,11 @@ LoadH5AD <- function(path) {
 #'  \item{\code{avgexp}}{Average expression (for pseudobulk check)}
 #' }
 #'
-#' @importFrom Seurat Idents<- LoadAnnoyIndex
+#' @importFrom SeuratObject Idents<-
+#' @importFrom Seurat LoadAnnoyIndex
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
+#' @importFrom Matrix sparseMatrix
 #'
 #' @keywords internal
 #'
@@ -289,9 +306,7 @@ LoadH5AD <- function(path) {
 LoadReference <- function(path, seconds = 10L) {
   ref.names <- list(
     map = 'ref.Rds',
-    plt = 'plotref.Rds',
-    ann = 'idx.annoy',
-    avg = 'vf_avg_rna.Rds'
+    ann = 'idx.annoy'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -302,10 +317,8 @@ LoadReference <- function(path, seconds = 10L) {
       stop("Cannot find directory ", path, call. = FALSE)
     }
     mapref <- file.path(path, ref.names$map)
-    pltref <- file.path(path, ref.names$plt)
     annref <- file.path(path, ref.names$ann)
-    avgref <- file.path(path, ref.names$avg)
-    exists <- file.exists(c(mapref, pltref, annref, avgref))
+    exists <- file.exists(c(mapref, annref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -344,42 +357,36 @@ LoadReference <- function(path, seconds = 10L) {
       )
     }
     mapref <- url(description = ref.uris[['map']])
-    pltref <- url(description = ref.uris[['plt']])
-    avgref <- url(description = ref.uris[['avg']])
     annref <- tempfile()
     download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
     on.exit(expr = {
       close(con = mapref)
-      close(con = pltref)
-      close(con = avgref)
       unlink(x = annref)
     })
   }
   # Load the map reference
   map <- readRDS(file = mapref)
   # Load the annoy index into the Neighbor object in the neighbors slot
-  map[["spca.annoy.neighbors"]] <- LoadAnnoyIndex(
-    object = map[["spca.annoy.neighbors"]],
+  map[["refdr.annoy.neighbors"]] <- LoadAnnoyIndex(
+    object = map[["refdr.annoy.neighbors"]],
     file = annref
   )
-  # Load the other references
-  plot <- readRDS(file = pltref)
-  avg <- readRDS(file = avgref)
-  id.check <- vapply(
-    X = c(map, plot),
-    FUN = function(x) {
-      return('id' %in% colnames(x = x[[]]))
-    },
-    FUN.VALUE = logical(length = 1L)
+  # Create plotref
+  ad <- Tool(object = map, slot = "AzimuthReference")
+  plotref.dr <- GetPlotRef(object = ad)
+  cm <- sparseMatrix(
+    i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
+    dimnames = list("placeholder", Cells(x = plotref.dr))
   )
-  if (all(id.check)) {
-    Idents(object = map) <- Idents(object = plot) <- 'id'
-  }
+  plot <- CreateSeuratObject(
+    counts = cm
+  )
+  plot[["refUMAP"]] <- plotref.dr
+  plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   gc(verbose = FALSE)
   return(list(
     map = map,
-    plot = plot,
-    avgexp = avg
+    plot = plot
   ))
 }
 
@@ -392,7 +399,7 @@ LoadReference <- function(path, seconds = 10L) {
 #'
 #' @return \code{object} with transfomed neighbor.slot
 #'
-#' @importFrom Seurat Indices
+#' @importFrom SeuratObject Indices
 #'
 #' @keywords internal
 #'
@@ -415,26 +422,26 @@ NNTransform <- function(
   return(object)
 }
 
-#' Make An English List
-#'
-#' Joins items together to make an English list; uses the Oxford comma for the
-#' last item in the list.
-#'
+# Make An English List
+#
+# Joins items together to make an English list; uses the Oxford comma for the
+# last item in the list.
+#
 #' @inheritParams base::paste
-#' @param join either \dQuote{and} or \dQuote{or}
-#'
-#' @return A character vector of the values, joined together with commas and
-#' \code{join}
-#'
+# @param join either \dQuote{and} or \dQuote{or}
+#
+# @return A character vector of the values, joined together with commas and
+# \code{join}
+#
 #' @keywords internal
-#'
-#' @examples
-#' \donttest{
-#' Oxford("red")
-#' Oxford("red", "blue")
-#' Oxford("red", "green", "blue")
-#' }
-#'
+#
+# @examples
+# \donttest{
+# Oxford("red")
+# Oxford("red", "blue")
+# Oxford("red", "green", "blue")
+# }
+#
 Oxford <- function(..., join = c('and', 'or')) {
   join <- match.arg(arg = join)
   args <- as.character(x = c(...))
@@ -449,4 +456,24 @@ Oxford <- function(..., join = c('and', 'or')) {
     paste0(', ', join, ' '),
     args[length(x = args)]
   ))
+}
+
+# Determine if there are a prohibitive # of annotations for legend
+OversizedLegend <- function(annotation.list) {
+  return(length(x = unique(x = as.vector(x = annotation.list))) > 50)
+}
+
+# Theme for the plot on welcome page
+#
+WelcomePlot <- function(...) {
+  welcomeplot.theme <- theme(
+    axis.line = element_blank(), axis.ticks = element_blank(),
+    axis.text.x = element_blank(), axis.text.y = element_blank(),
+    axis.title.x = element_blank(), axis.title.y = element_blank(),
+    legend.position = "none", plot.title = element_blank(),
+    # if we want backgroundless... (also replace 'box' with 'fluidRow' in UI)
+    panel.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5'),
+    plot.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5')
+  )
+  return(welcomeplot.theme)
 }

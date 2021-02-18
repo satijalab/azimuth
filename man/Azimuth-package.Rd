@@ -4,7 +4,7 @@
 \name{Azimuth-package}
 \alias{Azimuth}
 \alias{Azimuth-package}
-\title{Azimuth: What the Package Does (One Line, Title Case)}
+\title{Azimuth: A Shiny App Demonstrating a Query-Reference Mapping Algorithm for Single-Cell Data}
 \description{
 What the package does (one paragraph).
 }
@@ -24,6 +24,9 @@ ADT to select by default in feature/violin plot
 }
 \item{\code{Azimuth.app.default_gene}}{
 Gene to select by default in feature/violin plot
+}
+\item{\code{Azimuth.app.default_metadata}}{
+Default metadata transferred from reference.
 }
 \item{\code{Azimuth.app.demodataset}}{
 Path to data file (in any Azimuth-supported format) to automatically load
@@ -58,6 +61,14 @@ Seed to shuffle colors for cell types
 URL or directory path to reference dataset; see
 \code{\link{LoadReference}} for more details
 }
+\item{\code{Azimuth.app.refuri}}{
+URL for publicly available reference dataset, used in the downloadable
+analysis script in case \code{Azimuth.app.reference} points to a directory
+}
+\item{\code{Azimuth.app.refdescriptor}}{
+Provide (as a string) the html to render the reference description on the
+welcome page
+}
 \item{\code{Azimuth.app.welcomebox}}{
 Provide (as a string) the code to render the box on the welcome page
 (quotes escaped). Example:\preformatted{box(
@@ -76,25 +87,42 @@ Provide (as a string) the code to render the box on the welcome page
 These options control mapping and analysis behavior
 \describe{
 \item{\code{Azimuth.map.ncells}}{
-Minimum number of cells required to accept uploaded file.
-Defaults to \code{100}
+Minimum number of cells required to accept uploaded file
+defaults to \code{100}
 }
 \item{\code{Azimuth.map.ngenes}}{
-Minimum number of genes in common with reference to accept uploaded file.
-Defaults to \code{250}
+Minimum number of genes in common with reference to accept uploaded file;
+defaults to \code{250}
 }
 \item{\code{Azimuth.map.nanchors}}{
-\strong{NOT CURRENTLY USED}
 Minimum number of anchors that must be found to complete mapping.
 Defaults to \code{50}
+}
+\item{\code{Azimuth.map.panchorscolors}}{
+Configure the valuebox on the main page corresponding to the values for
+failure, warning, success for fraction of unique query cells that
+participate in anchor pairs. Failure corresponds to
+[0:\code{Azimuth.map.fracanchorscolors[1]}), warning to
+[\code{Azimuth.map.fracanchorscolors[1]}:\code{Azimuth.map.fracanchorscolors[2]}),
+and success is >= \code{Azimuth.map.fracanchorscolors[2]}.
+Defaults to \code{c(5, 15)}
+}
+\item{\code{Azimuth.map.postmapqccolors}}{
+Configure the valuebox on the main page corresponding to the values for
+failure, warning, success for the post mapping cluster based QC metric.
+Failure corresponds to [0:\code{Azimuth.map.postmapqc[1]}), warning to
+[\code{Azimuth.map.postmapqc[1]}:\code{Azimuth.map.postmapqc[2]}),
+and success is >= \code{Azimuth.map.postmapqc[2]}.
+Defaults to \code{c(0.15, 0.25)}
+}
+\item{\code{Azimuth.map.postmapqcds}}{
+Set the amount of query random downsampling to perform before computing
+the mapping QC metric.
+Defaults to \code{5000}
 }
 \item{\code{Azimuth.map.ntrees}}{
 Annoy (approximate nearest neighbor) n.trees parameter
 Defaults to \code{20}
-}
-\item{\code{Azimuth.map.pbcorthresh}}{
-Only proceed to mapping if query dataset meets or exceeds this threshold
-in pseudobulk correlation test.
 }
 \item{\code{Azimuth.de.mincells}}{
 Minimum number of cells per cluster for differential expression; defaults
@@ -146,10 +174,16 @@ Useful links:
 
 Authors:
 \itemize{
-  \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID})
-  \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID})
-  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
   \item Andrew Butler \email{abutler@nygenome.org} (\href{https://orcid.org/0000-0003-3608-0463}{ORCID})
+  \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID})
+  \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID})
+  \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
+}
+
+Other contributors:
+\itemize{
+  \item Jaison Jain \email{jjain@nygenome.org} (\href{https://orcid.org/0000-0002-9478-5018}{ORCID}) [contributor]
+  \item Satija Lab and Collaborators [funder]
 }
 
 }

@@ -1,0 +1,58 @@
+/* Styles for shinyBS popover buttons */
+/* use !important to override shinyDashboard btn-info settings */
+
+.btn-info {
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+/* Styles for the message and containerid text boxes */
+
+#message, #containerid {
+  padding: 0px 10px;
+}
+
+#containerid {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+}
+
+/* Styles used for QC plot controls */
+
+#ncount, #nfeature, #pctmt {
+  display: grid;
+  grid: auto/auto auto;
+}
+
+/* Styles FeaturePlot dropdowns */
+
+.fulls, .halves, .thirds {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.fulls {
+  width: 100%;
+}
+
+.halves {
+  width: 48%;
+}
+
+.thirds {
+  width: 33%;
+}
+
+.refdescriptor {
+  padding: 0% 0%;
+  text-align: left;
+}
+
+.refdescriptor-title {
+  font-size: 14px;
+  line-height: 26px;
+  /*background: #CBCDE8;
+  background: linear-gradient(to right, #CBCDE8 0%, #E2E6EB 14%, #ECF0F5 30%);*/
+}

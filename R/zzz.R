@@ -16,6 +16,9 @@
 #'   \item{\code{Azimuth.app.default_gene}}{
 #'    Gene to select by default in feature/violin plot
 #'   }
+#'   \item{\code{Azimuth.app.default_metadata}}{
+#'    Default metadata transferred from reference.
+#'   }
 #'   \item{\code{Azimuth.app.demodataset}}{
 #'    Path to data file (in any Azimuth-supported format) to automatically load
 #'    when the user clicks a button. The button is only available in the UI
@@ -49,6 +52,14 @@
 #'    URL or directory path to reference dataset; see
 #'    \code{\link{LoadReference}} for more details
 #'   }
+#'   \item{\code{Azimuth.app.refuri}}{
+#'    URL for publicly available reference dataset, used in the downloadable
+#'    analysis script in case \code{Azimuth.app.reference} points to a directory
+#'   }
+#'   \item{\code{Azimuth.app.refdescriptor}}{
+#'    Provide (as a string) the html to render the reference description on the
+#'    welcome page
+#'   }
 #'   \item{\code{Azimuth.app.welcomebox}}{
 #'    Provide (as a string) the code to render the box on the welcome page
 #'    (quotes escaped). Example:
@@ -68,25 +79,42 @@
 #'  These options control mapping and analysis behavior
 #'  \describe{
 #'   \item{\code{Azimuth.map.ncells}}{
-#'    Minimum number of cells required to accept uploaded file.
-#'    Defaults to \code{100}
+#'    Minimum number of cells required to accept uploaded file
+#'    defaults to \code{100}
 #'   }
 #'   \item{\code{Azimuth.map.ngenes}}{
-#'    Minimum number of genes in common with reference to accept uploaded file.
-#'    Defaults to \code{250}
+#'    Minimum number of genes in common with reference to accept uploaded file;
+#'    defaults to \code{250}
 #'   }
 #'   \item{\code{Azimuth.map.nanchors}}{
-#'    \strong{NOT CURRENTLY USED}
 #'    Minimum number of anchors that must be found to complete mapping.
 #'    Defaults to \code{50}
+#'   }
+#'   \item{\code{Azimuth.map.panchorscolors}}{
+#'    Configure the valuebox on the main page corresponding to the values for
+#'    failure, warning, success for fraction of unique query cells that
+#'    participate in anchor pairs. Failure corresponds to
+#'    [0:\code{Azimuth.map.fracanchorscolors[1]}), warning to
+#'    [\code{Azimuth.map.fracanchorscolors[1]}:\code{Azimuth.map.fracanchorscolors[2]}),
+#'    and success is >= \code{Azimuth.map.fracanchorscolors[2]}.
+#'    Defaults to \code{c(5, 15)}
+#'   }
+#'   \item{\code{Azimuth.map.postmapqccolors}}{
+#'    Configure the valuebox on the main page corresponding to the values for
+#'    failure, warning, success for the post mapping cluster based QC metric.
+#'    Failure corresponds to [0:\code{Azimuth.map.postmapqc[1]}), warning to
+#'    [\code{Azimuth.map.postmapqc[1]}:\code{Azimuth.map.postmapqc[2]}),
+#'    and success is >= \code{Azimuth.map.postmapqc[2]}.
+#'    Defaults to \code{c(0.15, 0.25)}
+#'   }
+#'   \item{\code{Azimuth.map.postmapqcds}}{
+#'    Set the amount of query random downsampling to perform before computing
+#'    the mapping QC metric.
+#'    Defaults to \code{5000}
 #'   }
 #'   \item{\code{Azimuth.map.ntrees}}{
 #'    Annoy (approximate nearest neighbor) n.trees parameter
 #'    Defaults to \code{20}
-#'   }
-#'   \item{\code{Azimuth.map.pbcorthresh}}{
-#'    Only proceed to mapping if query dataset meets or exceeds this threshold
-#'    in pseudobulk correlation test.
 #'   }
 #'   \item{\code{Azimuth.de.mincells}}{
 #'    Minimum number of cells per cluster for differential expression; defaults
@@ -128,23 +156,46 @@
 #'
 "_PACKAGE"
 
+app.title <- 'Azimuth'
+
 default.options <- list(
   Azimuth.app.default_adt = "CD3-1",
   Azimuth.app.default_gene = "GNLY",
+  Azimuth.app.default_metadata = NULL,
   Azimuth.app.max_cells = 50000,
   Azimuth.app.mito = '^MT-',
-  Azimuth.app.plotseed = 0,
+  Azimuth.app.plotseed = NULL,
   Azimuth.app.reference = 'https://seurat.nygenome.org/references/pbmc',
   Azimuth.app.welcomebox = "",
+  Azimuth.app.refdescriptor = "",
   Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,
   Azimuth.map.ngenes = 250L,
   Azimuth.map.nanchors = 50L,
+  Azimuth.map.panchorscolors = c(5, 15),
+  Azimuth.map.postmapqccolors = c(2, 3.75),
+  Azimuth.map.postmapqcds = 5000L,
   Azimuth.map.ntrees = 20L,
-  Azimuth.map.pbcorthresh = 0.75,
   Azimuth.sct.ncells = 2000L,
   Azimuth.sct.nfeats = 2000L
+)
+
+qc.ids <- c(
+  'map',
+  'num.ncountmin',
+  'num.ncountmax',
+  'num.nfeaturemin',
+  'num.nfeaturemax',
+  'minmt',
+  'maxmt',
+  'check.qcscale',
+  'check.qcpoints'
+)
+
+selectize.opts <- list(
+  maxOptions = 1000L,
+  maxItems = 1L
 )
 
 #' Attach dependent packages
@@ -178,7 +229,7 @@ AttachDeps <- function() {
 #' @param category.2 another metadata field in the object
 #' @param percentage if TRUE, returns percentages; otherwise, counts
 #'
-#' @importFrom Seurat FetchData
+#' @importFrom SeuratObject FetchData
 #'
 #' @keywords internal
 #'
@@ -241,10 +292,50 @@ FilterFeatures <- function(features) {
   )))
 }
 
+#' Format Time Differences
+#'
+#' @param dt A \code{\link[base]{difftime}} object
+#'
+#' @return The time difference in a nice string
+#'
+#' @keywords internal
+#'
+#' @seealso \code{\link[base:difftime]{base::difftime}}
+#'
+FormatDiffTime <- function(dt) {
+  if (!inherits(x = dt, what = 'difftime')) {
+    stop("'df' must be a difftime object")
+  }
+  dtfmt <- ifelse(
+    test = dt < 60,
+    yes = 'in %S seconds',
+    no = 'in %M minutes %S seconds'
+  )
+  return(gsub(
+    pattern = ' 0',
+    replacement = ' ',
+    x = format(x = .POSIXct(xx = dt), format = dtfmt),
+    fixed = TRUE
+  ))
+}
+
+#' Get Azimuth's CSS file
+#'
+#' Helper function to pull the location of Azimuth's CSS file
+#'
+#' @return The path to Azimuth's CSS file
+#'
+#' @keywords internal
+#'
+GetCSS <- function() {
+  css <- system.file('www', 'azimuth.css', package = 'Azimuth')
+}
+
 #' Return names of metadata columns in a Seurat object that have an
 #' appropriate number of levels for plotting when converted to a factor
 #'
 #' @param object a Seurat object
+#' @param exceptions vector of metadata names to explicitly allow
 #' @param min.levels minimum number of levels in a metadata factor to include
 #' @param max.levels maximum number of levels in a metadata factor to include
 #'
@@ -252,6 +343,7 @@ FilterFeatures <- function(features) {
 #'
 PlottableMetadataNames <- function(
   object,
+  exceptions,
   min.levels = 2,
   max.levels = 20
 ) {
@@ -261,8 +353,10 @@ PlottableMetadataNames <- function(
       length(x = levels(x = droplevels(x = as.factor(x = column)))) >= min.levels &&
         length(x = levels(x = droplevels(x = as.factor(x = column)))) <= max.levels
     }
-  ) & (colnames(object[[]]) != "mapping.score") &
-   (colnames(object[[]]) != "predicted.id")
+  ) & ! (grepl(pattern = ".score$", x = colnames(x = object[[]]))) |
+    (grepl(pattern = "^predicted.", x = colnames(x = object[[]])) &
+    ! (grepl(pattern = ".score$", x = colnames(x = object[[]])))) |
+    colnames(x = object[[]]) %in% exceptions
   return(colnames(object[[]])[column.status])
 }
 
@@ -320,10 +414,10 @@ RenderDiffExp <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 .onLoad <- function(libname, pkgname) {
-  # Attach deps
+  # Attach dependencies
   AttachDeps()
   op <- options()
-  # Set some default options
+  # Set default options
   toset <- !names(x = default.options) %in% names(x = op)
   if (any(toset)) {
     options(default.options[toset])
