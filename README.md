@@ -55,12 +55,11 @@ reference files at `/path/to/reference`, specify it as:
 Azimuth::AzimuthApp(reference = '/path/to/reference')
 ```
 
-### Downloading the PBMC reference
+### Downloading the app reference files
 
-You can download the PBMC reference files that would be automatically
-loaded by default using the following command:
-
-    wget -m -R 'index.html*' -P pbmc -nd https://seurat.nygenome.org/references/pbmc/
+You can download the reference files that would be automatically loaded
+by default from Zenodo. Links are available on the Azimuth website
+[here](https://azimuth.hubmapconsortium.org/references/).
 
 ### Specifying options
 
