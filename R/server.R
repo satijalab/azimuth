@@ -2181,7 +2181,7 @@ AzimuthServer <- function(input, output, session) {
       tags$ul(list(
         tags$li(paste0("0% to ", getOption(x = "Azimuth.map.panchorscolors")[1], "%: Likely problematic (red)")),
         tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[1], "% to ", getOption(x = "Azimuth.map.panchorscolors")[2], "%: Possibly problematic (yellow)")),
-        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[2], "% to 100%: Likely accurate (green)"))
+        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[2], "% to 100%: Likely successful (green)"))
       )),
       tags$h4("Caveats"),
       paste0(
@@ -2206,7 +2206,7 @@ AzimuthServer <- function(input, output, session) {
       tags$ul(list(
         tags$li(paste0("0 to ", getOption(x = "Azimuth.map.postmapqccolors")[1], ": Likely problematic (red)")),
         tags$li(paste0(getOption(x = "Azimuth.map.postmapqccolors")[1], " to ", getOption(x = "Azimuth.map.postmapqccolors")[2], ": Possibly problematic (yellow)")),
-        tags$li(paste0(getOption(x = "Azimuth.map.postmapqccolors")[2], " to 5: Likely accurate (green)"))
+        tags$li(paste0(getOption(x = "Azimuth.map.postmapqccolors")[2], " to 5: Likely successful (green)"))
       )),
       tags$h4("Caveats"),
       paste0(
