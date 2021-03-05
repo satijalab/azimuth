@@ -380,7 +380,7 @@ LoadReference <- function(path, seconds = 10L) {
   )
   print('creating seurat object from plotref')
   plot <- CreateSeuratObject(
-    counts = cm # TODO: this is slow i think
+    counts = cm, names.field = NULL, names.delim = NULL
   )
   print('DONE creating seurat object from plotref')
   plot[["refUMAP"]] <- plotref.dr
