@@ -1,5 +1,4 @@
 #' @include zzz.R
-#' @include seurat.R
 #' @include helpers.R
 #' @include ui.R
 #'
@@ -106,9 +105,10 @@ AzimuthApp <- function(config = NULL, ...) {
 #'
 #' @slot plotref DimReduc object containing UMAP for plotting and projection.
 #' This should also contain the cell IDs in the misc slot
-#' @slot avgref Average RNA expression for pseudobulk correlation tests
-#' @slot sdref Stdev of RNA expression for pseudobulk correlation tests
 #' @slot colormap Vector of id-color mapping for specifying the plots.
+#' @slot seurat.version Version of Seurat used in reference construction
+#' @slot azimuth.version Version of Azimuth used in reference construction
+#' @slot reference.version Version of the Azimuth reference
 #'
 #' @name AzimuthData-class
 #' @rdname AzimuthData-class
@@ -118,16 +118,18 @@ AzimuthData <- setClass(
   Class = 'AzimuthData',
   slots = c(
     plotref = 'DimReduc',
+    colormap = 'list',
+    seurat.version = 'package_version',
+    azimuth.version = 'package_version',
+    reference.version = 'character',
     avgref = 'matrix',
-    sdref = 'matrix',
-    colormap = 'list'
+    sdref = 'matrix'
   )
 )
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 #' Get Azimuth average expression
 #'
 #' Pull reference average RNA expression matrix
@@ -166,7 +168,9 @@ GetSdRef <- function(object, ...) {
 #'
 #' Pull ID-color mapping for Azimuth plotting
 #'
-#' @inheritParams GetAvgRef
+#' @param object An object
+#' @param slot Name of tool
+#' @param ... Arguments passed to other methods
 #'
 #' @return A named vector specifying the colors for all reference IDs
 #'
@@ -181,7 +185,7 @@ GetColorMap <- function(object, ...) {
 #'
 #' Pull DimReduc used in Azimuth plotting/projection
 #'
-#' @inheritParams GetAvgRef
+#' @inheritParams GetColorMap
 #'
 #' @return A DimReduc object
 #'
@@ -192,11 +196,24 @@ GetPlotRef <- function(object, ...) {
   UseMethod(generic = 'GetPlotRef', object = object)
 }
 
+#' Get Azimuth reference version number
+#'
+#' Pull the reference version information
+#'
+#' @return A character string specifying the reference version
+#'
+#' @rdname ReferenceVersion
+#' @export ReferenceVersion
+#'
+ReferenceVersion <- function(object, ...) {
+  UseMethod(generic = 'ReferenceVersion', object = object)
+}
+
 #' Set Azimuth color mapping
 #'
 #' Set ID-color mapping for Azimuth plotting
 #'
-#' @inheritParams GetAvgRef
+#' @inheritParams GetColorMap
 #'
 #' @return An object with the colormap slot set
 #'
@@ -279,6 +296,25 @@ GetPlotRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
   return(GetPlotRef(object = Tool(object = object, slot = slot)))
 }
 
+#' @param object Seurat or AzimuthData object
+#' @param slot Name of the version to pull. Can be "seurat.version",
+#' "azimuth.version", or "reference.version".
+#' @param ... Not used
+#' @rdname ReferenceVersion
+#' @export
+#' @method ReferenceVersion AzimuthData
+#'
+ReferenceVersion.AzimuthData <- function(object, ...) {
+  return(slot(object = object, name = "reference.version"))
+}
+
+#' @rdname ReferenceVersion
+#' @export
+#' @method ReferenceVersion Seurat
+ReferenceVersion.Seurat <- function(object, slot = "AzimuthReference", ...) {
+  return(ReferenceVersion(object = Tool(object = object, slot = slot)))
+}
+
 #' @rdname SetColorMap
 #' @param value New colormap to assign
 #' @export
@@ -305,6 +341,7 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 #' @inheritParams CreateAzimuthData
 #' @param refUMAP Name of UMAP in reference to use for mapping
 #' @param refDR Name of DimReduc in reference to use for mapping
+#' @param refAssay Name of SCTAssay to use in reference
 #' @param dims Dimensions to use in reference neighbor finding
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param ori.index Index of the cells used in mapping in the original object on
@@ -317,8 +354,10 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 #' @return Returns a Seurat object with AzimuthData stored in the tools slot for
 #' use with Azimuth.
 #'
-#' @importFrom Seurat Reductions Misc Misc<- Assays FindNeighbors Cells Loadings
-#' Idents NormalizeData AverageExpression DefaultAssay DietSeurat Tool<-
+#' @importFrom SeuratObject Reductions Misc Misc<- Assays Cells Loadings Idents
+#' DefaultAssay Tool<-
+#' @importFrom Seurat FindNeighbors NormalizeData AverageExpression DietSeurat
+#' @importFrom methods as
 #'
 #' @export
 #'
@@ -326,20 +365,23 @@ AzimuthReference <- function(
   object,
   refUMAP = "umap",
   refDR = "pca",
+  refAssay = "SCT",
   dims = 1:50,
   k.param = 31,
   plotref = "umap",
   plot.metadata = NULL,
   ori.index = NULL,
-  avgref = NULL,
-  sdref = NULL,
   colormap = NULL,
   assays = NULL,
-  metadata = c('celltype'),
+  metadata = NULL,
+  reference.version = "0.0.0",
   verbose = FALSE,
-  normalization.method = 'LogNormalize'
+  normalization.method = 'LogNormalize',
+  avgref = NULL,
+  sdref = NULL
 ) {
   # Parameter validation
+  refAssay <- if (normalization.method == 'SCT') 'SCT' else 'RNA'
   if (!refUMAP %in% Reductions(object = object)) {
     stop("refUMAP (", refUMAP, ") not found in Seurat object provided")
   }
@@ -364,7 +406,6 @@ AzimuthReference <- function(
       object[[i, drop = TRUE]] <- factor(x = object[[i, drop = TRUE]], levels = sort(x = unique(object[[i, drop = TRUE]])))
     }
   }
-
   if (normalization.method == 'SCT') {
     if (!refAssay %in% Assays(object = object)) {
       stop("Seurat object provided must have the SCT Assay stored.")
@@ -380,12 +421,11 @@ AzimuthReference <- function(
   if (is.null(x = avgref) && !("RNA" %in% Assays(object = object))) {
     stop("Please provide either the RNA assay or avgref.")
   }
-
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
 
   # Calculate the Neighbors
-  if (!('refdr.annoy.neighbors' %in% Neighbors(ref))) {
+  if (!('refdr.annoy.neighbors' %in% Neighbors(object))) {
     object <- FindNeighbors(
       object = object,
       reduction = "refDR",
@@ -406,18 +446,13 @@ AzimuthReference <- function(
   }
   features <- rownames(x = Loadings(object = object[['refDR']]))
   if (is.null(x = avgref)) {
-    random.name <- "allcells"
-    while (random.name %in% colnames(x = object[[]])) {
-      random.name <- paste0(sample(letters, size = 10), collapse = "")
-    }
-    Idents(object = object) <- random.name
+    # random.name <- "allcells"
+    # while (random.name %in% colnames(x = object[[]])) {
+    #   random.name <- paste0(sample(letters, size = 10), collapse = "")
+    # }
+    # Idents(object = object) <- random.name
     object <- NormalizeData(object = object, assay = "RNA", verbose = verbose)
-    # avgref <- AverageExpression(
-    #   object = object,
-    #   assays = "RNA",
-    #   verbose = verbose
-    # )[[1]][features, , drop = FALSE]
-    avgref <- rowMeans(as.matrix(object[['RNA']]@data))[features] # weird complaint w/ouot as.matrix
+    avgref <- rowMeans(as.matrix(object[['RNA']]@data))[features]
     sdref <- sqrt(
       x = SparseRowVar2(
         mat = object[['RNA']]@data[features,],
@@ -437,38 +472,51 @@ AzimuthReference <- function(
     object = object,
     plotref = plotref,
     plot.metadata  = plot.metadata,
-    avgref = avgref,
-    sdref = sdref,
-    colormap = colormap
+    colormap = colormap,
+    reference.version = reference.version,
+    avgref=avgref,
+    sdref=sdref
   )
   # Add the "ori.index" column.
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
   object$ori.index <- ori.index
 
   # Subset the features of the RNA assay
-  assay <- if (normalization.method == 'SCT') 'SCT' else 'RNA'
-  DefaultAssay(object = object) <- assay
-  object[[assay]] <- subset(x = object[[assay]], features = features)
+  DefaultAssay(object = object) <- refAssay
+  object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
   # Preserves DR after DietSeurat
-  DefaultAssay(object = object[["refDR"]]) <- assay
+  DefaultAssay(object = object[["refDR"]]) <- refAssay
   object <- DietSeurat(
     object = object,
     counts = FALSE,
-    assays = c(assay, assays),
+    assays = c(refAssay, assays),
     dimreducs = c("refDR","refUMAP")
   )
-  object[[assay]] <- Seurat:::CreateDummyAssay(assay = object[[assay]])
-  if (assay == 'SCT') {
-    Misc(object = object[["SCT"]], slot = "vst.set") <- list()
+  if (refAssay == 'SCT') {
+    sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
+    object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
+    slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = sct.model)
+  } else {
+    object[["refAssay"]] <- Seurat:::CreateDummyAssay(assay = object[[refAssay]])
   }
+
   metadata <- c(metadata, "ori.index")
   for (i in colnames(x = object[[]])) {
     if (!i %in% metadata){
       object[[i]] <- NULL
     }
   }
-  object@tools[['AzimuthReference']] <- ad
-  ValidateAzimuthReference(object = object, normalization.method = normalization.method)
+  DefaultAssay(object = object) <- "refAssay"
+  DefaultAssay(object = object[["refDR"]]) <- "refAssay"
+  object@tools <- list()
+  object@tools$AzimuthReference <- ad
+  object <- DietSeurat(
+    object = object,
+    counts = FALSE,
+    assays = c("refAssay", assays),
+    dimreducs = c("refDR","refUMAP")
+  )
+  # ValidateAzimuthReference(object = object,normalization.method = normalization.method)
   return(object)
 }
 
@@ -482,15 +530,14 @@ AzimuthReference <- function(
 #' to use for the plotting reference or the DimReduc object itself.
 #' @param plot.metadata A data.frame of discrete metadata fields for the cells
 #' in the plotref.
-#' @param avgref Matrix containing the average RNA expression for the reference,
-#' used in the pseudobulk correlation test.
 #' @param colormap A list of named and ordered vectors specifying the colors and levels
 #' for the metadata. See \code{\link{CreateColorMap}} for help
 #' generating your own.
+#' @param reference.version Version of the Azimuth reference
 #'
 #' @return Returns an \code{\link{AzimuthData}} object
 #'
-#' @importFrom Seurat Reductions Misc<-
+#' @importFrom SeuratObject Reductions Misc<-
 #'
 #' @export
 #'
@@ -498,9 +545,10 @@ CreateAzimuthData <- function(
   object,
   plotref = "umap",
   plot.metadata = NULL,
-  avgref = NULL,
-  sdref = NULL,
-  colormap = NULL
+  colormap = NULL,
+  reference.version = '0.0.0',
+  avgref=NULL,
+  sdref=NULL
 ) {
   if (inherits(x = plotref, what = "character")) {
     if (plotref %in% Reductions(object = object)) {
@@ -533,9 +581,12 @@ CreateAzimuthData <- function(
   ad <- new(
     Class = "AzimuthData",
     plotref = plotref,
-    avgref = avgref,
-    sdref = sdref,
-    colormap = colormap
+    colormap = colormap,
+    seurat.version = packageVersion("Seurat"),
+    azimuth.version = packageVersion("Azimuth"),
+    reference.version = reference.version,
+    avgref =avgref,
+    sdref =sdref
   )
   return(ad)
 }
@@ -570,6 +621,60 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
   return(colors)
 }
 
+# Cluster preservation score
+#
+# @param query Query object
+# @param ds.amount Amount to downsample query
+# @return Returns
+#
+#' @importFrom SeuratObject Cells Idents Indices as.Neighbor
+#' @importFrom Seurat RunPCA FindNeighbors FindClusters MinMax
+#
+#' @keywords internal
+#
+#
+ClusterPreservationScore <- function(query, ds.amount) {
+  query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
+  if (ncol(x = query) > ds.amount) {
+    query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
+  }
+  query <- RunPCA(object = query, verbose = FALSE)
+  query <- FindNeighbors(object = query, reduction = 'pca', dims = 1:50, graph.name = 'pca_snn')
+  query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_snn"]])
+  query <- FindClusters(object = query, resolution = 0.6, graph.name = 'pca_snn')
+  query <- FindNeighbors(object = query, reduction = 'integrated_dr', dims = 1:50, return.neighbor = TRUE, graph.name = "integrated_neighbors")
+  ids <- Idents(object = query)
+  integrated.neighbor.indices <- Indices(object = query[["integrated_neighbors"]])
+  proj_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
+    neighbors <- integrated.neighbor.indices[x, ]
+    nn_ids <- ids[neighbors]
+    p_x <- prop.table(x = table(nn_ids))
+    nn_entropy <- sum(p_x * log(x = p_x), na.rm = TRUE)
+    return(nn_entropy)
+  }))
+  names(x = proj_ent) <- Cells(x = query)
+  orig.neighbor.indices <- Indices(object = query[["orig_neighbors"]])
+  orig_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
+    neighbors <- orig.neighbor.indices[x, ]
+    nn_ids <- ids[neighbors]
+    p_x <- prop.table(x = table(nn_ids))
+    nn_entropy <- sum(p_x * log(x = p_x), na.rm = TRUE)
+    return(nn_entropy)
+  }))
+  names(x = orig_ent) <- Cells(x = query)
+  stat <- median(
+    x = tapply(X = orig_ent, INDEX = ids, FUN = mean) -
+      tapply(X = proj_ent, INDEX = ids, FUN = mean)
+  )
+  if (stat <= 0) {
+    stat <- 5.00
+  } else {
+    stat <- -1 * log2(x = stat)
+    stat <- MinMax(data = stat, min = 0.00, max = 5.00)
+  }
+  return(stat)
+}
+
 #' Validate References for Azimuth
 #'
 #' Validate aspects of a Seurat object to be used as an Azimuth reference
@@ -579,14 +684,14 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #'
 #' @return No return value
 #'
-#' @importFrom Seurat Tool Misc Reductions
+#' @importFrom SeuratObject Tool Misc Reductions
 #'
 #' @export
 #'
-ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference", normalization.method = 'SCT') {
-  # if (!inherits(x = Tool(object = object, slot = ad.name), what = "AzimuthData")) {
-  #   stop ("Reference must contain an AzimuthData object in the tools slot.")
-  # }
+ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
+  if (!inherits(x = Tool(object = object, slot = ad.name), what = "AzimuthData")) {
+    stop ("Reference must contain an AzimuthData object in the tools slot.")
+  }
   plotref <- GetPlotRef(object = object, slot = ad.name)
   colormap <- GetColorMap(object = object, slot = ad.name)
   # plotref needs to have IDs in misc
@@ -615,13 +720,6 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference", norma
   if (!"refDR" %in% Reductions(object = object)) {
     stop("Object must contain a DimReduc called refDR to use in transfer/projection.")
   }
-  avgref <- GetAvgRef(object = object, slot = ad.name)
-  if (!all(rownames(x = Loadings(object = object[['refDR']])) %in% rownames(x = avgref))){
-    stop(
-      "avgref must contain average expression values for all features used ",
-      "when computing refDR."
-    )
-  }
   if (!"ori.index" %in% colnames(x = object[[]])){
     stop(
       "Seurat object metadata must contain 'ori.index' field, storing the ",
@@ -629,4 +727,26 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference", norma
       "and the cell indices in the object here."
     )
   }
+  if (!"refAssay" %in% Assays(object = object)) {
+    stop("Must contain assay called 'refAssay'.")
+  }
+  if (!inherits(x = object[["refAssay"]], what = "SCTAssay")) {
+    stop("refAssay must be an SCTAssay object.")
+  }
+  if (!"refmodel" %in% levels(x = object[["refAssay"]])) {
+    stop("refAssay must contain the SCTModel called refmodel.")
+  }
 }
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# S4 methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+setMethod(
+  f = 'show',
+  signature = 'AzimuthData',
+  definition = function(object) {
+    cat('An AzimuthData object - reference version:', slot(object = object, name = "reference.version"),
+        '\nContains', length(x = GetColorMap(object = object)), 'meta.data field(s) to transfer.')
+  }
+)
