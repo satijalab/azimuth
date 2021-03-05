@@ -7,7 +7,6 @@ RUN R --no-echo -e "remotes::install_github('satijalab/seurat@feat/descartes')"
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"
 COPY . /root/azimuth
-RUN R --no-echo -e "remotes::install_deps('/root/azimuth')"
 RUN R --no-echo -e "install.packages('/root/azimuth', repos = NULL, type = 'source')"
 
 EXPOSE 3838
