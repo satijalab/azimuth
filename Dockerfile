@@ -1,26 +1,4 @@
-FROM satijalab/seurat:3.2.3
-
-RUN apt-get update
-RUN apt-get install -y libv8-dev
-
-RUN mkdir lzf 
-WORKDIR /lzf
-RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.h 
-RUN mkdir lzf 
-WORKDIR /lzf/lzf
-RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf_c.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf_d.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzfP.h https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf/lzf.h
-WORKDIR /lzf
-RUN gcc -O2 -fPIC -shared lzf/*.c lzf_filter.c $(pkg-config --cflags --libs hdf5) -o liblzf_filter.so
-WORKDIR /
-ENV HDF5_PLUGIN_PATH=/lzf
-
-RUN R --no-echo -e "install.packages('remotes')"
-
-COPY Rprofile.site /usr/lib/R/etc/
-RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr', 'BiocManager'), repo='https://cloud.r-project.org')"
-RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'jlmelville/uwot', 'satijalab/seurat@feat/descartes'))"
-RUN R --no-echo -e "remotes::install_github('mojaveazure/seurat-disk',ref='b84b8ded51284fdca7c548fbfed6571aaeafbaea')"
-RUN R --no-echo -e "BiocManager::install('glmGamPoi')"
+FROM satijalab/azimuth:latest
 
 ARG SEURAT_VER=unknown
 RUN echo "$SEURAT_VER"

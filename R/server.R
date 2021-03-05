@@ -651,7 +651,7 @@ AzimuthServer <- function(input, output, session) {
             x = rownames(x = refs$map),
             y = VariableFeatures(object = app.env$object)
           ),
-          dims = 1:50,
+          dims = 1:100,
           n.trees = n.trees,
           verbose = TRUE,
           # mapping.score.k = 100,
@@ -751,7 +751,7 @@ AzimuthServer <- function(input, output, session) {
         app.env$object <- TransferData(
           reference = refs$map,
           query = app.env$object,
-          dims = 1:50,
+          dims = 1:100,
           anchorset = app.env$anchors,
           refdata = refdata,
           n.trees = n.trees,

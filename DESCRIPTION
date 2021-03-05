@@ -57,6 +57,5 @@ Collate:
     'zzz.R'
     'ui.R'
     'helpers.R'
-    'seurat.R'
     'azimuth.R'
     'server.R'
