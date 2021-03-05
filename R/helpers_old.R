@@ -1,21 +1,3 @@
-# Return CSS styling for hover box on interactive plots
-#
-# @param x X hover position (hover$coords_css$x)
-# @param y Y hover position (hover$coords_css$y)
-#
-# @return Returns a string of CSS to pass to style param
-#
-HoverBoxStyle <- function(x, y) {
-  xpad <- 20 # important to avoid collisions between cursor and hover panel
-  ypad <- 20
-  paste0(
-    "position:absolute; background-color:rgba(245, 245, 245, 0.85); ",
-    "left:", (x + xpad), "px; top:",
-    (y - ypad), "px;",
-    "padding: 5px; margin-bottom: 0px;"
-  )
-}
-
 #' Load file input into a \code{Seurat} object
 #'
 #' Take a file and load it into a \code{\link[Seurat]{Seurat}} object. Supports
@@ -32,9 +14,8 @@ HoverBoxStyle <- function(x, y) {
 #'
 #' @importFrom tools file_ext
 #' @importFrom SeuratDisk Connect
-#' @importFrom SeuratObject CreateSeuratObject Assays GetAssayData
-#' DefaultAssay<-
-#' @importFrom Seurat Read10X_h5 as.sparse Assays DietSeurat as.Seurat
+#' @importFrom Seurat Read10X_h5 CreateSeuratObject as.sparse Assays
+#' GetAssayData DefaultAssay<- DietSeurat as.Seurat
 #'
 #' @keywords internal
 #'
@@ -84,7 +65,7 @@ LoadFileInput <- function(path) {
         if (!'RNA' %in% Assays(object = object)) {
           stop("No RNA assay provided", call. = FALSE)
         } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
-          stop("No RNA counts matrix present", call. = FALSE)
+          stop("No RNA counts matrix present", call. = )
         }
         DefaultAssay(object = object) <- "RNA"
         object <- DietSeurat(
@@ -131,7 +112,7 @@ LoadFileInput <- function(path) {
 #' @return A \code{Seurat} object
 #'
 #' @importFrom hdf5r H5File h5attr
-#' @importFrom SeuratObject AddMetaData CreateSeuratObject
+#' @importFrom Seurat AddMetaData CreateSeuratObject
 #'
 #' @keywords internal
 #'
@@ -287,8 +268,7 @@ LoadH5AD <- function(path) {
 #'  \item{\code{avgexp}}{Average expression (for pseudobulk check)}
 #' }
 #'
-#' @importFrom SeuratObject Idents<-
-#' @importFrom Seurat LoadAnnoyIndex
+#' @importFrom Seurat Idents<- LoadAnnoyIndex
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
@@ -303,7 +283,7 @@ LoadH5AD <- function(path) {
 #' ref2 <- LoadReference("/var/www/html")
 #' }
 #'
-LoadReference <- function(path, seconds = 10L) {
+LoadReference <- function(path, normalization.method, seconds = 10L) {
   ref.names <- list(
     map = 'ref.Rds',
     ann = 'idx.annoy'
@@ -338,7 +318,7 @@ LoadReference <- function(path, seconds = 10L) {
         x = httr::status_code(x = httr::GET(
           url = url,
           httr::timeout(seconds = seconds
-          ))),
+        ))),
         y = code
       ))
     }
@@ -371,6 +351,10 @@ LoadReference <- function(path, seconds = 10L) {
     object = map[["refdr.annoy.neighbors"]],
     file = annref
   )
+  if (normalization.method == 'SCT') {
+    sct.model <- Misc(object = map[["SCT"]], slot = "vst.set")
+    suppressWarnings(expr = Misc(object = map[["SCT"]], slot = "vst.set") <- list())
+  }
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
@@ -378,18 +362,30 @@ LoadReference <- function(path, seconds = 10L) {
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
     dimnames = list("placeholder", Cells(x = plotref.dr))
   )
-  print('creating seurat object from plotref')
   plot <- CreateSeuratObject(
-    counts = cm # TODO: this is slow i think
+    counts = cm, names.field = NULL, names.delim = NULL # saves >10s on `feat/updateCSO` seurat branch
   )
-  print('DONE creating seurat object from plotref')
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
+  avg <- GetAvgRef(object = ad)
+  sd <- GetSdRef(object = ad)
   gc(verbose = FALSE)
-  return(list(
-    map = map,
-    plot = plot
-  ))
+  if (normalization.method == 'SCT') {
+    return(list(
+      map = map,
+      sct.model = sct.model,
+      plot = plot,
+      avgexp = avg,
+      sdexp = sd
+    ))
+  } else {
+    return(list(
+      map = map,
+      plot = plot,
+      avgexp = avg,
+      sdexp = sd
+    ))
+  }
 }
 
 #' Transform an NN index
@@ -401,7 +397,7 @@ LoadReference <- function(path, seconds = 10L) {
 #'
 #' @return \code{object} with transfomed neighbor.slot
 #'
-#' @importFrom SeuratObject Indices
+#' @importFrom Seurat Indices
 #'
 #' @keywords internal
 #'
@@ -424,26 +420,26 @@ NNTransform <- function(
   return(object)
 }
 
-# Make An English List
-#
-# Joins items together to make an English list; uses the Oxford comma for the
-# last item in the list.
-#
+#' Make An English List
+#'
+#' Joins items together to make an English list; uses the Oxford comma for the
+#' last item in the list.
+#'
 #' @inheritParams base::paste
-# @param join either \dQuote{and} or \dQuote{or}
-#
-# @return A character vector of the values, joined together with commas and
-# \code{join}
-#
+#' @param join either \dQuote{and} or \dQuote{or}
+#'
+#' @return A character vector of the values, joined together with commas and
+#' \code{join}
+#'
 #' @keywords internal
-#
-# @examples
-# \donttest{
-# Oxford("red")
-# Oxford("red", "blue")
-# Oxford("red", "green", "blue")
-# }
-#
+#'
+#' @examples
+#' \donttest{
+#' Oxford("red")
+#' Oxford("red", "blue")
+#' Oxford("red", "green", "blue")
+#' }
+#'
 Oxford <- function(..., join = c('and', 'or')) {
   join <- match.arg(arg = join)
   args <- as.character(x = c(...))
@@ -458,24 +454,4 @@ Oxford <- function(..., join = c('and', 'or')) {
     paste0(', ', join, ' '),
     args[length(x = args)]
   ))
-}
-
-# Determine if there are a prohibitive # of annotations for legend
-OversizedLegend <- function(annotation.list) {
-  return(length(x = unique(x = as.vector(x = annotation.list))) > 50)
-}
-
-# Theme for the plot on welcome page
-#
-WelcomePlot <- function(...) {
-  welcomeplot.theme <- theme(
-    axis.line = element_blank(), axis.ticks = element_blank(),
-    axis.text.x = element_blank(), axis.text.y = element_blank(),
-    axis.title.x = element_blank(), axis.title.y = element_blank(),
-    legend.position = "none", plot.title = element_blank(),
-    # if we want backgroundless... (also replace 'box' with 'fluidRow' in UI)
-    panel.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5'),
-    plot.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5')
-  )
-  return(welcomeplot.theme)
 }

@@ -3,14 +3,14 @@
 #' @importFrom DT DTOutput
 #' @importFrom htmltools div h3 h4 HTML includeCSS p tagList tags
 #' @importFrom shinyjs disabled useShinyjs
-#' @importFrom shiny actionButton checkboxInput column downloadButton fileInput
+#' @importFrom shiny column actionButton checkboxInput downloadButton fileInput
 #' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
-#' tableOutput textOutput textAreaInput uiOutput verbatimTextOutput hoverOpts
-#' checkboxGroupInput
-#' @importFrom shinyBS bsButton bsPopover bsTooltip
+#' tableOutput textOutput uiOutput verbatimTextOutput tabsetPanel tabPanel
+#' @importFrom shinyBS bsButton bsPopover
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
 #' valueBoxOutput
+#' @importFrom plotly plotlyOutput renderPlotly toWebGL
 #'
 NULL
 
@@ -49,70 +49,28 @@ AzimuthUI <- tagList(
         trigger = 'focus',
         options = list(container = 'body')
       ),
-      actionButton(inputId = 'triggerdemo', label = 'Load demo dataset'),
+      actionButton(inputId = 'triggerdemo', label = 'Demo Adult Pancreas'),
+      actionButton(inputId = 'triggerdemo2', label = 'Demo Neonatal Heart'),
+      actionButton(inputId = 'triggerdemo3', label = 'Demo Fetal Kidney'),
+      actionButton(inputId = 'triggerdemo4', label = 'Demo Placenta'),
       htmlOutput(outputId = 'message', inline = FALSE),
       sidebarMenu(
         menuItem(
           text = 'Welcome',
-          tabName = 'tab_welcome',
-          icon = icon(name = 'map'),
-          selected = TRUE
+          tabName = 'tab_welcome'
         ),
         sidebarMenuOutput(outputId = 'menu1'),
-        sidebarMenuOutput(outputId = 'menu2'),
-        sidebarMenuOutput(outputId = 'menu3')
+        sidebarMenuOutput(outputId = 'menu2')
       ),
       htmlOutput(outputId = 'containerid', inline = FALSE)
     ),
     dashboardBody(
-      tags$head(
-        tags$style(
-          HTML(".content-wrapper { overflow: auto }
-          .shiny-notification {
-            position: fixed;
-            font-size: 15px;
-            left: calc(50% - 100px);
-            top: calc(90%);
-            width: 350px;
-          }
-          .shiny-notification-close {
-            display: none;
-          }
-          .small-box {height: 110px}
-            "
-          )
-        )
-      ),
+      tags$head(tags$style(HTML('.content-wrapper { overflow: auto; }'))),
       tabItems(
         # Welcome tab
         tabItem(
           tabName = 'tab_welcome',
-          div(
-            fluidRow(
-              box(
-                htmlOutput(outputId = 'welcomebox'),
-                htmlOutput(outputId = 'refdescriptor'),
-                width=12
-              ),
-              width=12
-            ),
-            fluidRow(
-              div(
-                style = "position:relative",
-                plotOutput(
-                  outputId = 'refdim_intro',
-                  hover = hoverOpts(
-                    id = "refdim_intro_hover_location",
-                    delay = 5,
-                    delayType = "debounce",
-                    nullOutside = TRUE
-                  )
-                ),
-                uiOutput("refdim_intro_hover_box")
-              ),
-              width = 12
-            ),
-          )
+          htmlOutput(outputId = 'welcomebox')
         ),
         # Preprocessing + QC Tab
         tabItem(
@@ -176,25 +134,10 @@ AzimuthUI <- tagList(
               ),
               textOutput(outputId = 'text.cellsremain'),
               div(
+                h4("Transfer Options"),
+              ),
+              div(
                 id = 'xferopts',
-                h4(
-                  'Transfer Options',
-                  bsButton(
-                    inputId = 'xferinput',
-                    label = '',
-                    icon = icon(name = 'question'),
-                    style = 'info',
-                    size = 'extra-small'
-                  )
-                ),
-                bsPopover(
-                  id = 'xferinput',
-                  title = 'Transfer Options',
-                  content = 'Select the meta.data fields to transfer from the reference',
-                  placement = 'right',
-                  trigger = 'focus',
-                  options = list(container = 'body')
-                ),
                 selectizeInput(
                   inputId = 'metadataxfer',
                   label = 'Reference Metadata to Transfer',
@@ -222,7 +165,10 @@ AzimuthUI <- tagList(
               options = list(container = 'body')
             ),
             box(
-              checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
+              fluidRow(
+                shiny::column(2, checkboxInput(inputId = 'check.qcscale', label = 'Log-scale Y-axis')),
+                shiny::column(2, checkboxInput(inputId = 'check.qcpoints', label = 'Hide points'))
+              ),
               plotOutput(outputId = 'plot.qc'),
               tableOutput(outputId = 'table.qc'),
               width = 8
@@ -231,92 +177,57 @@ AzimuthUI <- tagList(
           fluidRow(
             valueBoxOutput(outputId = 'valuebox.upload', width = 3),
             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
-            div(
-              id = 'panchors_popup',
-              valueBoxOutput(outputId = "valuebox_panchors", width = 3),
-              bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
-            ),
-            div(
-              id = 'mappingqcstat_popup',
-              valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
-              bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
-            ),
-            valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
+            valueBoxOutput(outputId = 'valuebox.mapped', width = 3)
           ),
+          fluidRow(
+            class = 'rowhide',
+            box(
+              plotOutput(outputId = 'plot.pbcor'),
+              width = 8
+            )
+          )
         ),
+        # Cell tab
         tabItem(
           tabName = 'tab_cell',
-          box(
-            title = 'Reference',
-            checkboxGroupInput(inputId = "dimplot.opts", label = NULL, choiceNames = c("Show labels", "Show legend"), choiceValues = c("labels", "legend"), selected = "legend", inline = TRUE),
-            selectizeInput(
-              inputId = 'metacolor.ref',
-              label = 'Metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            div(
-              style = "position:relative",
-              plotOutput(
-                outputId = 'refdim',
-                hover = hoverOpts(
-                  id = "refdim_hover_location",
-                  delay = 5,
-                  delayType = "debounce",
-                  nullOutside = TRUE
-                )
-              ),
-              uiOutput("refdim_hover_box")
-            ),
-            width = 12
+          tabsetPanel(
+            type = "tabs",
+            tabPanel("Query", plotlyOutput("query_umap", width='100%', height='800px')),
+            tabPanel("Reference", htmlOutput("reference_umap", inline=T))),
+          # box(
+          #   title = 'Reference',
+          #   fluidRow(
+          #     column(2, checkboxInput(inputId = 'labels', label = 'Show labels')),
+          #     column(2, checkboxInput(inputId = 'legend', label = 'Show legend'))
+          #   ),
+          #   selectizeInput(
+          #     inputId = 'metacolor.ref',
+          #     label = 'Metadata to color by',
+          #     choices = '',
+          #     multiple = TRUE,
+          #   ),
+          #   plotOutput(outputId = 'refdim'),
+          #   width = 12
+          # ),
+          # box(
+          #   title = 'Query',
+          #   selectizeInput(
+          #     inputId = 'metacolor.query',
+          #     label = 'Metadata to color by',
+          #     choices = '',
+          #     multiple = TRUE,
+          #   ),
+          #   plotOutput(outputId = 'objdim'),
+          #   width = 12
+          # ),
+          selectizeInput(
+            inputId = 'metacolor.query',
+            label = 'Metadata to color query by',
+            choices = '',
+            multiple = FALSE,
           ),
           box(
-            title = 'Query',
-            selectizeInput(
-              inputId = 'metacolor.query',
-              label = 'Metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            div(
-              style = "position:relative",
-              plotOutput(
-                outputId = 'objdim',
-                hover = hoverOpts(
-                  id = "objdim_hover_location",
-                  delay = 5,
-                  delayType = "debounce",
-                  nullOutside = TRUE
-                )
-              ),
-              uiOutput("objdim_hover_box")
-            ),
-            width = 12
-          ),
-          box(
-            title = p(
-              'Metadata table',
-              bsButton(
-                inputId = 'q5',
-                label = '',
-                icon = icon(name = 'question'),
-                style = 'info',
-                size = 'extra-small'
-              )
-            ),
-            bsPopover(
-              id = 'q5',
-              title = 'Metadata table',
-              content = paste(
-                'A (usually) 2D table where each dimension represents a query metadata field, ',
-                'thus revealing the breakdown of any one query attribute when grouping by another. ',
-                'By default, a 1D table is produced where one dimension has constant value (\\"query\\") and ',
-                'the other is a predicted class (\\"predicted.XXX\\"), thus showing the overall breakdown of the ',
-                'predicted class.'),
-              placement = 'right',
-              trigger = 'focus',
-              options = list(container = 'body')
-            ),
+            title = 'Metadata table',
             div(
               style = 'display: inline-block; vertical-align: top; width: 25%',
               selectizeInput(
@@ -333,22 +244,48 @@ AzimuthUI <- tagList(
                 choices = ''
               )
             ),
-            div(
-              style = 'display: inline-block; vertical-align: top; width: 50%',
-              radioButtons(
-                inputId = 'radio.pct',
-                label = NULL,
-                choices = c('Percentage','Frequency'),
-                inline = TRUE
-              )
-            ),
-            tableOutput(outputId = 'table.metadata'),
-            width = 12
+            div(radioButtons(
+              inputId = 'radio.pct',
+              label = NULL,
+              choices = c('Percentage','Frequency'),
+              inline = TRUE
+            )),
+            plotlyOutput("table.metadata"),
+            width=12
           )
+          # box(
+          #   title = 'Metadata table',
+          #   div(
+          #     style = 'display: inline-block; vertical-align: top; width: 25%',
+          #     selectizeInput(
+          #       inputId = 'metarow',
+          #       label = 'Table rows',
+          #       choices = ''
+          #     )
+          #   ),
+          #   div(
+          #     style = 'display: inline-block; vertical-align: top; width: 25%',
+          #     selectizeInput(
+          #       inputId = 'metacol',
+          #       label = 'Table columns',
+          #       choices = ''
+          #     )
+          #   ),
+          #   div(
+          #     style = 'display: inline-block; vertical-align: top; width: 50%',
+          #     radioButtons(
+          #       inputId = 'radio.pct',
+          #       label = NULL,
+          #       choices = c('Percentage','Frequency'),
+          #       inline = TRUE
+          #     )
+          #   ),
+          #   tableOutput(outputId = 'table.metadata'),
+          #   width = 12
+          # )
         ),
         # Feature tab
         tabItem(
-          tags$head(tags$style(HTML(".selectize-dropdown .optgroup-header { font-weight: bold; font-size: 13px; color: black; background: #f6f6f6}"))),
           tabName = 'tab_feature',
           box(
             title = 'Feature Plots',
@@ -375,7 +312,25 @@ AzimuthUI <- tagList(
               class = 'thirds',
               selectizeInput(
                 inputId = 'metadata.cont',
-                label = 'Prediction Scores and Metadata',
+                label = 'Continuous Metadata',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'scoregroupinput',
+              class = 'thirds',
+              selectizeInput(
+                inputId = 'scoregroup',
+                label = 'Predicted Metadata',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'scorefeatureinput',
+              class = 'thirds',
+              selectizeInput(
+                inputId = 'scorefeature',
+                label = 'Prediction Score',
                 choices = ''
               )
             ),
@@ -501,26 +456,6 @@ AzimuthUI <- tagList(
               ),
               width = 6
             )
-          )
-        ),
-        # Feedback tab
-        tabItem(
-          tabName = 'tab_feedback',
-          box(
-            div(
-              h3('Tell us anything!'),
-              textAreaInput(
-                inputId = 'feedback',
-                label = NULL,
-                value = '',
-                width = '100%',
-                height = '300px',
-                resize = 'none',
-                placeholder = 'Were the results helpful? Did you encounter any bugs? Any new feature requests?'
-              ),
-              actionButton(inputId = "submit_feedback", label = "Submit"),
-            ),
-            width = 8
           )
         )
       )
