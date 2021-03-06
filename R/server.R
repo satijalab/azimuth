@@ -35,11 +35,13 @@ NULL
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile setNames median
 #' @importFrom utils write.table packageVersion
+#' @importFrom plotly plotlyOutput renderPlotly toWebGL ggplotly plot_ly
 #'
 #' @keywords internal
 #'
 AzimuthServer <- function(input, output, session) {
   hide(id="legend")
+  shinyjs:::disable(id='metacolor.ref')
   # hide demo dataset button if required
   if (is.null(x = getOption(x = 'Azimuth.app.demodataset'))) {
     hide(id="triggerdemo")
@@ -76,7 +78,8 @@ AzimuthServer <- function(input, output, session) {
     singlepred = NULL,
     emptyref=NULL,
     merged=NULL,
-    metadata.discrete=NULL
+    metadata.discrete=NULL,
+    disable=FALSE
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -111,6 +114,8 @@ AzimuthServer <- function(input, output, session) {
     addClass(id = 'biotable', class = 'fulls')
   }
   ResetEnv <- function() {
+    print('resetting...')
+    app.env$disable <- TRUE
     output$menu2 <- NULL
     react.env$plot.qc <- FALSE
     app.env$messages <- NULL
@@ -119,6 +124,9 @@ AzimuthServer <- function(input, output, session) {
     output$valuebox.mapped <- NULL
     output$valuebox_panchors <- NULL
     output$valuebox_mappingqcstat <- NULL
+    app.env$emptyref <- NULL
+    app.env$merged <- NULL
+    app.env$metadata.discrete <- NULL
     disable(id = 'map')
     hide(selector = '.rowhide')
   }
@@ -180,6 +188,9 @@ AzimuthServer <- function(input, output, session) {
     expr = {
       disable(id = 'file')
       disable(id = 'triggerdemo')
+      disable(id = 'triggerdemo2')
+      disable(id = 'triggerdemo3')
+      disable(id = 'triggerdemo4')
       setProgress(value = 0)
       refs <- LoadReference(
         path = getOption(
@@ -190,6 +201,9 @@ AzimuthServer <- function(input, output, session) {
       setProgress(value = 1)
       enable(id = 'file')
       enable(id = 'triggerdemo')
+      enable(id = 'triggerdemo2')
+      enable(id = 'triggerdemo3')
+      enable(id = 'triggerdemo4')
     }
   )
   if (!is.null(x = googlesheet)) {
@@ -241,6 +255,27 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   observeEvent(
+    eventExpr = input$triggerdemo2,
+    handlerExpr = {
+      ResetEnv()
+      react.env$path <- getOption(x = 'Azimuth.app.demodataset2')
+    }
+  )
+  observeEvent(
+    eventExpr = input$triggerdemo3,
+    handlerExpr = {
+      ResetEnv()
+      react.env$path <- getOption(x = 'Azimuth.app.demodataset3')
+    }
+  )
+  observeEvent(
+    eventExpr = input$triggerdemo4,
+    handlerExpr = {
+      ResetEnv()
+      react.env$path <- getOption(x = 'Azimuth.app.demodataset4')
+    }
+  )
+  observeEvent(
     eventExpr = react.env$path,
     handlerExpr = {
       if (!is.null(x = react.env$path) && nchar(x = react.env$path)) {
@@ -251,7 +286,10 @@ AzimuthServer <- function(input, output, session) {
             tryCatch(
               expr = {
                 app.env$object <- LoadFileInput(path = react.env$path)
-                if (react.env$path == getOption(x = 'Azimuth.app.demodataset')) {
+                if (react.env$path == getOption(x = 'Azimuth.app.demodataset') |
+                    react.env$path == getOption(x = 'Azimuth.app.demodataset2') |
+                    react.env$path == getOption(x = 'Azimuth.app.demodataset3') |
+                    react.env$path == getOption(x = 'Azimuth.app.demodataset4')) {
                   app.env$demo <- TRUE
                 } else {
                   app.env$demo <- FALSE
@@ -342,6 +380,7 @@ AzimuthServer <- function(input, output, session) {
         for (id in qc.ids) {
           try(expr = enable(id = id), silent = TRUE)
         }
+        print(app.env$merged)
         ncount <- paste0('nCount_', app.env$default.assay)
         nfeature <- paste0('nFeature_', app.env$default.assay)
         if (!all(c(ncount, nfeature) %in% colnames(x = app.env$object[[]]))) {
@@ -486,6 +525,9 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           enable(id = 'file')
           enable(id = 'triggerdemo')
+          enable(id = 'triggerdemo2')
+          enable(id = 'triggerdemo3')
+          enable(id = 'triggerdemo4')
           react.env$progress <- NULL
         }
         updateSelectizeInput(
@@ -519,6 +561,9 @@ AzimuthServer <- function(input, output, session) {
       react.env$start <- Sys.time()
       disable(id = 'file')
       disable(id = 'triggerdemo')
+      disable(id = 'triggerdemo2')
+      disable(id = 'triggerdemo3')
+      disable(id = 'triggerdemo4')
       for (id in qc.ids) {
         try(expr = disable(id = id), silent = TRUE)
       }
@@ -697,6 +742,9 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           enable(id = 'file')
           enable(id = 'triggerdemo')
+          enable(id = 'triggerdemo2')
+          enable(id = 'triggerdemo3')
+          enable(id = 'triggerdemo4')
           gc(verbose = FALSE)
         } else {
           query.unique <- length(x = unique(x = slot(object = app.env$anchors, name = "anchors")[, "cell2"]))
@@ -807,6 +855,9 @@ AzimuthServer <- function(input, output, session) {
           react.env$progress$close()
           enable(id = 'file')
           enable(id = 'triggerdemo')
+          enable(id = 'triggerdemo2')
+          enable(id = 'triggerdemo3')
+          enable(id = 'triggerdemo4')
           gc(verbose = FALSE)
         } else {
           app.env$object <- IntegrateEmbeddings(
@@ -1093,6 +1144,9 @@ AzimuthServer <- function(input, output, session) {
         react.env$progress$close()
         enable(id = 'file')
         enable(id = 'triggerdemo')
+        enable(id = 'triggerdemo2')
+        enable(id = 'triggerdemo3')
+        enable(id = 'triggerdemo4')
         react.env$metadata <- TRUE
         react.env$biomarkers <- FALSE
       }
@@ -1308,6 +1362,7 @@ AzimuthServer <- function(input, output, session) {
         )
 
         react.env$markers <- FALSE
+        app.env$disable <- FALSE
       }
     }
   )
@@ -1537,37 +1592,39 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = input$showrefonly,
     handlerExpr = {
       if (!is.null(app.env$metadata.discrete)) {
+        # app.env$disable<-TRUE
         if (input$showrefonly) {
           # change to appropriate input$metacolor.ref if its an option
-          hide(id='metacolor.query')
-          if (length(input$metacolor.query) & all(grepl('^predicted.',input$metacolor.query))) {
-            updateSelectizeInput(
-              session = session,
-              inputId = 'metacolor.ref',
-              selected = gsub('^predicted.','',input$metacolor.query),
-              choices = app.env$metadataxfer,
-              server = TRUE,
-              options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
-            )
-          }
-          show(id='metacolor.ref')
+          shinyjs:::disable(id='metacolor.query')
+          # if (length(input$metacolor.query) & all(grepl('^predicted.',input$metacolor.query))) {
+          #   updateSelectizeInput(
+          #     session = session,
+          #     inputId = 'metacolor.ref',
+          #     selected = gsub('^predicted.','',input$metacolor.query),
+          #     choices = app.env$metadataxfer,
+          #     server = TRUE,
+          #     options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
+          #   )
+          # }
+          shinyjs:::enable(id='metacolor.ref')
         } else {
           print("HIDING REF FIELD")
           # change to appropriate input$metacolor.query
-          hide(id='metacolor.ref')
-          if (length(input$metacolor.ref) & all(input$metacolor.ref %in% app.env$metadataxfer)) {
-            updateSelectizeInput(
-              session = session,
-              inputId = 'metacolor.query',
-              selected = paste0('predicted.',input$metacolor.ref),
-              choices = c(grep(pattern = '^predicted.', x = app.env$metadata.discrete, value = TRUE),
-                          grep(pattern = '^predicted.', x = app.env$metadata.discrete, value = TRUE, invert = TRUE)),
-              server = TRUE,
-              options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
-            )
-          }
-          show(id='metacolor.query')
+          shinyjs:::disable(id='metacolor.ref')
+          # if (length(input$metacolor.ref) & all(input$metacolor.ref %in% app.env$metadataxfer)) {
+          #   updateSelectizeInput(
+          #     session = session,
+          #     inputId = 'metacolor.query',
+          #     selected = paste0('predicted.',input$metacolor.ref),
+          #     choices = c(grep(pattern = '^predicted.', x = app.env$metadata.discrete, value = TRUE),
+          #                 grep(pattern = '^predicted.', x = app.env$metadata.discrete, value = TRUE, invert = TRUE)),
+          #     server = TRUE,
+          #     options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
+          #   )
+          # }
+          shinyjs:::enable(id='metacolor.query')
         }
+        # app.env$disable<-FALSE
       }
     }
   )
@@ -1805,11 +1862,14 @@ AzimuthServer <- function(input, output, session) {
   #   }
   # })
   output$objdim <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
+    if (!is.null(x = app.env$object) && app.env$disable==FALSE) {
       # create empty ref
+      print("LOOP1")
       print(input$metacolor.query)
       print(input$metacolor.ref)
-      if (is.null(app.env$emptyref)) {
+      print(is.null(app.env$merged))
+      if (is.null(app.env$emptyref) | is.null(app.env$merged)) {
+        print("LOOP2")
         app.env$emptyref <- refs$plot
         Idents(app.env$emptyref) <- '.'
         for (md in colnames(app.env$emptyref@meta.data)) {app.env$emptyref[[md]] <- '.' }
@@ -1817,10 +1877,9 @@ AzimuthServer <- function(input, output, session) {
                            colnames(app.env$emptyref@meta.data) )) {app.env$emptyref[[md]] <- '.'}
         app.env$object[['refUMAP']] <- app.env$object[['umap.proj']]
         app.env$merged <- merge(app.env$emptyref, app.env$object, merge.dr='refUMAP')
-        print(head(app.env$merged@meta.data))
       }
-      print(unique(Idents(app.env$merged)))
-      print(unique(as.vector(app.env$object[[input$metacolor.query[1],drop=T]])))
+      print(app.env$merged)
+      print(head(app.env$merged[[input$metacolor.query,drop=T]]))
       # set metadata selectize things
       # if (input$showrefonly) {
       #   print("HIDING QUERY FIELD")
@@ -1904,22 +1963,23 @@ AzimuthServer <- function(input, output, session) {
             if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
               colormap <- CreateColorMap(ids=unique(as.vector(app.env$object[[input$metacolor.query[i],drop=T]])))
             }
-            colormap['.'] <- '#E0E0E0'
+            colormap['.'] <- '#F1F1F1'
             p <- DimPlot(
               object = app.env$merged,
               group.by = input$metacolor.query[i],
-              label = isTRUE('labels' %in% input$label.opts),
               cols = colormap[names(x = colormap) %in% c('.',unique(as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])))],
               repel = TRUE,
               raster = FALSE,
               reduction = "refUMAP"
-            ) + xlim(app.env$plot.ranges[[1]]) +
+            )[[1]] + xlim(app.env$plot.ranges[[1]]) +
               ylim(app.env$plot.ranges[[2]]) +
               labs(x = "UMAP 1", y = "UMAP 2") +
               if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
             if (isTRUE('labels' %in% input$label.opts)) {
+              print("IN HERE")
               keep <- if (isTRUE('filterlabels' %in% input$label.opts)) {
                 t <- table(as.vector(app.env$object[[input$metacolor.query[i],drop=T]]))
+                print(names(t)[which(t > 0.02*ncol(app.env$object))])
                 names(t)[which(t > 0.02*ncol(app.env$object))]
               } else NULL
               plots[[i]] <- LabelClusters(
@@ -2355,7 +2415,8 @@ AzimuthServer <- function(input, output, session) {
       percentage = (input$radio.pct == "Percentage")
     )
     table <- as.matrix(table)
-    plot_ly(x = colnames(table), y = rownames(table), z = table, type = 'heatmap')
+    plot_ly(x = colnames(table), y = rownames(table), z = table, type = 'heatmap',
+            height='1000px')
   })
   # Downloads
   output$dlumap <- downloadHandler(

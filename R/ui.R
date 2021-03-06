@@ -8,6 +8,7 @@
 #' tableOutput textOutput textAreaInput uiOutput verbatimTextOutput hoverOpts
 #' checkboxGroupInput
 #' @importFrom shinyBS bsButton bsPopover bsTooltip
+#' @importFrom plotly plotlyOutput renderPlotly toWebGL
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
 #' valueBoxOutput
@@ -49,7 +50,10 @@ AzimuthUI <- tagList(
         trigger = 'focus',
         options = list(container = 'body')
       ),
-      actionButton(inputId = 'triggerdemo', label = 'Load demo dataset'),
+      actionButton(inputId = 'triggerdemo', label = 'Demo neonatal heart'),
+      actionButton(inputId = 'triggerdemo2', label = 'Demo adult pancreas'),
+      actionButton(inputId = 'triggerdemo3', label = 'Demo fetal kidney'),
+      actionButton(inputId = 'triggerdemo4', label = 'Demo MOCA subsample'),
       htmlOutput(outputId = 'message', inline = FALSE),
       sidebarMenu(
         menuItem(
@@ -354,8 +358,8 @@ AzimuthUI <- tagList(
                 inline = TRUE
               )
             ),
-            tableOutput(outputId = 'table.metadata'),
-            width = 12
+            plotlyOutput(outputId = 'table.metadata'),
+            width = 12,
           )
         ),
         # Feature tab
