@@ -8,18 +8,20 @@ AzimuthReference(
   object,
   refUMAP = "umap",
   refDR = "pca",
+  refAssay = "SCT",
   dims = 1:50,
   k.param = 31,
   plotref = "umap",
   plot.metadata = NULL,
   ori.index = NULL,
-  avgref = NULL,
-  sdref = NULL,
   colormap = NULL,
   assays = NULL,
-  metadata = c("celltype"),
+  metadata = NULL,
+  reference.version = "0.0.0",
   verbose = FALSE,
-  normalization.method = "LogNormalize"
+  normalization.method = "LogNormalize",
+  avgref = NULL,
+  sdref = NULL
 )
 }
 \arguments{
@@ -28,6 +30,8 @@ AzimuthReference(
 \item{refUMAP}{Name of UMAP in reference to use for mapping}
 
 \item{refDR}{Name of DimReduc in reference to use for mapping}
+
+\item{refAssay}{Name of SCTAssay to use in reference}
 
 \item{dims}{Dimensions to use in reference neighbor finding}
 
@@ -43,9 +47,6 @@ in the plotref.}
 which UMAP was run. Only need to provide if UMAP was run on different set of
 cells.}
 
-\item{avgref}{Matrix containing the average RNA expression for the reference,
-used in the pseudobulk correlation test.}
-
 \item{colormap}{A list of named and ordered vectors specifying the colors and levels
 for the metadata. See \code{\link{CreateColorMap}} for help
 generating your own.}
@@ -53,6 +54,8 @@ generating your own.}
 \item{assays}{Assays to retain for transfer}
 
 \item{metadata}{Metadata to retain for transfer}
+
+\item{reference.version}{Version of the Azimuth reference}
 
 \item{verbose}{Display progress/messages}
 }

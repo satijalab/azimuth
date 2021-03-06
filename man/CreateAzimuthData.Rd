@@ -8,9 +8,10 @@ CreateAzimuthData(
   object,
   plotref = "umap",
   plot.metadata = NULL,
+  colormap = NULL,
+  reference.version = "0.0.0",
   avgref = NULL,
-  sdref = NULL,
-  colormap = NULL
+  sdref = NULL
 )
 }
 \arguments{
@@ -22,12 +23,11 @@ to use for the plotting reference or the DimReduc object itself.}
 \item{plot.metadata}{A data.frame of discrete metadata fields for the cells
 in the plotref.}
 
-\item{avgref}{Matrix containing the average RNA expression for the reference,
-used in the pseudobulk correlation test.}
-
 \item{colormap}{A list of named and ordered vectors specifying the colors and levels
 for the metadata. See \code{\link{CreateColorMap}} for help
 generating your own.}
+
+\item{reference.version}{Version of the Azimuth reference}
 }
 \value{
 Returns an \code{\link{AzimuthData}} object

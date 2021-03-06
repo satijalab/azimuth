@@ -106,11 +106,13 @@ AzimuthUI <- tagList(
                     delay = 5,
                     delayType = "debounce",
                     nullOutside = TRUE
-                  )
+                  ),
+                  height='1000px'
                 ),
                 uiOutput("refdim_intro_hover_box")
               ),
-              width = 12
+              width = 12,
+              height='1000px'
             ),
           )
         ),
@@ -247,34 +249,38 @@ AzimuthUI <- tagList(
         tabItem(
           tabName = 'tab_cell',
           box(
-            title = 'Reference',
-            checkboxGroupInput(inputId = "dimplot.opts", label = NULL, choiceNames = c("Show labels", "Show legend"), choiceValues = c("labels", "legend"), selected = "legend", inline = TRUE),
+            title = 'Mapped Query',
+            checkboxInput(inputId = 'legend', label = 'Show legend'),
+            checkboxInput(inputId = 'labels', label = 'Show labels', value=TRUE),
+            checkboxInput(inputId = 'showrefonly', label = 'View reference only'),
             selectizeInput(
               inputId = 'metacolor.ref',
-              label = 'Metadata to color by',
+              label = 'Reference metadata to color by',
               choices = '',
               multiple = TRUE,
             ),
-            div(
-              style = "position:relative",
-              plotOutput(
-                outputId = 'refdim',
-                hover = hoverOpts(
-                  id = "refdim_hover_location",
-                  delay = 5,
-                  delayType = "debounce",
-                  nullOutside = TRUE
-                )
-              ),
-              uiOutput("refdim_hover_box")
-            ),
-            width = 12
-          ),
-          box(
-            title = 'Query',
+          #   div(
+          #     style = "position:relative",
+          #     plotOutput(
+          #       outputId = 'refdim',
+          #       hover = hoverOpts(
+          #         id = "refdim_hover_location",
+          #         delay = 5,
+          #         delayType = "debounce",
+          #         nullOutside = TRUE
+          #       ),
+          #       height='1000px'
+          #     ),
+          #     uiOutput("refdim_hover_box")
+          #   ),
+          #   width = 12,
+          #   height = '1000px'
+          # ),
+          # box(
+          #   title = 'Query',
             selectizeInput(
               inputId = 'metacolor.query',
-              label = 'Metadata to color by',
+              label = 'Query metadata to color by',
               choices = '',
               multiple = TRUE,
             ),
@@ -287,11 +293,13 @@ AzimuthUI <- tagList(
                   delay = 5,
                   delayType = "debounce",
                   nullOutside = TRUE
-                )
+                ),
+                height='750px'
               ),
               uiOutput("objdim_hover_box")
             ),
-            width = 12
+            width = 12,
+            height='auto'
           ),
           box(
             title = p(

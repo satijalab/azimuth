@@ -385,6 +385,7 @@ LoadReference <- function(path, seconds = 10L) {
   print('DONE creating seurat object from plotref')
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
+  plot <- subset(plot,cells=sample(Cells(plot),70000))
   gc(verbose = FALSE)
   return(list(
     map = map,

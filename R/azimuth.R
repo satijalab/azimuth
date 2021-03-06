@@ -249,11 +249,7 @@ GetAvgRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
 #' @method GetSdRef AzimuthData
 #'
 GetSdRef.AzimuthData <- function(object, ...) {
-  if ("sdref" %in% slotNames(object)) {
-    return(slot(object = object, name = "sdref"))
-  } else {
-    return(NULL)
-  }
+  return(slot(object = object, name = "sdref"))
 }
 
 #' @rdname GetSdRef
