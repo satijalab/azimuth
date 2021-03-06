@@ -1746,7 +1746,7 @@ AzimuthServer <- function(input, output, session) {
   #       app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
   #       DimPlot(
   #         object = refs$plot,
-  #         label = isTRUE(input$labels),
+  #         label = isTRUE('labels' %in% input$label.opts),
   #         group.by = input$metacolor.ref,
   #         cols = colormaps[[1]],
   #         repel = TRUE,
@@ -1760,7 +1760,7 @@ AzimuthServer <- function(input, output, session) {
   #       for (i in 1:length(x = colormaps)) {
   #         plots[[i]] <- DimPlot(
   #           object = refs$plot,
-  #           label = isTRUE(input$labels),
+  #           label = isTRUE('labels' %in% input$label.opts),
   #           group.by = input$metacolor.ref[i],
   #           cols = colormaps[[i]],
   #           repel = TRUE,
@@ -1870,10 +1870,10 @@ AzimuthServer <- function(input, output, session) {
             as.data.frame(x = Embeddings(object = app.env$object[['umap.proj']])),
             app.env$object[[]]
           )
-          DimPlot(
+          p <- DimPlot(
             object = app.env$merged,
             group.by = input$metacolor.query,
-            label = isTRUE(input$labels),
+            label = FALSE,
             cols = colormap[names(x = colormap) %in% c('.',unique(as.vector(app.env$object[[input$metacolor.query,drop=T]])))],
             repel = TRUE,
             raster = FALSE,
@@ -1883,6 +1883,18 @@ AzimuthServer <- function(input, output, session) {
             ylim(app.env$plot.ranges[[2]]) +
             labs(x = "UMAP 1", y = "UMAP 2") +
             if (isFALSE(input$legend)) NoLegend()
+          if (isTRUE('labels' %in% input$label.opts)) {
+            keep <- if (isTRUE('filterlabels' %in% input$label.opts)) {
+              t <- table(as.vector(app.env$object[[input$metacolor.query,drop=T]]))
+              names(t)[which(t > 0.02*ncol(app.env$object))]
+            } else NULL
+            return(LabelClusters(
+              p,
+              id = input$metacolor.query,
+              clusters = keep
+            ))
+          }
+          return(p)
         } else {
           app.env$plots.objdim_df <- NULL # no interactivity
           plots <- list()
@@ -1893,10 +1905,10 @@ AzimuthServer <- function(input, output, session) {
               colormap <- CreateColorMap(ids=unique(as.vector(app.env$object[[input$metacolor.query[i],drop=T]])))
             }
             colormap['.'] <- '#E0E0E0'
-            plots[[i]] <- DimPlot(
+            p <- DimPlot(
               object = app.env$merged,
               group.by = input$metacolor.query[i],
-              label = isTRUE(input$labels),
+              label = isTRUE('labels' %in% input$label.opts),
               cols = colormap[names(x = colormap) %in% c('.',unique(as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])))],
               repel = TRUE,
               raster = FALSE,
@@ -1905,6 +1917,19 @@ AzimuthServer <- function(input, output, session) {
               ylim(app.env$plot.ranges[[2]]) +
               labs(x = "UMAP 1", y = "UMAP 2") +
               if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
+            if (isTRUE('labels' %in% input$label.opts)) {
+              keep <- if (isTRUE('filterlabels' %in% input$label.opts)) {
+                t <- table(as.vector(app.env$object[[input$metacolor.query[i],drop=T]]))
+                names(t)[which(t > 0.02*ncol(app.env$object))]
+              } else NULL
+              plots[[i]] <- LabelClusters(
+                p,
+                id = input$metacolor.query[i],
+                clusters = keep
+              )
+            } else {
+              plots[[i]]<-p
+            }
           }
           wrap_plots(plots, nrow = 1)
         }
@@ -1916,7 +1941,7 @@ AzimuthServer <- function(input, output, session) {
             app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
             DimPlot(
               object = refs$plot,
-              label = isTRUE(input$labels),
+              label = isTRUE('labels' %in% input$label.opts),
               group.by = input$metacolor.ref,
               cols = colormaps[[1]],
               repel = TRUE,
@@ -1930,7 +1955,7 @@ AzimuthServer <- function(input, output, session) {
             for (i in 1:length(x = colormaps)) {
               plots[[i]] <- DimPlot(
                 object = refs$plot,
-                label = isTRUE(input$labels),
+                label = isTRUE('labels' %in% input$label.opts),
                 group.by = input$metacolor.ref[i],
                 cols = colormaps[[i]],
                 repel = TRUE,
@@ -1962,7 +1987,7 @@ AzimuthServer <- function(input, output, session) {
   #         DimPlot(
   #           object = app.env$object,
   #           group.by = input$metacolor.query,
-  #           label = isTRUE(input$labels),
+  #           label = isTRUE('labels' %in% input$label.opts),
   #           cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
   #           repel = TRUE,
   #           reduction = "umap.proj"
@@ -1983,7 +2008,7 @@ AzimuthServer <- function(input, output, session) {
   #           plots[[i]] <- DimPlot(
   #             object = app.env$object,
   #             group.by = input$metacolor.query[i],
-  #             label = isTRUE(input$labels),
+  #             label = isTRUE('labels' %in% input$label.opts),
   #             cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
   #             repel = TRUE,
   #             reduction = "umap.proj"
@@ -2309,19 +2334,29 @@ AzimuthServer <- function(input, output, session) {
     selection = 'single',
     options = list(dom = 't')
   )
-  output$table.metadata <- renderTable(
-    expr = {
-      if (!is.null(x = app.env$object)) {
-        CategoryTable(
-          object = app.env$object,
-          category.1 = input$metarow,
-          category.2 = input$metacol,
-          percentage = (input$radio.pct == "Percentage")
-        )
-      }
-    },
-    rownames = TRUE
-  )
+  # output$table.metadata <- renderTable(
+  #   expr = {
+  #     if (!is.null(x = app.env$object)) {
+  #       CategoryTable(
+  #         object = app.env$object,
+  #         category.1 = input$metarow,
+  #         category.2 = input$metacol,
+  #         percentage = (input$radio.pct == "Percentage")
+  #       )
+  #     }
+  #   },
+  #   rownames = TRUE
+  # )
+  output$table.metadata <- renderPlotly({
+    table <- CategoryTable(
+      object = app.env$object,
+      category.1 = input$metarow,
+      category.2 = input$metacol,
+      percentage = (input$radio.pct == "Percentage")
+    )
+    table <- as.matrix(table)
+    plot_ly(x = colnames(table), y = rownames(table), z = table, type = 'heatmap')
+  })
   # Downloads
   output$dlumap <- downloadHandler(
     filename = paste0(tolower(x = app.title), '_umap.Rds'),

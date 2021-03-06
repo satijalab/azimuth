@@ -251,7 +251,11 @@ AzimuthUI <- tagList(
           box(
             title = 'Mapped Query',
             checkboxInput(inputId = 'legend', label = 'Show legend'),
-            checkboxInput(inputId = 'labels', label = 'Show labels', value=TRUE),
+            checkboxGroupInput(
+              inputId = "label.opts", label = NULL,
+              choiceNames = c("Show labels", "Filter cluster labels (size <2%)"),
+              choiceValues = c("labels", "filterlabels"),
+              selected = c("labels", "filterlabels"), inline = TRUE),
             checkboxInput(inputId = 'showrefonly', label = 'View reference only'),
             selectizeInput(
               inputId = 'metacolor.ref',
