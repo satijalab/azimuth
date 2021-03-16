@@ -246,7 +246,7 @@ AzimuthServer <- function(input, output, session) {
             tryCatch(
               expr = {
                 app.env$object <- LoadFileInput(path = react.env$path)
-                if (react.env$path == getOption(x = 'Azimuth.app.demodataset')) {
+                if (isTRUE(x = react.env$path == getOption(x = 'Azimuth.app.demodataset'))) {
                   app.env$demo <- TRUE
                 } else {
                   app.env$demo <- FALSE
