@@ -1064,6 +1064,9 @@ AzimuthServer <- function(input, output, session) {
           message = 'Running differential expression'
         )
         for (i in app.env$metadataxfer[!app.env$singlepred]) {
+          print(i)
+          print(head(app.env$object@meta.data))
+          print(table(app.env$object[[paste0("predicted.", i)]]))
           app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
             group_by = paste0("predicted.", i),
