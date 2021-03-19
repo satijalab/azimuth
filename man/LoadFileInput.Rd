@@ -82,4 +82,3 @@ the H5AD file in the following manner
 }
 }
 
-\keyword{internal}
