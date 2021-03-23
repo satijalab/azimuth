@@ -1,4 +1,4 @@
-# Azimuth develop
+# Azimuth 0.3.2 (2021-03-23)
 
 ## Added
 - `LoadFileInput()` and `LoadReference()` are now exported functions
