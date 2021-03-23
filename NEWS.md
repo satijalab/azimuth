@@ -6,6 +6,7 @@
 ## Changes
 - Fix to prevent error when no demo dataset is provided
 - Bug fixes in template analysis script generation
+- Fix neighbor graph used for clustering in `ClusterPreservationScore()`
 
 # Azimuth 0.3.1 (2021-03-12)
 
