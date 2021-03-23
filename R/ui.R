@@ -129,7 +129,7 @@ AzimuthUI <- tagList(
                   ),
                 )
           )
-        )
+        ),
         # # Preprocessing + QC Tab
         # tabItem(
         #   tabName = 'tab_preproc',
