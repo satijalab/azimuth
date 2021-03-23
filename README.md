@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# Azimuth v0.3.0
+# Azimuth v0.3.2
 
 <!-- badges: start -->
 
@@ -66,15 +66,15 @@ by default from Zenodo. Links are available on the Azimuth website
 You can set options by passing a parameter to the `AzimuthApp` function.
 Options in the `Azimuth.app` namespace (e.g. `max_cells` as shown in the
 example below) can omit the “Azimuth.app.” prefix. Options in other
-namespaces (e.g. `Azimuth.map.pbcorthresh` as shown in the example
-below) including non-Azimuth namespaces, must be specified using their
-full name.
+namespaces (e.g. `Azimuth.de.digits` as shown in the example below)
+including non-Azimuth namespaces, must be specified using their full
+name.
 
 ``` r
 Azimuth::AzimuthApp(max_cells = 100000)
 
 
-Azimuth::AzimuthApp('Azimuth.map.pbcorthresh' = 0.5)
+Azimuth::AzimuthApp('Azimuth.de.digits' = 5)
 ```
 
 We also support reading options from a JSON-formatted config file.
@@ -91,7 +91,7 @@ You can also set Azimuth or other options in R. (The full name must
 always be specified, even for options in the Azimuth.app namespace.)
 
 ``` r
-options('Azimuth.map.pbcorthresh' = 0.5)
+options('Azimuth.de.digits' = 5)
 Azimuth::AzimuthApp()
 ```
 
