@@ -306,7 +306,8 @@ LoadH5AD <- function(path) {
 LoadReference <- function(path, seconds = 10L) {
   ref.names <- list(
     map = 'ref.Rds',
-    ann = 'idx.annoy'
+    ann = 'idx.annoy',
+    globalatlas = 'globalatlas.rds'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -318,7 +319,8 @@ LoadReference <- function(path, seconds = 10L) {
     }
     mapref <- file.path(path, ref.names$map)
     annref <- file.path(path, ref.names$ann)
-    exists <- file.exists(c(mapref, annref))
+    globalatlasref <- file.path(path, ref.names$globalatlas)
+    exists <- file.exists(c(mapref, annref, globalatlasref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -384,9 +386,11 @@ LoadReference <- function(path, seconds = 10L) {
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   gc(verbose = FALSE)
+  globalatlas=readRDS(globalatlasref)
   return(list(
     map = map,
-    plot = plot
+    plot = plot,
+    globalatlas=globalatlas
   ))
 }
 

@@ -16,12 +16,15 @@ NULL
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
+#' @importFrom cowplot plot_grid
+#' @importFrom Matrix sparse.model.matrix
 #' @importFrom SeuratObject AddMetaData Assays Cells DefaultAssay Embeddings
 #' GetAssayData Idents Idents<- Key RenameCells Reductions Tool SetAssayData
-#' VariableFeatures
+#' VariableFeatures CellsByIdentities
 #' @importFrom Seurat DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
-#' RunUMAP TransferData SCTransform VlnPlot LabelClusters
+#' RunUMAP TransferData SCTransform VlnPlot LabelClusters NormalizeData FindVariableFeatures
+#' RunPCA FindClusters ScaleData
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput updateCheckboxInput updateTextAreaInput
@@ -30,9 +33,9 @@ NULL
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show onclick
-#' @importFrom stringr str_interp
+#' @importFrom stringr str_interp str_split
 #' @importFrom patchwork wrap_plots
-#' @importFrom stats na.omit quantile setNames median
+#' @importFrom stats na.omit quantile setNames median as.formula
 #' @importFrom utils write.table packageVersion
 #'
 #' @keywords internal
@@ -71,7 +74,8 @@ AzimuthServer <- function(input, output, session) {
     plots.refdim_intro_df = NULL,
     plots.objdim_df = NULL,
     fresh.plot = TRUE,
-    singlepred = NULL
+    singlepred = NULL,
+    obj=NULL
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -87,10 +91,12 @@ AzimuthServer <- function(input, output, session) {
     progress = NULL,
     plot.qc = FALSE,
     qc = FALSE,
+    globalatlas=F,
     score = FALSE,
     sctransform = FALSE,
     start = numeric(length = 0L),
-    transform = FALSE
+    transform = FALSE,
+    query.processed=F
   )
   if (isTRUE(x = do.adt)) {
     output$imputedlabel <- renderUI(expr = h3('Imputed protein biomarkers'))
@@ -116,6 +122,7 @@ AzimuthServer <- function(input, output, session) {
     output$valuebox_mappingqcstat <- NULL
     disable(id = 'map')
     hide(selector = '.rowhide')
+    react.env$query.processed<-F
   }
   rna.proxy <- dataTableProxy(outputId = 'biomarkers')
   adt.proxy <- dataTableProxy(outputId = 'adtbio')
@@ -325,8 +332,91 @@ AzimuthServer <- function(input, output, session) {
               }
             )
             setProgress(value = 1)
+            # only allow global atlas display
+            if (react.env$qc) {
+              react.env$qc <- F
+              react.env$globalatlas <- T
+            }
           }
         )
+      }
+    }
+  )
+  observeEvent(
+    eventExpr = react.env$globalatlas,
+    handlerExpr = {
+      if (isTRUE(x = react.env$globalatlas)) {
+        if (!(react.env$query.processed)) {
+          global.atlas <- refs$globalatlas
+          obj = app.env$object
+          obj[['celltype']]<-Idents(obj)
+          DefaultAssay(obj)<-'RNA'
+          obj<-FindClusters(FindNeighbors(RunPCA(ScaleData(FindVariableFeatures(NormalizeData(obj),nfeatures=500)),dims=1:30),dims=1:30))
+          cells <- c()
+          # take n from each cluster
+          TAKE_N = 10000
+          for (group in CellsByIdentities(obj)) {
+            cells<-c(cells, sample(group, size=min(TAKE_N, len(group))))
+          }
+          obj<-Seurat:::subset(obj,cells=cells)
+          # now that we have clusters, subset features to only vf(atlas)
+          obj<-Seurat:::subset(obj,features=ix(rownames(obj), rownames(global.atlas)))
+          # get averages
+          category.matrix <- sparse.model.matrix(
+            as.formula("~0 + seurat_clusters"),
+            obj[['seurat_clusters']])
+          colnames(category.matrix)<-gsub('seurat_clusters','',colnames(category.matrix))
+          category.matrix <- as(sweep(
+            category.matrix, 2, colSums(category.matrix), '/'
+          ), 'dgCMatrix')
+          data <- obj[['RNA']]@data
+          query.atlas <- log1p(expm1(data) %*% category.matrix)
+          query.atlas <- sweep(
+            query.atlas, 2, sqrt(colSums(query.atlas**2)), '/'
+          )
+          query.atlas <- t(query.atlas)
+
+          scores <- query.atlas %*% global.atlas[colnames(query.atlas), ]
+
+          SD.MULTIPLE = 1
+          match.list <- apply(
+            scores,
+            1,
+            function(row) {
+              sd <- sd(row); max <- max(row)
+              match.idx <- which(row > (max - SD.MULTIPLE*sd))
+              ct.organs <- colnames(scores)[match.idx]
+              ct.organs <- ct.organs[order(row[match.idx],decreasing=T)]
+              # ct.organs <- unlist(lapply(str_split(ct.organs, ':'), function(e) {
+              #   paste0(e[1],":",e[2])  }))
+              # if (len(unique(organs)) == 1) { 'good' } else { 'bad' }
+              return(unique(ct.organs))
+            }
+          )
+          react.env$query.processed=T
+        }
+
+        ref.organ<-'pbmc' #input$ref.organ
+        accept <- unlist(lapply(match.list,
+                                function(vec){
+                                  organs <- unlist(lapply(str_split(vec,pattern=':'),function(e){e[1]}))
+                                  return(ref.organ %in% organs )
+                                }))
+        obj[['accept']] <-
+          'Reject';
+        obj[['accept',drop=T]][which(obj[['seurat_clusters',drop=T]] %in%
+                                       as.character(names(accept)[accept]) )] <-
+          'Accept'
+        app.env$obj=obj
+
+        output$menu1 <- renderMenu(expr = {
+          sidebarMenu(menuItem(
+            text = 'Preprocessing',
+            tabName = 'tab_preproc',
+            icon = icon(name = 'filter'),
+            selected = TRUE
+          ))
+        })
       }
     }
   )
@@ -1655,6 +1745,11 @@ AzimuthServer <- function(input, output, session) {
       style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
       p(HTML(text = hovertext))
     )
+  })
+  output$globalatlasdim <- renderPlot(expr={
+    plot_grid(DimPlot(app.env$obj,group.by='celltype',label=T,repel=T)+NoLegend(),
+              DimPlot(app.env$obj,reduction='umap',group.by='accept',label=F,
+                      cols=setNames(c('blue','red'),nm=c('Accept','Reject'))))
   })
   output$refdim <- renderPlot(expr = {
     if (!is.null(x = input$metacolor.ref)) {

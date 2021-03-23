@@ -118,132 +118,148 @@ AzimuthUI <- tagList(
         tabItem(
           tabName = 'tab_preproc',
           fluidRow(
-            box(
-              title = p(
-                'QC Filters',
-                bsButton(
-                  inputId = 'q2',
-                  label = '',
-                  icon = icon(name = 'question'),
-                  style = 'info',
-                  size = 'extra-small'
+                box(
+                  title = p(
+                    'Global atlas QC',
+                  ),
+                  div(
+                    plotOutput(
+                      outputId = 'globalatlasdim',
+                    ),
+                  ),
                 )
-              ),
-              div(
-                id = 'ncount',
-                numericInput(
-                  inputId = 'num.ncountmin',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                ),
-                numericInput(
-                  inputId = 'num.ncountmax',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                )
-              ),
-              div(
-                id = 'nfeature',
-                numericInput(
-                  inputId = 'num.nfeaturemin',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                ),
-                numericInput(
-                  inputId = 'num.nfeaturemax',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                )
-              ),
-              div(
-                id = 'pctmt',
-                numericInput(
-                  inputId = 'minmt',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                ),
-                numericInput(
-                  'maxmt',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                )
-              ),
-              textOutput(outputId = 'text.cellsremain'),
-              div(
-                id = 'xferopts',
-                h4(
-                  'Transfer Options',
-                  bsButton(
-                    inputId = 'xferinput',
-                    label = '',
-                    icon = icon(name = 'question'),
-                    style = 'info',
-                    size = 'extra-small'
-                  )
-                ),
-                bsPopover(
-                  id = 'xferinput',
-                  title = 'Transfer Options',
-                  content = 'Select the meta.data fields to transfer from the reference',
-                  placement = 'right',
-                  trigger = 'focus',
-                  options = list(container = 'body')
-                ),
-                selectizeInput(
-                  inputId = 'metadataxfer',
-                  label = 'Reference Metadata to Transfer',
-                  choices = '',
-                  multiple = TRUE
-                )
-              ),
-              disabled(actionButton(
-                inputId = 'map',
-                label = 'Map cells to reference'
-              )),
-              width = 4
-            ),
-            bsPopover(
-              id = 'q2',
-              title = 'QC Filters',
-              content = paste(
-                'Select a minimum and maximum value for nCount (number of molecules)',
-                'nFeature (number of genes expressed)',
-                'and mitochondrial percentage (if applicable)',
-                sep = ', '
-              ),
-              placement = 'right',
-              trigger = 'focus',
-              options = list(container = 'body')
-            ),
-            box(
-              checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
-              plotOutput(outputId = 'plot.qc'),
-              tableOutput(outputId = 'table.qc'),
-              width = 8
-            )
-          ),
-          fluidRow(
-            valueBoxOutput(outputId = 'valuebox.upload', width = 3),
-            valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
-            div(
-              id = 'panchors_popup',
-              valueBoxOutput(outputId = "valuebox_panchors", width = 3),
-              bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
-            ),
-            div(
-              id = 'mappingqcstat_popup',
-              valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
-              bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
-            ),
-            valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
-          ),
-        ),
+          )
+        )
+        # # Preprocessing + QC Tab
+        # tabItem(
+        #   tabName = 'tab_preproc',
+        #   fluidRow(
+        #     box(
+        #       title = p(
+        #         'QC Filters',
+        #         bsButton(
+        #           inputId = 'q2',
+        #           label = '',
+        #           icon = icon(name = 'question'),
+        #           style = 'info',
+        #           size = 'extra-small'
+        #         )
+        #       ),
+        #       div(
+        #         id = 'ncount',
+        #         numericInput(
+        #           inputId = 'num.ncountmin',
+        #           label = NULL,
+        #           value = 0,
+        #           width = '90%'
+        #         ),
+        #         numericInput(
+        #           inputId = 'num.ncountmax',
+        #           label = NULL,
+        #           value = 0,
+        #           width = '90%'
+        #         )
+        #       ),
+        #       div(
+        #         id = 'nfeature',
+        #         numericInput(
+        #           inputId = 'num.nfeaturemin',
+        #           label = NULL,
+        #           value = 0,
+        #           width = '90%'
+        #         ),
+        #         numericInput(
+        #           inputId = 'num.nfeaturemax',
+        #           label = NULL,
+        #           value = 0,
+        #           width = '90%'
+        #         )
+        #       ),
+        #       div(
+        #         id = 'pctmt',
+        #         numericInput(
+        #           inputId = 'minmt',
+        #           label = NULL,
+        #           value = 0,
+        #           width = '90%'
+        #         ),
+        #         numericInput(
+        #           'maxmt',
+        #           label = NULL,
+        #           value = 0,
+        #           width = '90%'
+        #         )
+        #       ),
+        #       textOutput(outputId = 'text.cellsremain'),
+        #       div(
+        #         id = 'xferopts',
+        #         h4(
+        #           'Transfer Options',
+        #           bsButton(
+        #             inputId = 'xferinput',
+        #             label = '',
+        #             icon = icon(name = 'question'),
+        #             style = 'info',
+        #             size = 'extra-small'
+        #           )
+        #         ),
+        #         bsPopover(
+        #           id = 'xferinput',
+        #           title = 'Transfer Options',
+        #           content = 'Select the meta.data fields to transfer from the reference',
+        #           placement = 'right',
+        #           trigger = 'focus',
+        #           options = list(container = 'body')
+        #         ),
+        #         selectizeInput(
+        #           inputId = 'metadataxfer',
+        #           label = 'Reference Metadata to Transfer',
+        #           choices = '',
+        #           multiple = TRUE
+        #         )
+        #       ),
+        #       disabled(actionButton(
+        #         inputId = 'map',
+        #         label = 'Map cells to reference'
+        #       )),
+        #       width = 4
+        #     ),
+        #     bsPopover(
+        #       id = 'q2',
+        #       title = 'QC Filters',
+        #       content = paste(
+        #         'Select a minimum and maximum value for nCount (number of molecules)',
+        #         'nFeature (number of genes expressed)',
+        #         'and mitochondrial percentage (if applicable)',
+        #         sep = ', '
+        #       ),
+        #       placement = 'right',
+        #       trigger = 'focus',
+        #       options = list(container = 'body')
+        #     ),
+        #     box(
+        #       checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
+        #       plotOutput(outputId = 'plot.qc'),
+        #       tableOutput(outputId = 'table.qc'),
+        #       width = 8
+        #     )
+        #   ),
+        #   fluidRow(
+        #     valueBoxOutput(outputId = 'valuebox.upload', width = 3),
+        #     valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
+        #     div(
+        #       id = 'panchors_popup',
+        #       valueBoxOutput(outputId = "valuebox_panchors", width = 3),
+        #       bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
+        #     ),
+        #     div(
+        #       id = 'mappingqcstat_popup',
+        #       valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
+        #       bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
+        #     ),
+        #     valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
+        #   ),
+        # ),
         tabItem(
           tabName = 'tab_cell',
           box(
