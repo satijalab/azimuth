@@ -36,8 +36,6 @@ HoverBoxStyle <- function(x, y) {
 #' DefaultAssay<-
 #' @importFrom Seurat Read10X_h5 as.sparse Assays DietSeurat as.Seurat
 #'
-#' @keywords internal
-#'
 #' @section 10X H5 File (extension \code{h5}):
 #' 10X HDF5 files are supported for all versions of Cell Ranger; data is read
 #' in using \code{\link[Seurat]{Read10X_h5}}. \strong{Note}: for multi-modal
@@ -62,6 +60,7 @@ HoverBoxStyle <- function(x, y) {
 #' \dQuote{counts} matrices are read in and only the default assay is kept
 #'
 #' @inheritSection LoadH5AD AnnData H5AD File (extension \code{h5ad})
+#' @export
 #'
 LoadFileInput <- function(path) {
   # TODO: add support for loom files
@@ -299,8 +298,7 @@ LoadH5AD <- function(path) {
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
 #'
-#' @keywords internal
-#'
+#' @export
 #' @examples
 #' \dontrun{
 #' # Load from a URL

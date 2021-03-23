@@ -246,7 +246,7 @@ AzimuthServer <- function(input, output, session) {
             tryCatch(
               expr = {
                 app.env$object <- LoadFileInput(path = react.env$path)
-                if (react.env$path == getOption(x = 'Azimuth.app.demodataset')) {
+                if (isTRUE(x = react.env$path == getOption(x = 'Azimuth.app.demodataset'))) {
                   app.env$demo <- TRUE
                 } else {
                   app.env$demo <- FALSE
@@ -2152,7 +2152,7 @@ AzimuthServer <- function(input, output, session) {
       e$adt.key <- adt.key
       e$do.adt <- do.adt
       e$metadataxfer <- app.env$metadataxfer
-      if (length(x = e$metadataxfer == 1)) {
+      if (length(x = e$metadataxfer) == 1) {
         e$metadataxfer <- paste0("\"", e$metadataxfer, "\"")
       }
       e$plotgene <- getOption(x = 'Azimuth.app.default_gene')
