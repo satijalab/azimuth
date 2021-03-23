@@ -4,7 +4,7 @@
 #' @importFrom htmltools div h3 h4 HTML includeCSS p tagList tags
 #' @importFrom shinyjs disabled useShinyjs
 #' @importFrom shiny actionButton checkboxInput column downloadButton fileInput
-#' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput
+#' fluidRow htmlOutput icon numericInput plotOutput radioButtons selectizeInput selectInput
 #' tableOutput textOutput textAreaInput uiOutput verbatimTextOutput hoverOpts
 #' checkboxGroupInput
 #' @importFrom shinyBS bsButton bsPopover bsTooltip
@@ -91,27 +91,27 @@ AzimuthUI <- tagList(
             fluidRow(
               box(
                 htmlOutput(outputId = 'welcomebox'),
-                htmlOutput(outputId = 'refdescriptor'),
+                # htmlOutput(outputId = 'refdescriptor'),
                 width=12
               ),
               width=12
             ),
-            fluidRow(
-              div(
-                style = "position:relative",
-                plotOutput(
-                  outputId = 'refdim_intro',
-                  hover = hoverOpts(
-                    id = "refdim_intro_hover_location",
-                    delay = 5,
-                    delayType = "debounce",
-                    nullOutside = TRUE
-                  )
-                ),
-                uiOutput("refdim_intro_hover_box")
-              ),
-              width = 12
-            ),
+            # fluidRow(
+            #   div(
+            #     style = "position:relative",
+            #     plotOutput(
+            #       outputId = 'refdim_intro',
+            #       hover = hoverOpts(
+            #         id = "refdim_intro_hover_location",
+            #         delay = 5,
+            #         delayType = "debounce",
+            #         nullOutside = TRUE
+            #       )
+            #     ),
+            #     uiOutput("refdim_intro_hover_box")
+            #   ),
+            #   width = 12
+            # ),
           )
         ),
         # Preprocessing + QC Tab
@@ -122,12 +122,23 @@ AzimuthUI <- tagList(
                   title = p(
                     'Global atlas QC',
                   ),
+                  selectInput(
+                    inputId = 'ref.organ',
+                    label = 'Reference organ',
+                    choices = c('colon','esophagus','heart','kidney','liver','lung',
+                                'pancreas','skin','spleen','brain','pbmc'),
+                    selected='pbmc',
+                    multiple = F,
+                  ),
                   div(
                     plotOutput(
                       outputId = 'globalatlasdim',
                     ),
                   ),
-                )
+                  width=12
+                ),
+                width=12,
+                height='900px'
           )
         ),
         # # Preprocessing + QC Tab

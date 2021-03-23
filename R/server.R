@@ -17,7 +17,8 @@ NULL
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
 #' @importFrom cowplot plot_grid
-#' @importFrom Matrix sparse.model.matrix
+#' @importFrom BiocGenerics t
+#' @importFrom Matrix sparse.model.matrix colSums
 #' @importFrom SeuratObject AddMetaData Assays Cells DefaultAssay Embeddings
 #' GetAssayData Idents Idents<- Key RenameCells Reductions Tool SetAssayData
 #' VariableFeatures CellsByIdentities
@@ -75,7 +76,8 @@ AzimuthServer <- function(input, output, session) {
     plots.objdim_df = NULL,
     fresh.plot = TRUE,
     singlepred = NULL,
-    obj=NULL
+    obj=NULL,
+    match.list=NULL
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -123,6 +125,8 @@ AzimuthServer <- function(input, output, session) {
     disable(id = 'map')
     hide(selector = '.rowhide')
     react.env$query.processed<-F
+    react.env$globalatlas <- F
+    output$menu1 <- NULL
   }
   rna.proxy <- dataTableProxy(outputId = 'biomarkers')
   adt.proxy <- dataTableProxy(outputId = 'adtbio')
@@ -343,24 +347,39 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   observeEvent(
-    eventExpr = react.env$globalatlas,
+    eventExpr = list(react.env$globalatlas,input$ref.organ),
     handlerExpr = {
       if (isTRUE(x = react.env$globalatlas)) {
         if (!(react.env$query.processed)) {
+          react.env$progress <- Progress$new(style = 'notification')
+          react.env$progress$set(
+            value = 0,
+            message = 'Preprocessing query (**with added UMAP step for vis**)'
+          )
           global.atlas <- refs$globalatlas
           obj = app.env$object
-          obj[['celltype']]<-Idents(obj)
           DefaultAssay(obj)<-'RNA'
-          obj<-FindClusters(FindNeighbors(RunPCA(ScaleData(FindVariableFeatures(NormalizeData(obj),nfeatures=500)),dims=1:30),dims=1:30))
+          obj<-RunPCA(ScaleData(FindVariableFeatures(NormalizeData(obj),nfeatures=500)))
+          react.env$progress$set(
+            value = 0.2,
+            message = 'Running UMAP'
+          )
+          obj<-RunUMAP(obj,dims=1:30)
+          react.env$progress$set(
+            value = 0.8,
+            message = 'NN + Clustering'
+          )
+          obj<-FindClusters(FindNeighbors(obj,dims=1:30))
           cells <- c()
-          # take n from each cluster
-          TAKE_N = 10000
-          for (group in CellsByIdentities(obj)) {
-            cells<-c(cells, sample(group, size=min(TAKE_N, len(group))))
-          }
-          obj<-Seurat:::subset(obj,cells=cells)
+          # # take n from each cluster
+          # TAKE_N = 10000
+          # for (group in CellsByIdentities(obj)) {
+          #   cells<-c(cells, sample(group, size=min(TAKE_N, length(group))))
+          # }
+          # obj<-subset(obj,cells=cells)
+
           # now that we have clusters, subset features to only vf(atlas)
-          obj<-Seurat:::subset(obj,features=ix(rownames(obj), rownames(global.atlas)))
+          obj<-subset(obj,features=intersect(rownames(obj), rownames(global.atlas)))
           # get averages
           category.matrix <- sparse.model.matrix(
             as.formula("~0 + seurat_clusters"),
@@ -379,7 +398,7 @@ AzimuthServer <- function(input, output, session) {
           scores <- query.atlas %*% global.atlas[colnames(query.atlas), ]
 
           SD.MULTIPLE = 1
-          match.list <- apply(
+          app.env$match.list <- apply(
             scores,
             1,
             function(row) {
@@ -393,21 +412,27 @@ AzimuthServer <- function(input, output, session) {
               return(unique(ct.organs))
             }
           )
+          react.env$progress$close()
+          print(app.env$match.list)
           react.env$query.processed=T
+          app.env$obj=obj
         }
 
-        ref.organ<-'pbmc' #input$ref.organ
-        accept <- unlist(lapply(match.list,
+
+
+
+        ref.organ<-input$ref.organ
+        accept <- unlist(lapply(app.env$match.list,
                                 function(vec){
                                   organs <- unlist(lapply(str_split(vec,pattern=':'),function(e){e[1]}))
-                                  return(ref.organ %in% organs )
+                                  # return( (ref.organ %in% organs) | (length(unique(organs))>5) )
+                                  return( (ref.organ %in% organs)  )
                                 }))
-        obj[['accept']] <-
+        app.env$obj[['accept']] <-
           'Reject';
-        obj[['accept',drop=T]][which(obj[['seurat_clusters',drop=T]] %in%
+        app.env$obj[['accept',drop=T]][which(app.env$obj[['seurat_clusters',drop=T]] %in%
                                        as.character(names(accept)[accept]) )] <-
           'Accept'
-        app.env$obj=obj
 
         output$menu1 <- renderMenu(expr = {
           sidebarMenu(menuItem(
@@ -1747,9 +1772,21 @@ AzimuthServer <- function(input, output, session) {
     )
   })
   output$globalatlasdim <- renderPlot(expr={
-    plot_grid(DimPlot(app.env$obj,group.by='celltype',label=T,repel=T)+NoLegend(),
-              DimPlot(app.env$obj,reduction='umap',group.by='accept',label=F,
-                      cols=setNames(c('blue','red'),nm=c('Accept','Reject'))))
+    if (!is.null(app.env$obj) & ('accept' %in% colnames(app.env$obj[[]]))) {
+      if ('celltype' %in% colnames(app.env$obj[[]])) {
+        plot_grid(DimPlot(app.env$obj,group.by='seurat_clusters',label=T,repel=T)+NoLegend(),
+                  DimPlot(app.env$obj,group.by='celltype',label=T,repel=T)+NoLegend(),
+                  DimPlot(app.env$obj,reduction='umap',group.by='accept',label=F,
+                          cols=setNames(c('blue','red'),nm=c('Accept','Reject'))),
+                  ncol=3)
+      } else {
+        plot_grid(DimPlot(app.env$obj,group.by='seurat_clusters',label=T,repel=T)+NoLegend(),
+                  DimPlot(app.env$obj,label=T,repel=T)+NoLegend(),
+                  DimPlot(app.env$obj,reduction='umap',group.by='accept',label=F,
+                          cols=setNames(c('blue','red'),nm=c('Accept','Reject'))),
+                  ncol=3)
+      }
+    }
   })
   output$refdim <- renderPlot(expr = {
     if (!is.null(x = input$metacolor.ref)) {
