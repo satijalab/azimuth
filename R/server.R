@@ -2152,7 +2152,7 @@ AzimuthServer <- function(input, output, session) {
       e$adt.key <- adt.key
       e$do.adt <- do.adt
       e$metadataxfer <- app.env$metadataxfer
-      if (length(x = e$metadataxfer == 1)) {
+      if (length(x = e$metadataxfer) == 1) {
         e$metadataxfer <- paste0("\"", e$metadataxfer, "\"")
       }
       e$plotgene <- getOption(x = 'Azimuth.app.default_gene')

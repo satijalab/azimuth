@@ -12,10 +12,13 @@ if (!requireNamespace("glmGamPoi", quietly = TRUE)) {
   }
 }
 
-library(Seurat)
+# Ensure Azimuth is installed
+if (packageVersion(pkg = "Azimuth") < package_version(x = "0.3.1")) {
+  stop("Please install azimuth - remotes::install_github('satijalab/azimuth')", call. = FALSE)
+}
 
-# Load helper functions from Azimuth
-source("https://raw.githubusercontent.com/satijalab/azimuth/master/R/helpers.R")
+library(Seurat)
+library(Azimuth)
 
 # Download the Azimuth reference and extract the archive
 
