@@ -1,8 +1,4 @@
-FROM satijalab/azimuth:latest
-
-ARG SEURAT_VER=unknown
-RUN echo "$SEURAT_VER"
-RUN R --no-echo -e "remotes::install_github('satijalab/seurat@feat/descartes')"
+FROM azimuth:descartes
 
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"

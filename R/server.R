@@ -2446,14 +2446,14 @@ AzimuthServer <- function(input, output, session) {
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
       req <- paste0("predicted.", c(app.env$metadataxfer, paste0(app.env$metadataxfer, ".score")))
-      if (resolved(x = app.env$mapping.score)) {
-        req <- c(req, 'mapping.score')
-      }
+      # if (resolved(x = app.env$mapping.score)) {
+      #   req <- c(req, 'mapping.score')
+      # }
       if (all(req %in% colnames(x = app.env$object[[]]))) {
         pred.df <- app.env$object[[req]]
-        if (resolved(x = app.env$mapping.score)) {
-          pred.df$mapping.score <- value(app.env$mapping.score)
-        }
+        # if (resolved(x = app.env$mapping.score)) {
+        #   pred.df$mapping.score <- value(app.env$mapping.score)
+        # }
         pred.df <- cbind(cell = rownames(x = pred.df), pred.df)
         write.table(
           x = pred.df,
