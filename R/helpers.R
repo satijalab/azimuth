@@ -31,26 +31,29 @@ ConvertGeneNames <- function(object, reference.names, linked) {
   idtype.ref <- gsub('\\.mouse|\\.human','',idtype.ref)
   message('reference rownames detected ', toupper(species.ref),' with id type ',idtype.ref)
   totalid.ref = paste0(idtype.ref,'.',species.ref)
+  print('okkkkk')
 
   if (totalid == totalid.ref) {
     return(object)
   } else {
     # set up table indexed by query ids (totalid)
     linked.unique <- linked[!duplicated(linked[[totalid]]),]
-    message(paste0("Found ",length(intersect(names,linked.unique[[totalid]]))," out of ",length(names)," total inputs in conversion table"))
-    names <- intersect(names,linked.unique[[totalid]])
+    new.indices <- which(names %in% linked.unique[[totalid]])
+    message(paste0("Found ",length(new.indices)," out of ",length(names)," total inputs in conversion table"))
+    names <- names[new.indices]
     rownames(linked.unique) <- linked.unique[[totalid]]
     linked.unique <- linked.unique[names,]
-
     # get converted totalid.ref
-    new.indices <- rownames(linked.unique)
     new.names <- linked.unique[,totalid.ref]
-    dup <- !duplicated(new.names)
-    new.indices <- new.indices[dup]
-    new.names <- new.names[dup]
+    # remove duplicates
+    notdup <- !duplicated(new.names)
+    new.indices <- new.indices[notdup]
+    new.names <- new.names[notdup]
 
+    print("okk33333")
     # subset/rename object accordingly
-    object <- subset(object, features=new.indices )
+    object <- subset(object, features=rownames(object)[new.indices] )
+    print('ok3312312')
     rownames(object@assays$RNA@counts) <- new.names
     rownames(object@assays$RNA@data) <- new.names
     rownames(object@assays$RNA@meta.features) <- new.names

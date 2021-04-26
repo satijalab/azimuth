@@ -41,6 +41,9 @@
 #'   \item{\code{Azimuth.app.max_cells}}{
 #'    Maximum number of cells allowed to upload
 #'   }
+#'   \item{\code{Azimuth.app.metadata_notransfer}}{
+#'    Metadata to annotate in reference but not transfer to query
+#'   }
 #'   \item{\code{Azimuth.app.mito}}{
 #'    Regular expression pattern indicating mitochondrial features in query
 #'    object

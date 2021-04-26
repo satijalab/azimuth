@@ -79,12 +79,14 @@ AzimuthServer <- function(input, output, session) {
     emptyref=NULL,
     merged=NULL,
     metadata.discrete=NULL,
+    metadata.notransfer=NULL,
     disable=FALSE
   )
   react.env <- reactiveValues(
     no = FALSE,
     anchors = FALSE,
     biomarkers = FALSE,
+    cluster.score = FALSE,
     features = FALSE,
     map = FALSE,
     markers = FALSE,
@@ -220,7 +222,6 @@ AzimuthServer <- function(input, output, session) {
     )
   }
   plotseed <- getOption(x = "Azimuth.app.plotseed")
-  print('hi3')
   if (!is.null(x = plotseed)) {
     set.seed(seed = plotseed)
     colormap <- GetColorMap(object = refs$map)
@@ -229,15 +230,25 @@ AzimuthServer <- function(input, output, session) {
     }
     refs$map <- SetColorMap(object = refs$map, value = colormap)
   }
-  print('hi4')
-  possible.metadata.transfer <- names(x = GetColorMap(object = refs$map))
+  metadata.notransfer <- stringr:::str_trim(
+    stringr:::str_split(
+      getOption(x = "Azimuth.app.metadata_notransfer", default = NULL),
+      ','
+    )[[1]]
+  )
+  print(metadata.notransfer)
+  metadata.annotate <- names(x = GetColorMap(object = refs$map))
+  possible.metadata.transfer <- setdiff(metadata.annotate, metadata.notransfer)
+  print(possible.metadata.transfer)
   if (length(x = possible.metadata.transfer) > 1) {
     react.env$xferopts <- TRUE
   }
+  print('hmmm')
   default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
   if (!default_xfer %in% possible.metadata.transfer) {
     default_xfer <- possible.metadata.transfer[1]
   }
+  print('okkkdaksdkaddsas')
   # React to events
   # Load the data an prepare for QC
   observeEvent(
@@ -288,15 +299,15 @@ AzimuthServer <- function(input, output, session) {
             tryCatch(
               expr = {
                 app.env$object <- LoadFileInput(path = react.env$path)
-                app.env$object <- DietSeurat(
-                  app.env$object,
-                  assays = "RNA"
-                )
-                app.env$object <- ConvertGeneNames(
-                  object = app.env$object,
-                  reference.names = rownames(x = refs$map),
-                  linked = refs$homologs
-                )
+                # app.env$object <- DietSeurat(
+                #   app.env$object,
+                #   assays = "RNA"
+                # )
+                # app.env$object <- ConvertGeneNames(
+                #   object = app.env$object,
+                #   reference.names = rownames(x = refs$map),
+                #   linked = refs$homologs
+                # )
 
                 if (react.env$path == getOption(x = 'Azimuth.app.demodataset') |
                     react.env$path == getOption(x = 'Azimuth.app.demodataset2') |
@@ -888,10 +899,64 @@ AzimuthServer <- function(input, output, session) {
             }
           }
           # react.env$score <- TRUE
-          react.env$transform <- TRUE
+          react.env$cluster.score <- TRUE
           react.env$map <- FALSE
         }
       }
+    }
+  )
+  observeEvent(
+    eventExpr = react.env$cluster.score,
+    handlerExpr = {
+      # post mapping QC
+      qc.stat <- round(
+        x = ClusterPreservationScore(
+          query = app.env$object,
+          ds.amount = getOption(x = "Azimuth.map.postmapqcds")
+        ),
+        digits = 2
+      )
+      if (!is.null(googlesheet)) {
+        try(sheet_append(
+          ss = googlesheet,
+          data = data.frame(
+            "CLUSTERPRESERVATIONQC",
+            app_session_id,
+            qc.stat
+          )
+        ))
+      }
+      app.env$clusterpreservationqc <- qc.stat
+      if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
+        output$valuebox_mappingqcstat <- renderValueBox(expr = {
+          valueBox(
+            value = paste0(qc.stat, "/5"),
+            subtitle = "cluster preservation score",
+            color = 'red',
+            icon = icon(name = 'times')
+          )
+        })
+      } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
+        output$valuebox_mappingqcstat <- renderValueBox(expr = {
+          valueBox(
+            value = paste0(qc.stat, "/5"),
+            subtitle = "cluster preservation score",
+            color = 'yellow',
+            icon = icon(name = 'exclamation-circle')
+          )
+        })
+      } else {
+        output$valuebox_mappingqcstat <- renderValueBox(expr = {
+          valueBox(
+            value = paste0(qc.stat, "/5"),
+            subtitle = "cluster preservation score",
+            color = 'green',
+            icon = icon(name = 'check')
+          )
+        })
+      }
+      react.env$cluster.score <- FALSE
+      react.env$transform <- TRUE
     }
   )
   observeEvent(
@@ -902,53 +967,6 @@ AzimuthServer <- function(input, output, session) {
           value = 0.7,
           message = 'Calculating mapping score'
         )
-        # post mapping QC
-        qc.stat <- round(
-          x = ClusterPreservationScore(
-            query = app.env$object,
-            ds.amount = getOption(x = "Azimuth.map.postmapqcds")
-          ),
-          digits = 2
-        )
-        if (!is.null(googlesheet)) {
-          try(sheet_append(
-            ss = googlesheet,
-            data = data.frame(
-              "CLUSTERPRESERVATIONQC",
-              app_session_id,
-              qc.stat
-            )
-          ))
-        }
-        app.env$clusterpreservationqc <- qc.stat
-        if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
-          output$valuebox_mappingqcstat <- renderValueBox(expr = {
-            valueBox(
-              value = paste0(qc.stat, "/5"),
-              subtitle = "cluster preservation score",
-              color = 'red',
-              icon = icon(name = 'times')
-            )
-          })
-        } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
-          output$valuebox_mappingqcstat <- renderValueBox(expr = {
-            valueBox(
-              value = paste0(qc.stat, "/5"),
-              subtitle = "cluster preservation score",
-              color = 'yellow',
-              icon = icon(name = 'exclamation-circle')
-            )
-          })
-        } else {
-          output$valuebox_mappingqcstat <- renderValueBox(expr = {
-            valueBox(
-              value = paste0(qc.stat, "/5"),
-              subtitle = "cluster preservation score",
-              color = 'green',
-              icon = icon(name = 'check')
-            )
-          })
-        }
         refdr <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = app.env$object), "_query")
@@ -1768,7 +1786,7 @@ AzimuthServer <- function(input, output, session) {
     #     ))))
     hovertext <- do.call(
       what = paste0,
-      args = lapply(X = possible.metadata.transfer, FUN = function(md) {
+      args = lapply(X = metadata.annotate, FUN = function(md) {
         paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
       })
     )
@@ -2092,7 +2110,7 @@ AzimuthServer <- function(input, output, session) {
         what = paste0,
         args = as.list(c(
           paste0("<b>", point[[input$metacolor.ref]], "</b><br>"),
-          sapply(X = setdiff(possible.metadata.transfer, input$metacolor.ref), FUN = function(md) {
+          sapply(X = setdiff(metadata.annotate, input$metacolor.ref), FUN = function(md) {
             paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
           })
         ))

@@ -53,7 +53,7 @@ AzimuthUI <- tagList(
       actionButton(inputId = 'triggerdemo', label = 'Demo neonatal heart'),
       actionButton(inputId = 'triggerdemo2', label = 'Demo adult pancreas'),
       actionButton(inputId = 'triggerdemo3', label = 'Demo fetal kidney'),
-      actionButton(inputId = 'triggerdemo4', label = 'Demo MOCA subsample'),
+      actionButton(inputId = 'triggerdemo4', label = 'Demo subsampled BBI'),
       htmlOutput(outputId = 'message', inline = FALSE),
       sidebarMenu(
         menuItem(
