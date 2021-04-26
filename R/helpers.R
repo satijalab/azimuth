@@ -442,10 +442,13 @@ LoadReference <- function(path, seconds = 10L) {
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
+
+
   cm <- sparseMatrix(
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
     dimnames = list("placeholder", Cells(x = plotref.dr))
   )
+  print('hi2')
   plot <- CreateSeuratObject(
     counts = cm
   )
@@ -454,6 +457,7 @@ LoadReference <- function(path, seconds = 10L) {
   if (length(Cells(plot)) > 100000) {
     plot <- subset(plot,cells=sample(Cells(plot),100000))
   }
+  print('hi')
   gc(verbose = FALSE)
   return(list(
     map = map,

@@ -220,6 +220,7 @@ AzimuthServer <- function(input, output, session) {
     )
   }
   plotseed <- getOption(x = "Azimuth.app.plotseed")
+  print('hi3')
   if (!is.null(x = plotseed)) {
     set.seed(seed = plotseed)
     colormap <- GetColorMap(object = refs$map)
@@ -228,6 +229,7 @@ AzimuthServer <- function(input, output, session) {
     }
     refs$map <- SetColorMap(object = refs$map, value = colormap)
   }
+  print('hi4')
   possible.metadata.transfer <- names(x = GetColorMap(object = refs$map))
   if (length(x = possible.metadata.transfer) > 1) {
     react.env$xferopts <- TRUE
@@ -1072,7 +1074,11 @@ AzimuthServer <- function(input, output, session) {
           value = 0.95,
           message = 'Running differential expression'
         )
+        print(app.env$metadataxfer)
+        print(app.env$singlepred)
+        print(app.env$metadataxfer[!app.env$singlepred])
         for (i in app.env$metadataxfer[!app.env$singlepred]) {
+          print(i)
           app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
             group_by = paste0("predicted.", i),
