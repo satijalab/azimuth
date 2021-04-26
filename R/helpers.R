@@ -368,7 +368,8 @@ LoadH5AD <- function(path) {
 LoadReference <- function(path, seconds = 10L) {
   ref.names <- list(
     map = 'ref.Rds',
-    ann = 'idx.annoy'
+    ann = 'idx.annoy',
+    homologs = 'homologs.rds'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -380,7 +381,8 @@ LoadReference <- function(path, seconds = 10L) {
     }
     mapref <- file.path(path, ref.names$map)
     annref <- file.path(path, ref.names$ann)
-    exists <- file.exists(c(mapref, annref))
+    homologs <- file.path(path, ref.names$homologs)
+    exists <- file.exists(c(mapref, annref, homologs))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -419,10 +421,12 @@ LoadReference <- function(path, seconds = 10L) {
       )
     }
     mapref <- url(description = ref.uris[['map']])
+    homologs <- url(description = ref.uris[['homologs']])
     annref <- tempfile()
     download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
     on.exit(expr = {
       close(con = mapref)
+      close(con = homologs)
       unlink(x = annref)
     })
   }
@@ -433,6 +437,8 @@ LoadReference <- function(path, seconds = 10L) {
     object = map[["refdr.annoy.neighbors"]],
     file = annref
   )
+  # Load the homologs
+  homologs <- readRDS(file = homologs)
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
@@ -440,20 +446,19 @@ LoadReference <- function(path, seconds = 10L) {
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
     dimnames = list("placeholder", Cells(x = plotref.dr))
   )
-  print('creating seurat object from plotref')
   plot <- CreateSeuratObject(
-    counts = cm, names.field = NULL, names.delim = NULL
+    counts = cm
   )
-  print('DONE creating seurat object from plotref')
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
-  plot <- subset(plot,cells=sample(Cells(plot),70000))
+  if (length(Cells(plot)) > 100000) {
+    plot <- subset(plot,cells=sample(Cells(plot),100000))
+  }
   gc(verbose = FALSE)
   return(list(
     map = map,
     plot = plot,
-    avgexp = GetAvgRef(object = ad),
-    sdexp = GetSdRef(object = ad)
+    homologs = homologs
   ))
 }
 

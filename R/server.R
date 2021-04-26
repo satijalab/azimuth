@@ -198,9 +198,6 @@ AzimuthServer <- function(input, output, session) {
           default = stop(safeError(error = "No reference provided"))
         )
       )
-      print(refs$homologs)
-      print(dim(refs$homologs))
-      print(head(refs$homologs))
       setProgress(value = 1)
       enable(id = 'file')
       enable(id = 'triggerdemo')
@@ -393,7 +390,6 @@ AzimuthServer <- function(input, output, session) {
         for (id in qc.ids) {
           try(expr = enable(id = id), silent = TRUE)
         }
-        print(app.env$merged)
         ncount <- paste0('nCount_', app.env$default.assay)
         nfeature <- paste0('nFeature_', app.env$default.assay)
         if (!all(c(ncount, nfeature) %in% colnames(x = app.env$object[[]]))) {
@@ -628,76 +624,78 @@ AzimuthServer <- function(input, output, session) {
           ))
         }
         app.env$object <- app.env$object[, cells.use]
-        # react.env$sctransform <- TRUE
-        react.env$lognormalize <- TRUE
+        react.env$sctransform <- TRUE
+        # react.env$lognormalize <- TRUE
       }
     }
   )
-  # observeEvent(
-  #   eventExpr = react.env$sctransform,
-  #   handlerExpr = {
-  #     if (isTRUE(x = react.env$sctransform)) {
-  #       react.env$progress$set(
-  #         value = 0.2,
-  #         message = 'Normalizing with SCTransform'
-  #       )
-  #       tryCatch(
-  #         expr = {
-  #           app.env$object <- suppressWarnings(expr = SCTransform(
-  #             object = app.env$object,
-  #             residual.features = rownames(x = refs$map),
-  #             reference.SCT.model = slot(object = refs$map[["refAssay"]], name = "SCTModel.list")[["refmodel"]],
-  #             method = "glmGamPoi",
-  #             do.correct.umi = FALSE,
-  #             do.scale = FALSE,
-  #             do.center = TRUE,
-  #             new.assay.name = "refAssay"
-  #           ))
-  #         },
-  #         error = function(e) {
-  #           app.env$object <- suppressWarnings(expr = SCTransform(
-  #             object = app.env$object,
-  #             residual.features = rownames(x = refs$map),
-  #             reference.SCT.model = slot(object = refs$map[["refAssay"]], name = "SCTModel.list")[["refmodel"]],
-  #             method = "poisson",
-  #             do.correct.umi = FALSE,
-  #             do.scale = FALSE,
-  #             do.center = TRUE,
-  #             new.assay.name = "refAssay"
-  #           ))
-  #         }
-  #       )
-  #       app.env$messages <- c(
-  #         app.env$messages,
-  #         paste(ncol(x = app.env$object), "cells preprocessed")
-  #       )
-  #       react.env$anchors <- TRUE
-  #       react.env$sctransform <- FALSE
-  #     }
-  #   }
-  # )
   observeEvent(
-    eventExpr = react.env$lognormalize,
+    eventExpr = react.env$sctransform,
     handlerExpr = {
-      if (isTRUE(x = react.env$lognormalize)) {
+      if (isTRUE(x = react.env$sctransform)) {
         react.env$progress$set(
           value = 0.2,
-          message = 'Log-normalizing'
+          message = 'Normalizing with SCTransform'
         )
-        app.env$object <- NormalizeData(object = app.env$object)
-        app.env$object <- FindVariableFeatures(object = app.env$object)
-        app.env$object <- ScaleData(object = app.env$object)
+        tryCatch(
+          expr = {
+            app.env$object <- suppressWarnings(expr = SCTransform(
+              object = app.env$object,
+              residual.features = rownames(x = refs$map),
+              reference.SCT.model = slot(object = refs$map[["refAssay"]], name = "SCTModel.list")[["refmodel"]],
+              method = "glmGamPoi",
+              do.correct.umi = FALSE,
+              do.scale = FALSE,
+              do.center = TRUE,
+              new.assay.name = "refAssay"
+            ))
+            print(max(app.env$object[['refAssay']]@scale.data))
+            print(min(app.env$object[['refAssay']]@scale.data))
+          },
+          error = function(e) {
+            app.env$object <- suppressWarnings(expr = SCTransform(
+              object = app.env$object,
+              residual.features = rownames(x = refs$map),
+              reference.SCT.model = slot(object = refs$map[["refAssay"]], name = "SCTModel.list")[["refmodel"]],
+              method = "poisson",
+              do.correct.umi = FALSE,
+              do.scale = FALSE,
+              do.center = TRUE,
+              new.assay.name = "refAssay"
+            ))
+          }
+        )
         app.env$messages <- c(
           app.env$messages,
           paste(ncol(x = app.env$object), "cells preprocessed")
         )
-        app.env$object[['refAssay']] <- app.env$object[['RNA']]
-        DefaultAssay(app.env$object)<-'refAssay'
         react.env$anchors <- TRUE
-        react.env$lognormalize <- FALSE
+        react.env$sctransform <- FALSE
       }
     }
   )
+  # observeEvent(
+  #   eventExpr = react.env$lognormalize,
+  #   handlerExpr = {
+  #     if (isTRUE(x = react.env$lognormalize)) {
+  #       react.env$progress$set(
+  #         value = 0.2,
+  #         message = 'Log-normalizing'
+  #       )
+  #       app.env$object <- NormalizeData(object = app.env$object)
+  #       app.env$object <- FindVariableFeatures(object = app.env$object)
+  #       app.env$object <- ScaleData(object = app.env$object)
+  #       app.env$messages <- c(
+  #         app.env$messages,
+  #         paste(ncol(x = app.env$object), "cells preprocessed")
+  #       )
+  #       app.env$object[['refAssay']] <- app.env$object[['RNA']]
+  #       DefaultAssay(app.env$object)<-'refAssay'
+  #       react.env$anchors <- TRUE
+  #       react.env$lognormalize <- FALSE
+  #     }
+  #   }
+  # )
   observeEvent(
     eventExpr = react.env$anchors,
     handlerExpr = {
@@ -711,7 +709,7 @@ AzimuthServer <- function(input, output, session) {
           reference.assay = "refAssay",
           query.assay = 'refAssay',
           reference.reduction = 'refDR',
-          # normalization.method = 'SCT',
+          normalization.method = 'SCT',
           features = intersect(
             x = rownames(x = refs$map),
             y = VariableFeatures(object = app.env$object)
@@ -720,9 +718,7 @@ AzimuthServer <- function(input, output, session) {
           n.trees = n.trees,
           verbose = TRUE,
           # mapping.score.k = 100,
-          mapping.score.k = NULL,
-          feature.mean = refs$avgexp,
-          feature.sd = refs$sdexp
+          mapping.score.k = NULL
         )
         nanchors <- nrow(x = slot(object = app.env$anchors, name = "anchors"))
         app.env$nanchors <- nanchors
@@ -1077,9 +1073,6 @@ AzimuthServer <- function(input, output, session) {
           message = 'Running differential expression'
         )
         for (i in app.env$metadataxfer[!app.env$singlepred]) {
-          print(i)
-          print(head(app.env$object@meta.data))
-          print(table(app.env$object[[paste0("predicted.", i)]]))
           app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
             group_by = paste0("predicted.", i),
@@ -1856,12 +1849,7 @@ AzimuthServer <- function(input, output, session) {
   output$objdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object) && app.env$disable==FALSE) {
       # create empty ref
-      print("LOOP1")
-      print(input$metacolor.query)
-      print(input$metacolor.ref)
-      print(is.null(app.env$merged))
       if (is.null(app.env$emptyref) | is.null(app.env$merged)) {
-        print("LOOP2")
         app.env$emptyref <- refs$plot
         Idents(app.env$emptyref) <- '.'
         for (md in colnames(app.env$emptyref@meta.data)) {app.env$emptyref[[md]] <- '.' }
@@ -1870,19 +1858,12 @@ AzimuthServer <- function(input, output, session) {
         app.env$object[['refUMAP']] <- app.env$object[['umap.proj']]
         app.env$merged <- merge(app.env$emptyref, app.env$object, merge.dr='refUMAP')
       }
-      print(app.env$merged)
-      print(head(app.env$merged[[input$metacolor.query,drop=T]]))
-      flush.console()
 
       if (isFALSE(input$showrefonly) &
           length(x = Reductions(object = app.env$object)) &
           !is.null(x = input$metacolor.query)) { # SHOW OVERLAY
-        print('LOOP 3')
-        flush.console()
         app.env$plots.refdim_df <- NULL # hide reference hover box
         if (length(x = input$metacolor.query) == 1) {
-          print('LOOP 4')
-          flush.console()
           # get colormap if avail
           group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query)
           colormap <- GetColorMap(object = refs$map)[[group.var]]
@@ -1920,11 +1901,8 @@ AzimuthServer <- function(input, output, session) {
               clusters = keep
             ))
           }
-          print('finishing LOOP 4')
-          flush.console()
           return(p)
         } else {
-          print('LOOP 5')
           app.env$plots.objdim_df <- NULL # no interactivity
           plots <- list()
           for (i in 1:length(x = input$metacolor.query)) {
@@ -1946,7 +1924,6 @@ AzimuthServer <- function(input, output, session) {
               labs(x = "UMAP 1", y = "UMAP 2") +
               if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
             if (isTRUE('labels' %in% input$label.opts)) {
-              print("IN HERE")
               keep <- if (isTRUE('filterlabels' %in% input$label.opts)) {
                 t <- table(as.vector(app.env$object[[input$metacolor.query[i],drop=T]]))
                 print(names(t)[which(t > 0.02*ncol(app.env$object))])

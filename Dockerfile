@@ -1,4 +1,4 @@
-FROM azimuth:descartes
+FROM satijalab/azimuth:latest
 
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"
