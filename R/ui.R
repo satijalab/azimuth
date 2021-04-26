@@ -342,7 +342,6 @@ AzimuthUI <- tagList(
             ),
             plotlyOutput(
               outputId = 'table.metadata',
-              height='1000px'
             ),
             width = 12,
             height='auto'
@@ -381,7 +380,10 @@ AzimuthUI <- tagList(
                 choices = ''
               )
             ),
-            plotOutput(outputId = 'edim'),
+            plotOutput(
+              outputId = 'edim',
+              height='750px'
+              ),
             selectizeInput(
               inputId = 'metagroup',
               label = 'Metadata to group by',
