@@ -84,7 +84,6 @@ AzimuthServer <- function(input, output, session) {
   react.env <- reactiveValues(
     no = FALSE,
     anchors = FALSE,
-    cluster.score = FALSE,
     biomarkers = FALSE,
     features = FALSE,
     map = FALSE,
@@ -889,65 +888,10 @@ AzimuthServer <- function(input, output, session) {
             }
           }
           # react.env$score <- TRUE
-          react.env$cluster.score <- TRUE
+          react.env$transform <- TRUE
           react.env$map <- FALSE
         }
       }
-    }
-  )
-  observeEvent(
-    eventExpr = react.env$cluster.score,
-    handlerExpr = {
-      # post mapping QC
-      qc.stat <- round(
-        x = ClusterPreservationScore(
-          query = app.env$object,
-          ds.amount = getOption(x = "Azimuth.map.postmapqcds")
-        ),
-        digits = 2
-      )
-      if (!is.null(googlesheet)) {
-        try(sheet_append(
-          ss = googlesheet,
-          data = data.frame(
-            "CLUSTERPRESERVATIONQC",
-            app_session_id,
-            qc.stat
-          )
-        ))
-      }
-      app.env$clusterpreservationqc <- qc.stat
-      if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
-        output$valuebox_mappingqcstat <- renderValueBox(expr = {
-          valueBox(
-            value = paste0(qc.stat, "/5"),
-            subtitle = "cluster preservation score",
-            color = 'red',
-            icon = icon(name = 'times')
-          )
-        })
-      } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
-        output$valuebox_mappingqcstat <- renderValueBox(expr = {
-          valueBox(
-            value = paste0(qc.stat, "/5"),
-            subtitle = "cluster preservation score",
-            color = 'yellow',
-            icon = icon(name = 'exclamation-circle')
-          )
-        })
-      } else {
-        output$valuebox_mappingqcstat <- renderValueBox(expr = {
-          valueBox(
-            value = paste0(qc.stat, "/5"),
-            subtitle = "cluster preservation score",
-            color = 'green',
-            icon = icon(name = 'check')
-          )
-        })
-      }
-      # react.env$score <- TRUE
-      react.env$cluster.score <- FALSE
-      react.env$transform <- TRUE
     }
   )
   observeEvent(
@@ -958,7 +902,53 @@ AzimuthServer <- function(input, output, session) {
           value = 0.7,
           message = 'Calculating mapping score'
         )
-
+        # post mapping QC
+        qc.stat <- round(
+          x = ClusterPreservationScore(
+            query = app.env$object,
+            ds.amount = getOption(x = "Azimuth.map.postmapqcds")
+          ),
+          digits = 2
+        )
+        if (!is.null(googlesheet)) {
+          try(sheet_append(
+            ss = googlesheet,
+            data = data.frame(
+              "CLUSTERPRESERVATIONQC",
+              app_session_id,
+              qc.stat
+            )
+          ))
+        }
+        app.env$clusterpreservationqc <- qc.stat
+        if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'red',
+              icon = icon(name = 'times')
+            )
+          })
+        } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'yellow',
+              icon = icon(name = 'exclamation-circle')
+            )
+          })
+        } else {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'green',
+              icon = icon(name = 'check')
+            )
+          })
+        }
         refdr <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = app.env$object), "_query")
