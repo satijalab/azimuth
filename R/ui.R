@@ -72,6 +72,7 @@ AzimuthUI <- tagList(
       tags$head(
         tags$style(
           HTML(".content-wrapper { overflow: auto }
+          .wrapper {height: auto !important; position:relative; overflow-x:hidden; overflow-y:hidden}
           .shiny-notification {
             position: fixed;
             font-size: 15px;
@@ -267,25 +268,6 @@ AzimuthUI <- tagList(
               choices = '',
               multiple = TRUE,
             ),
-          #   div(
-          #     style = "position:relative",
-          #     plotOutput(
-          #       outputId = 'refdim',
-          #       hover = hoverOpts(
-          #         id = "refdim_hover_location",
-          #         delay = 5,
-          #         delayType = "debounce",
-          #         nullOutside = TRUE
-          #       ),
-          #       height='1000px'
-          #     ),
-          #     uiOutput("refdim_hover_box")
-          #   ),
-          #   width = 12,
-          #   height = '1000px'
-          # ),
-          # box(
-          #   title = 'Query',
             selectizeInput(
               inputId = 'metacolor.query',
               label = 'Query metadata to color by',
@@ -358,8 +340,12 @@ AzimuthUI <- tagList(
                 inline = TRUE
               )
             ),
-            plotlyOutput(outputId = 'table.metadata'),
+            plotlyOutput(
+              outputId = 'table.metadata',
+              height='1000px'
+            ),
             width = 12,
+            height='auto'
           )
         ),
         # Feature tab

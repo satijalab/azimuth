@@ -1171,30 +1171,6 @@ AzimuthServer <- function(input, output, session) {
         )
         app.env$metadata.discrete=metadata.discrete
         for (id in c('metarow', 'metacol', 'metagroup')) {
-          ## select most likely-informative metarow
-          # if (id == 'metarow') {
-          #   matches <- grep(
-          #     pattern = 'celltype|label|annotation',
-          #     x = metadata.discrete,
-          #     value = T,
-          #     ignore.case = T
-          #   )
-          #   matches <- grep(
-          #     pattern = 'predicted',
-          #     x = matches,
-          #     value = T,
-          #     invert = T
-          #   )
-          #   show.metadata <- (
-          #     if (length(x = matches) > 0) {
-          #       count.na <- sapply(X = matches, FUN = function(m) {
-          #         sum(FetchData(object = app.env$object, vars = m)[,1] %in% c(NA, ''))
-          #       })
-          #       matches[which.min(x = count.na)]
-          #     } else {
-          #       'query'
-          #     }
-          #   )
           if (id == 'metarow') {
             show.metadata <- 'query'
           } else {
@@ -1883,42 +1859,17 @@ AzimuthServer <- function(input, output, session) {
       }
       print(app.env$merged)
       print(head(app.env$merged[[input$metacolor.query,drop=T]]))
-      # set metadata selectize things
-      # if (input$showrefonly) {
-      #   print("HIDING QUERY FIELD")
-      #   # change to appropriate input$metacolor.ref if its an option
-      #   hide(id='metacolor.query')
-      #   if (all(grepl('^predicted.',input$metacolor.query))) {
-      #     updateSelectizeInput(
-      #       session = session,
-      #       inputId = 'metacolor.ref',
-      #       selected = gsub('^predicted.','',input$metacolor.query),
-      #       server = TRUE,
-      #       options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
-      #     )
-      #   }
-      #   show(id='metacolor.ref')
-      # } else {
-      #   print("HIDING REF FIELD")
-      #   # change to appropriate input$metacolor.query
-      #   hide(id='metacolor.ref')
-      #   if (all(input$metacolor.ref %in% app.env$metadataxfer)) {
-      #     updateSelectizeInput(
-      #       session = session,
-      #       inputId = 'metacolor.query',
-      #       selected = paste0('predicted.',input$metacolor.ref),
-      #       server = TRUE,
-      #       options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
-      #     )
-      #   }
-      #   show(id='metacolor.query')
-      # }
+      flush.console()
 
       if (isFALSE(input$showrefonly) &
           length(x = Reductions(object = app.env$object)) &
           !is.null(x = input$metacolor.query)) { # SHOW OVERLAY
+        print('LOOP 3')
+        flush.console()
         app.env$plots.refdim_df <- NULL # hide reference hover box
         if (length(x = input$metacolor.query) == 1) {
+          print('LOOP 4')
+          flush.console()
           # get colormap if avail
           group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query)
           colormap <- GetColorMap(object = refs$map)[[group.var]]
@@ -1956,8 +1907,11 @@ AzimuthServer <- function(input, output, session) {
               clusters = keep
             ))
           }
+          print('finishing LOOP 4')
+          flush.console()
           return(p)
         } else {
+          print('LOOP 5')
           app.env$plots.objdim_df <- NULL # no interactivity
           plots <- list()
           for (i in 1:length(x = input$metacolor.query)) {
