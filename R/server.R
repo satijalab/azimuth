@@ -198,6 +198,9 @@ AzimuthServer <- function(input, output, session) {
           default = stop(safeError(error = "No reference provided"))
         )
       )
+      print(refs$homologs)
+      print(dim(refs$homologs))
+      print(head(refs$homologs))
       setProgress(value = 1)
       enable(id = 'file')
       enable(id = 'triggerdemo')
@@ -286,6 +289,16 @@ AzimuthServer <- function(input, output, session) {
             tryCatch(
               expr = {
                 app.env$object <- LoadFileInput(path = react.env$path)
+                app.env$object <- DietSeurat(
+                  app.env$object,
+                  assays = "RNA"
+                )
+                app.env$object <- ConvertGeneNames(
+                  object = app.env$object,
+                  reference.names = rownames(x = refs$map),
+                  linked = refs$homologs
+                )
+
                 if (react.env$path == getOption(x = 'Azimuth.app.demodataset') |
                     react.env$path == getOption(x = 'Azimuth.app.demodataset2') |
                     react.env$path == getOption(x = 'Azimuth.app.demodataset3') |

@@ -1,3 +1,65 @@
+#' Converts feature names of query to match type/species of reference names
+#'
+#' @param object object to convert, must contain only RNA counts matrix
+#' @param reference.names rownames of reference
+#' @param linked table with human/mouse homologies
+#'
+#' @importFrom stringr str_match
+#'
+#' @return query object with converted feature names, likely subsetted
+#'
+ConvertGeneNames <- function(object, reference.names, linked) {
+  names = rownames(object)
+  # remove version numbers
+  ensembl.id <- '(?:ENSG|ENSMUS)'
+  capture.nonversion <- paste0('(',ensembl.id,'.*)\\.(?:.*)')
+  pattern <- paste0('(?:',capture.nonversion,')|(.*)')
+  names <- Filter(f = function(x)!is.na(x),
+                  x = as.vector(t(stringr:::str_match(names, pattern)[,2:3])))
+  # determine idtype and species of query
+  names.sub = sample(names, min(length(names), 5000)) # 5000 because sometimes ensembl IDs are mixed with regular gene names
+  idtype <- names(which.max(apply(linked,2,function(col){length(intersect(col,names.sub))})))
+  species <- ifelse(length(grep('\\.mouse',idtype))>0, 'mouse', 'human')
+  idtype <- gsub('\\.mouse|\\.human','',idtype)
+  message('detected inputs from ', toupper(species),' with id type ',idtype)
+  totalid = paste0(idtype,'.',species)
+
+  # determine idtype and species of ref
+  reference.names.sub = sample(reference.names, min(length(reference.names), 5000))
+  idtype.ref <- names(which.max(apply(linked,2,function(col){length(intersect(col,reference.names))})))
+  species.ref <- ifelse(length(grep('\\.mouse',idtype.ref))>0, 'mouse', 'human')
+  idtype.ref <- gsub('\\.mouse|\\.human','',idtype.ref)
+  message('reference rownames detected ', toupper(species.ref),' with id type ',idtype.ref)
+  totalid.ref = paste0(idtype.ref,'.',species.ref)
+
+  if (totalid == totalid.ref) {
+    return(object)
+  } else {
+    # set up table indexed by query ids (totalid)
+    linked.unique <- linked[!duplicated(linked[[totalid]]),]
+    message(paste0("Found ",length(intersect(names,linked.unique[[totalid]]))," out of ",length(names)," total inputs in conversion table"))
+    names <- intersect(names,linked.unique[[totalid]])
+    rownames(linked.unique) <- linked.unique[[totalid]]
+    linked.unique <- linked.unique[names,]
+
+    # get converted totalid.ref
+    new.indices <- rownames(linked.unique)
+    new.names <- linked.unique[,totalid.ref]
+    dup <- !duplicated(new.names)
+    new.indices <- new.indices[dup]
+    new.names <- new.names[dup]
+
+    # subset/rename object accordingly
+    object <- subset(object, features=new.indices )
+    rownames(object@assays$RNA@counts) <- new.names
+    rownames(object@assays$RNA@data) <- new.names
+    rownames(object@assays$RNA@meta.features) <- new.names
+
+    return(object)
+  }
+}
+
+
 # Return CSS styling for hover box on interactive plots
 #
 # @param x X hover position (hover$coords_css$x)
