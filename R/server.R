@@ -236,19 +236,15 @@ AzimuthServer <- function(input, output, session) {
       ','
     )[[1]]
   )
-  print(metadata.notransfer)
   metadata.annotate <- names(x = GetColorMap(object = refs$map))
   possible.metadata.transfer <- setdiff(metadata.annotate, metadata.notransfer)
-  print(possible.metadata.transfer)
   if (length(x = possible.metadata.transfer) > 1) {
     react.env$xferopts <- TRUE
   }
-  print('hmmm')
   default_xfer <- getOption(x = "Azimuth.app.default_metadata", default = possible.metadata.transfer[1])
   if (!default_xfer %in% possible.metadata.transfer) {
     default_xfer <- possible.metadata.transfer[1]
   }
-  print('okkkdaksdkaddsas')
   # React to events
   # Load the data an prepare for QC
   observeEvent(
@@ -299,15 +295,15 @@ AzimuthServer <- function(input, output, session) {
             tryCatch(
               expr = {
                 app.env$object <- LoadFileInput(path = react.env$path)
-                # app.env$object <- DietSeurat(
-                #   app.env$object,
-                #   assays = "RNA"
-                # )
-                # app.env$object <- ConvertGeneNames(
-                #   object = app.env$object,
-                #   reference.names = rownames(x = refs$map),
-                #   linked = refs$homologs
-                # )
+                app.env$object <- DietSeurat(
+                  app.env$object,
+                  assays = "RNA"
+                )
+                app.env$object <- ConvertGeneNames(
+                  object = app.env$object,
+                  reference.names = rownames(x = refs$map),
+                  linked = refs$homologs
+                )
 
                 if (react.env$path == getOption(x = 'Azimuth.app.demodataset') |
                     react.env$path == getOption(x = 'Azimuth.app.demodataset2') |
@@ -908,55 +904,57 @@ AzimuthServer <- function(input, output, session) {
   observeEvent(
     eventExpr = react.env$cluster.score,
     handlerExpr = {
-      # post mapping QC
-      qc.stat <- round(
-        x = ClusterPreservationScore(
-          query = app.env$object,
-          ds.amount = getOption(x = "Azimuth.map.postmapqcds")
-        ),
-        digits = 2
-      )
-      if (!is.null(googlesheet)) {
-        try(sheet_append(
-          ss = googlesheet,
-          data = data.frame(
-            "CLUSTERPRESERVATIONQC",
-            app_session_id,
-            qc.stat
-          )
-        ))
+      if (isTRUE(react.env$cluster.score)) {
+        # post mapping QC
+        qc.stat <- round(
+          x = ClusterPreservationScore(
+            query = app.env$object,
+            ds.amount = getOption(x = "Azimuth.map.postmapqcds")
+          ),
+          digits = 2
+        )
+        if (!is.null(googlesheet)) {
+          try(sheet_append(
+            ss = googlesheet,
+            data = data.frame(
+              "CLUSTERPRESERVATIONQC",
+              app_session_id,
+              qc.stat
+            )
+          ))
+        }
+        app.env$clusterpreservationqc <- qc.stat
+        if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'red',
+              icon = icon(name = 'times')
+            )
+          })
+        } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'yellow',
+              icon = icon(name = 'exclamation-circle')
+            )
+          })
+        } else {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'green',
+              icon = icon(name = 'check')
+            )
+          })
+        }
+        react.env$cluster.score <- FALSE
+        react.env$transform <- TRUE
       }
-      app.env$clusterpreservationqc <- qc.stat
-      if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
-        output$valuebox_mappingqcstat <- renderValueBox(expr = {
-          valueBox(
-            value = paste0(qc.stat, "/5"),
-            subtitle = "cluster preservation score",
-            color = 'red',
-            icon = icon(name = 'times')
-          )
-        })
-      } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
-        output$valuebox_mappingqcstat <- renderValueBox(expr = {
-          valueBox(
-            value = paste0(qc.stat, "/5"),
-            subtitle = "cluster preservation score",
-            color = 'yellow',
-            icon = icon(name = 'exclamation-circle')
-          )
-        })
-      } else {
-        output$valuebox_mappingqcstat <- renderValueBox(expr = {
-          valueBox(
-            value = paste0(qc.stat, "/5"),
-            subtitle = "cluster preservation score",
-            color = 'green',
-            icon = icon(name = 'check')
-          )
-        })
-      }
-      react.env$cluster.score <- FALSE
-      react.env$transform <- TRUE
     }
   )
   observeEvent(
@@ -1092,11 +1090,7 @@ AzimuthServer <- function(input, output, session) {
           value = 0.95,
           message = 'Running differential expression'
         )
-        print(app.env$metadataxfer)
-        print(app.env$singlepred)
-        print(app.env$metadataxfer[!app.env$singlepred])
         for (i in app.env$metadataxfer[!app.env$singlepred]) {
-          print(i)
           app.env$diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(
             X = app.env$object,
             group_by = paste0("predicted.", i),
@@ -1617,7 +1611,6 @@ AzimuthServer <- function(input, output, session) {
           # }
           shinyjs:::enable(id='metacolor.ref')
         } else {
-          print("HIDING REF FIELD")
           # change to appropriate input$metacolor.query
           shinyjs:::disable(id='metacolor.ref')
           # if (length(input$metacolor.ref) & all(input$metacolor.ref %in% app.env$metadataxfer)) {

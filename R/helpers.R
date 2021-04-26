@@ -31,7 +31,6 @@ ConvertGeneNames <- function(object, reference.names, linked) {
   idtype.ref <- gsub('\\.mouse|\\.human','',idtype.ref)
   message('reference rownames detected ', toupper(species.ref),' with id type ',idtype.ref)
   totalid.ref = paste0(idtype.ref,'.',species.ref)
-  print('okkkkk')
 
   if (totalid == totalid.ref) {
     return(object)
@@ -50,10 +49,8 @@ ConvertGeneNames <- function(object, reference.names, linked) {
     new.indices <- new.indices[notdup]
     new.names <- new.names[notdup]
 
-    print("okk33333")
     # subset/rename object accordingly
     object <- subset(object, features=rownames(object)[new.indices] )
-    print('ok3312312')
     rownames(object@assays$RNA@counts) <- new.names
     rownames(object@assays$RNA@data) <- new.names
     rownames(object@assays$RNA@meta.features) <- new.names
@@ -451,7 +448,6 @@ LoadReference <- function(path, seconds = 10L) {
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
     dimnames = list("placeholder", Cells(x = plotref.dr))
   )
-  print('hi2')
   plot <- CreateSeuratObject(
     counts = cm
   )
@@ -460,7 +456,6 @@ LoadReference <- function(path, seconds = 10L) {
   if (length(Cells(plot)) > 100000) {
     plot <- subset(plot,cells=sample(Cells(plot),100000))
   }
-  print('hi')
   gc(verbose = FALSE)
   return(list(
     map = map,
