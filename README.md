@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# Azimuth v0.2.0
+# Azimuth v0.3.2
 
 <!-- badges: start -->
 
@@ -14,8 +14,8 @@ algorithms used are described in the publication [“Integrated analysis
 of multimodal single-cell data” (Y. Hao, S. Hao, et al., bioRxiv
 2020)](https://satijalab.org/v4preprint).
 
-We have made an instance of the app available for public use, [described
-here](https://satijalab.org/azimuth).
+We have made instances of the app available for public use, [described
+here](https://azimuth.hubmapconsortium.org).
 
 All the analysis and visualization functionality available in the app -
 and much more - is available in version 4 of the the [Seurat R
@@ -55,27 +55,26 @@ reference files at `/path/to/reference`, specify it as:
 Azimuth::AzimuthApp(reference = '/path/to/reference')
 ```
 
-### Downloading the PBMC reference
+### Downloading the app reference files
 
-You can download the PBMC reference files that would be automatically
-loaded by default using the following command:
-
-    wget -m -R 'index.html*' -P pbmc -nd https://seurat.nygenome.org/references/pbmc/
+You can download the reference files that would be automatically loaded
+by default from Zenodo. Links are available on the Azimuth website
+[here](https://azimuth.hubmapconsortium.org/references/).
 
 ### Specifying options
 
 You can set options by passing a parameter to the `AzimuthApp` function.
 Options in the `Azimuth.app` namespace (e.g. `max_cells` as shown in the
 example below) can omit the “Azimuth.app.” prefix. Options in other
-namespaces (e.g. `Azimuth.map.pbcorthresh` as shown in the example
-below) including non-Azimuth namespaces, must be specified using their
-full name.
+namespaces (e.g. `Azimuth.de.digits` as shown in the example below)
+including non-Azimuth namespaces, must be specified using their full
+name.
 
 ``` r
 Azimuth::AzimuthApp(max_cells = 100000)
 
 
-Azimuth::AzimuthApp('Azimuth.map.pbcorthresh' = 0.5)
+Azimuth::AzimuthApp('Azimuth.de.digits' = 5)
 ```
 
 We also support reading options from a JSON-formatted config file.
@@ -92,7 +91,7 @@ You can also set Azimuth or other options in R. (The full name must
 always be specified, even for options in the Azimuth.app namespace.)
 
 ``` r
-options('Azimuth.map.pbcorthresh' = 0.5)
+options('Azimuth.de.digits' = 5)
 Azimuth::AzimuthApp()
 ```
 
@@ -158,10 +157,10 @@ We do not actively support users running the app themselves and suggest
 you use version 4 of the [Seurat package](https://satijalab.org/seurat)
 to run the reference mapping workflow and related visualizations on your
 local system. Please see the [Seurat mapping
-vignette](https://satijalab.org/seurat/reference_mapping.html) for an
-example of how to use Seurat for reference mapping. If you use the
-instance of the app we are hosting on the web, you can download a Seurat
-v4 R script once your analysis is complete that will guide you in
+vignette](https://satijalab.org/seurat/articles/multimodal_reference_mapping.html)
+for an example of how to use Seurat for reference mapping. If you use
+the instance of the app we are hosting on the web, you can download a
+Seurat v4 R script once your analysis is complete that will guide you in
 reproducing the analysis. You do not need Azimuth to reproduce the
 analysis.
 

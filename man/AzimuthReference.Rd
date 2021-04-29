@@ -7,7 +7,7 @@
 AzimuthReference(
   object,
   refUMAP = "umap",
-  refDR = "pca",
+  refDR = "spca",
   refAssay = "SCT",
   dims = 1:50,
   k.param = 31,

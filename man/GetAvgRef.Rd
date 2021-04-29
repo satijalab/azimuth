@@ -23,5 +23,5 @@ GetAvgRef(object, ...)
 A feature x 1 matrix of average RNA expression values
 }
 \description{
-Pull reference average RNA expression matrix
+Get Azimuth average expression
 }

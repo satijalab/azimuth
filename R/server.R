@@ -21,8 +21,7 @@ NULL
 #' VariableFeatures
 #' @importFrom Seurat DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
-#' RunUMAP TransferData SCTransform VlnPlot LabelClusters NormalizeData
-#' FindVariableFeatures ScaleData
+#' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput updateCheckboxInput updateTextAreaInput
@@ -76,11 +75,11 @@ AzimuthServer <- function(input, output, session) {
     plots.objdim_df = NULL,
     fresh.plot = TRUE,
     singlepred = NULL,
-    emptyref=NULL,
-    merged=NULL,
-    metadata.discrete=NULL,
-    metadata.notransfer=NULL,
-    disable=FALSE
+    emptyref = NULL,
+    merged = NULL,
+    metadata.discrete = NULL,
+    metadata.notransfer = NULL,
+    disable = FALSE
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -634,7 +633,6 @@ AzimuthServer <- function(input, output, session) {
         }
         app.env$object <- app.env$object[, cells.use]
         react.env$sctransform <- TRUE
-        # react.env$lognormalize <- TRUE
       }
     }
   )
@@ -683,28 +681,6 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-  # observeEvent(
-  #   eventExpr = react.env$lognormalize,
-  #   handlerExpr = {
-  #     if (isTRUE(x = react.env$lognormalize)) {
-  #       react.env$progress$set(
-  #         value = 0.2,
-  #         message = 'Log-normalizing'
-  #       )
-  #       app.env$object <- NormalizeData(object = app.env$object)
-  #       app.env$object <- FindVariableFeatures(object = app.env$object)
-  #       app.env$object <- ScaleData(object = app.env$object)
-  #       app.env$messages <- c(
-  #         app.env$messages,
-  #         paste(ncol(x = app.env$object), "cells preprocessed")
-  #       )
-  #       app.env$object[['refAssay']] <- app.env$object[['RNA']]
-  #       DefaultAssay(app.env$object)<-'refAssay'
-  #       react.env$anchors <- TRUE
-  #       react.env$lognormalize <- FALSE
-  #     }
-  #   }
-  # )
   observeEvent(
     eventExpr = react.env$anchors,
     handlerExpr = {
@@ -858,8 +834,7 @@ AzimuthServer <- function(input, output, session) {
           showNotification(
             paste0(
               "Only one predicted class: ",
-              app.env$object[[paste0("predicted.",
-                                     app.env$metadataxfer[1]), drop = TRUE]][1]
+              app.env$object[[paste0("predicted.", app.env$metadataxfer[1]), drop = TRUE]][1]
             ),
             duration = 5,
             type = 'warning',
@@ -965,6 +940,53 @@ AzimuthServer <- function(input, output, session) {
           value = 0.7,
           message = 'Calculating mapping score'
         )
+        # post mapping QC
+        qc.stat <- round(
+          x = ClusterPreservationScore(
+            query = app.env$object,
+            ds.amount = getOption(x = "Azimuth.map.postmapqcds")
+          ),
+          digits = 2
+        )
+        if (!is.null(googlesheet)) {
+          try(sheet_append(
+            ss = googlesheet,
+            data = data.frame(
+              "CLUSTERPRESERVATIONQC",
+              app_session_id,
+              qc.stat
+            )
+          ))
+        }
+        app.env$clusterpreservationqc <- qc.stat
+        if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[1]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'red',
+              icon = icon(name = 'times')
+            )
+          })
+        } else if (qc.stat <  getOption(x = "Azimuth.map.postmapqccolors")[2]) {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'yellow',
+              icon = icon(name = 'exclamation-circle')
+            )
+          })
+        } else {
+          output$valuebox_mappingqcstat <- renderValueBox(expr = {
+            valueBox(
+              value = paste0(qc.stat, "/5"),
+              subtitle = "cluster preservation score",
+              color = 'green',
+              icon = icon(name = 'check')
+            )
+          })
+        }
         refdr <- subset(
           x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
           cells = paste0(Cells(x = app.env$object), "_query")
@@ -2539,6 +2561,4 @@ AzimuthServer <- function(input, output, session) {
 
     )
   )))
-
-
 }

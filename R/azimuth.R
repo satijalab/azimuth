@@ -132,8 +132,6 @@ AzimuthData <- setClass(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #' Get Azimuth average expression
 #'
-#' Pull reference average RNA expression matrix
-#'
 #' @param object An object
 #' @param slot Name of tool
 #' @param ... Arguments passed to other methods
@@ -360,7 +358,7 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 AzimuthReference <- function(
   object,
   refUMAP = "umap",
-  refDR = "pca",
+  refDR = "spca",
   refAssay = "SCT",
   dims = 1:50,
   k.param = 31,
@@ -417,6 +415,10 @@ AzimuthReference <- function(
   if (is.null(x = avgref) && !("RNA" %in% Assays(object = object))) {
     stop("Please provide either the RNA assay or avgref.")
   }
+  if (length(x = levels(x = object[[refAssay]])) != 1) {
+    stop("refAssay (", refAssay, ") should contain a single SCT model.")
+  }
+
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
 
@@ -470,8 +472,8 @@ AzimuthReference <- function(
     plot.metadata  = plot.metadata,
     colormap = colormap,
     reference.version = reference.version,
-    avgref=avgref,
-    sdref=sdref
+    avgref = avgref,
+    sdref = sdref
   )
   # Add the "ori.index" column.
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
@@ -513,6 +515,7 @@ AzimuthReference <- function(
     dimreducs = c("refDR","refUMAP")
   )
   # ValidateAzimuthReference(object = object,normalization.method = normalization.method)
+  ValidateAzimuthReference(object = object)
   return(object)
 }
 
@@ -543,8 +546,8 @@ CreateAzimuthData <- function(
   plot.metadata = NULL,
   colormap = NULL,
   reference.version = '0.0.0',
-  avgref=NULL,
-  sdref=NULL
+  avgref = NULL,
+  sdref = NULL
 ) {
   if (inherits(x = plotref, what = "character")) {
     if (plotref %in% Reductions(object = object)) {
@@ -581,8 +584,8 @@ CreateAzimuthData <- function(
     seurat.version = packageVersion("Seurat"),
     azimuth.version = packageVersion("Azimuth"),
     reference.version = reference.version,
-    avgref =avgref,
-    sdref =sdref
+    avgref = avgref,
+    sdref = sdref
   )
   return(ad)
 }
@@ -635,12 +638,12 @@ ClusterPreservationScore <- function(query, ds.amount) {
     query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
   }
   query <- RunPCA(object = query, verbose = FALSE)
-  query <- FindNeighbors(object = query, reduction = 'pca', dims = 1:50, graph.name = 'pca_snn')
-  query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_snn"]])
+  query <- FindNeighbors(object = query, reduction = 'pca', dims = 1:50, graph.name = paste0("pca_", c("nn", "snn")))
+  query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_nn"]])
   query <- FindClusters(object = query, resolution = 0.6, graph.name = 'pca_snn')
-  query <- FindNeighbors(object = query, reduction = 'integrated_dr', dims = 1:50, return.neighbor = TRUE, graph.name = "integrated_neighbors")
+  query <- FindNeighbors(object = query, reduction = 'integrated_dr', dims = 1:50, return.neighbor = TRUE, graph.name ="integrated_neighbors_nn")
   ids <- Idents(object = query)
-  integrated.neighbor.indices <- Indices(object = query[["integrated_neighbors"]])
+  integrated.neighbor.indices <- Indices(object = query[["integrated_neighbors_nn"]])
   proj_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
     neighbors <- integrated.neighbor.indices[x, ]
     nn_ids <- ids[neighbors]

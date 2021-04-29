@@ -268,6 +268,23 @@ AzimuthUI <- tagList(
               choices = '',
               multiple = TRUE,
             ),
+            div(
+              style = "position:relative",
+              plotOutput(
+                outputId = 'refdim',
+                hover = hoverOpts(
+                  id = "refdim_hover_location",
+                  delay = 5,
+                  delayType = "debounce",
+                  nullOutside = TRUE
+                )
+              ),
+              uiOutput("refdim_hover_box")
+            ),
+            width = 12
+          ),
+          box(
+            title = 'Query',
             selectizeInput(
               inputId = 'metacolor.query',
               label = 'Query metadata to color by',
@@ -283,13 +300,11 @@ AzimuthUI <- tagList(
                   delay = 5,
                   delayType = "debounce",
                   nullOutside = TRUE
-                ),
-                height='750px'
+                )
               ),
               uiOutput("objdim_hover_box")
             ),
-            width = 12,
-            height='auto'
+            width = 12
           ),
           box(
             title = p(
@@ -380,10 +395,7 @@ AzimuthUI <- tagList(
                 choices = ''
               )
             ),
-            plotOutput(
-              outputId = 'edim',
-              height='750px'
-              ),
+            plotOutput(outputId = 'edim'),
             selectizeInput(
               inputId = 'metagroup',
               label = 'Metadata to group by',

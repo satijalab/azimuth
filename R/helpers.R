@@ -59,7 +59,6 @@ ConvertGeneNames <- function(object, reference.names, linked) {
   }
 }
 
-
 # Return CSS styling for hover box on interactive plots
 #
 # @param x X hover position (hover$coords_css$x)
@@ -124,6 +123,7 @@ HoverBoxStyle <- function(x, y) {
 #' \dQuote{counts} matrices are read in and only the default assay is kept
 #'
 #' @inheritSection LoadH5AD AnnData H5AD File (extension \code{h5ad})
+#' @export
 #'
 LoadFileInput <- function(path) {
   # TODO: add support for loom files
@@ -136,22 +136,23 @@ LoadFileInput <- function(path) {
       if (is.list(x = mat)) {
         mat <- mat[[1]]
       }
-      CreateSeuratObject(counts = mat)
+      CreateSeuratObject(counts = mat, min.cells = 1, min.features = 1)
     },
     'rds' = {
       object <- readRDS(file = path)
       if (inherits(x = object, what = c('Matrix', 'matrix', 'data.frame'))) {
-        object <- CreateSeuratObject(counts = as.sparse(x = object))
+        object <- CreateSeuratObject(counts = as.sparse(x = object), min.cells = 1, min.features = 1)
       } else if (inherits(x = object, what = 'Seurat')) {
         if (!'RNA' %in% Assays(object = object)) {
           stop("No RNA assay provided", call. = FALSE)
         } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
           stop("No RNA counts matrix present", call. = FALSE)
         }
-        DefaultAssay(object = object) <- "RNA"
-        object <- DietSeurat(
-          object = object,
-          assays = "RNA"
+        object <- CreateSeuratObject(
+          counts = GetAssayData(object = object[["RNA"]], slot = "counts"),
+          min.cells = 1,
+          min.features = 1,
+          meta.data = object[[]]
         )
       } else {
         stop("The RDS file must be a Seurat object", call. = FALSE)
@@ -177,7 +178,12 @@ LoadFileInput <- function(path) {
         graphs = FALSE,
         images = FALSE
       )
-      object
+      object <- CreateSeuratObject(
+        counts = GetAssayData(object = object[["RNA"]], slot = "counts"),
+        min.cells = 1,
+        min.features = 1,
+        meta.data = object[[]]
+      )
     },
     stop("Unknown file type: ", type, call. = FALSE)
   ))
@@ -355,8 +361,7 @@ LoadH5AD <- function(path) {
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
 #'
-#' @keywords internal
-#'
+#' @export
 #' @examples
 #' \dontrun{
 #' # Load from a URL
