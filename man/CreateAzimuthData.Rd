@@ -9,9 +9,7 @@ CreateAzimuthData(
   plotref = "umap",
   plot.metadata = NULL,
   colormap = NULL,
-  reference.version = "0.0.0",
-  avgref = NULL,
-  sdref = NULL
+  reference.version = "0.0.0"
 )
 }
 \arguments{

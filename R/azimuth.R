@@ -121,47 +121,13 @@ AzimuthData <- setClass(
     colormap = 'list',
     seurat.version = 'package_version',
     azimuth.version = 'package_version',
-    reference.version = 'character',
-    avgref = 'matrix',
-    sdref = 'matrix'
+    reference.version = 'character'
   )
 )
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#' Get Azimuth average expression
-#'
-#' @param object An object
-#' @param slot Name of tool
-#' @param ... Arguments passed to other methods
-#'
-#' @return A feature x 1 matrix of average RNA expression values
-#'
-#' @rdname GetAvgRef
-#' @export GetAvgRef
-#'
-GetAvgRef <- function(object, ...) {
-  UseMethod(generic = 'GetAvgRef', object = object)
-}
-
-#' Get Azimuth average expression
-#'
-#' Pull reference stdev RNA expression matrix
-#'
-#' @param object An object
-#' @param slot Name of tool
-#' @param ... Arguments passed to other methods
-#'
-#' @return A feature x 1 matrix of average RNA expression values
-#'
-#' @rdname GetSdRef
-#' @export GetSdRef
-#'
-GetSdRef <- function(object, ...) {
-  UseMethod(generic = 'GetSdRef', object = object)
-}
-
 #' Get Azimuth color mapping
 #'
 #' Pull ID-color mapping for Azimuth plotting
@@ -225,38 +191,6 @@ SetColorMap <- function(object, ...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' @rdname GetAvgRef
-#' @export
-#' @method GetAvgRef AzimuthData
-#'
-GetAvgRef.AzimuthData <- function(object, ...) {
-  return(slot(object = object, name = "avgref"))
-}
-
-#' @rdname GetAvgRef
-#' @export
-#' @method GetAvgRef Seurat
-#'
-GetAvgRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
-  return(GetAvgRef(object = Tool(object = object, slot = slot)))
-}
-
-#' @rdname GetSdRef
-#' @export
-#' @method GetSdRef AzimuthData
-#'
-GetSdRef.AzimuthData <- function(object, ...) {
-  return(slot(object = object, name = "sdref"))
-}
-
-#' @rdname GetSdRef
-#' @export
-#' @method GetSdRef Seurat
-#'
-GetSdRef.Seurat <- function(object, slot = "AzimuthReference", ...) {
-  return(GetSdRef(object = Tool(object = object, slot = slot)))
-}
 
 #' @rdname GetColorMap
 #' @export
@@ -369,13 +303,9 @@ AzimuthReference <- function(
   assays = NULL,
   metadata = NULL,
   reference.version = "0.0.0",
-  verbose = FALSE,
-  normalization.method = 'LogNormalize',
-  avgref = NULL,
-  sdref = NULL
+  verbose = FALSE
 ) {
   # Parameter validation
-  refAssay <- if (normalization.method == 'SCT') 'SCT' else 'RNA'
   if (!refUMAP %in% Reductions(object = object)) {
     stop("refUMAP (", refUMAP, ") not found in Seurat object provided")
   }
@@ -400,20 +330,11 @@ AzimuthReference <- function(
       object[[i, drop = TRUE]] <- factor(x = object[[i, drop = TRUE]], levels = sort(x = unique(object[[i, drop = TRUE]])))
     }
   }
-  if (normalization.method == 'SCT') {
-    if (!refAssay %in% Assays(object = object)) {
-      stop("Seurat object provided must have the SCT Assay stored.")
-    }
-    if (!inherits(x = object[[refAssay]], what = "SCTAssay")) {
-      stop("refAssay (", refAssay, ") is not an SCTAssay.")
-    }
-    if (length(x = levels(x = object[[refAssay]])) != 1) {
-      stop("refAssay (", refAssay, ") should contain a single SCT model.")
-    }
-    stop("Seurat object provided must have the SCT Assay stored if `normalization.method` is set to SCT.")
+  if (!refAssay %in% Assays(object = object)) {
+    stop("Seurat object provided must have the SCT Assay stored.")
   }
-  if (is.null(x = avgref) && !("RNA" %in% Assays(object = object))) {
-    stop("Please provide either the RNA assay or avgref.")
+  if (!inherits(x = object[[refAssay]], what = "SCTAssay")) {
+    stop("refAssay (", refAssay, ") is not an SCTAssay.")
   }
   if (length(x = levels(x = object[[refAssay]])) != 1) {
     stop("refAssay (", refAssay, ") should contain a single SCT model.")
@@ -423,45 +344,23 @@ AzimuthReference <- function(
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
 
   # Calculate the Neighbors
-  if (!('refdr.annoy.neighbors' %in% Neighbors(object))) {
-    object <- FindNeighbors(
-      object = object,
-      reduction = "refDR",
-      dims = dims,
-      graph.name = "refdr.annoy.neighbors",
-      k.param = k.param,
-      nn.method = "annoy",
-      annoy.metric = "cosine",
-      cache.index = TRUE,
-      return.neighbor = TRUE,
-      l2.norm = FALSE,
-      verbose = verbose
-    )
-  }
-
+  object <- FindNeighbors(
+    object = object,
+    reduction = "refDR",
+    dims = dims,
+    graph.name = "refdr.annoy.neighbors",
+    k.param = k.param,
+    nn.method = "annoy",
+    annoy.metric = "cosine",
+    cache.index = TRUE,
+    return.neighbor = TRUE,
+    l2.norm = FALSE,
+    verbose = verbose
+  )
   if (verbose) {
     message("Computing pseudobulk averages")
   }
   features <- rownames(x = Loadings(object = object[['refDR']]))
-  if (is.null(x = avgref)) {
-    # random.name <- "allcells"
-    # while (random.name %in% colnames(x = object[[]])) {
-    #   random.name <- paste0(sample(letters, size = 10), collapse = "")
-    # }
-    # Idents(object = object) <- random.name
-    object <- NormalizeData(object = object, assay = "RNA", verbose = verbose)
-    avgref <- rowMeans(as.matrix(object[['RNA']]@data))[features]
-    sdref <- sqrt(
-      x = SparseRowVar2(
-        mat = object[['RNA']]@data[features,],
-        mu = as.vector(avgref),
-        display_progress = FALSE
-      )
-    )
-    sdref[is.na(x = sdref)] <- 1
-    rownames(sdref)<-features
-    Idents(object = object) <- "id"
-  }
   plot.metadata <- plot.metadata %||% object[[metadata]]
   if (inherits(x = plotref, what = "DimReduc")) {
     plot.metadata <- plot.metadata[Cells(x = plotref), ]
@@ -471,9 +370,7 @@ AzimuthReference <- function(
     plotref = plotref,
     plot.metadata  = plot.metadata,
     colormap = colormap,
-    reference.version = reference.version,
-    avgref = avgref,
-    sdref = sdref
+    reference.version = reference.version
   )
   # Add the "ori.index" column.
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
@@ -490,31 +387,24 @@ AzimuthReference <- function(
     assays = c(refAssay, assays),
     dimreducs = c("refDR","refUMAP")
   )
-  if (refAssay == 'SCT') {
-    sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
-    object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
-    slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = sct.model)
-  } else {
-    object[["refAssay"]] <- Seurat:::CreateDummyAssay(assay = object[[refAssay]])
-  }
-
   metadata <- c(metadata, "ori.index")
   for (i in colnames(x = object[[]])) {
     if (!i %in% metadata){
       object[[i]] <- NULL
     }
   }
+  sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
+  object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
+  slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = sct.model)
   DefaultAssay(object = object) <- "refAssay"
   DefaultAssay(object = object[["refDR"]]) <- "refAssay"
-  object@tools <- list()
-  object@tools$AzimuthReference <- ad
+  Tool(object = object) <- ad
   object <- DietSeurat(
     object = object,
     counts = FALSE,
     assays = c("refAssay", assays),
     dimreducs = c("refDR","refUMAP")
   )
-  # ValidateAzimuthReference(object = object,normalization.method = normalization.method)
   ValidateAzimuthReference(object = object)
   return(object)
 }
@@ -545,9 +435,7 @@ CreateAzimuthData <- function(
   plotref = "umap",
   plot.metadata = NULL,
   colormap = NULL,
-  reference.version = '0.0.0',
-  avgref = NULL,
-  sdref = NULL
+  reference.version = '0.0.0'
 ) {
   if (inherits(x = plotref, what = "character")) {
     if (plotref %in% Reductions(object = object)) {
@@ -575,17 +463,13 @@ CreateAzimuthData <- function(
   }
   slot(object = plotref, name = 'misc')[["plot.metadata"]] <- plot.metadata
   colormap <- colormap[colnames(x = plot.metadata)]
-  avgref <- as.matrix(x = avgref)
-  sdref <- as.matrix(x = sdref)
   ad <- new(
     Class = "AzimuthData",
     plotref = plotref,
     colormap = colormap,
     seurat.version = packageVersion("Seurat"),
     azimuth.version = packageVersion("Azimuth"),
-    reference.version = reference.version,
-    avgref = avgref,
-    sdref = sdref
+    reference.version = reference.version
   )
   return(ad)
 }

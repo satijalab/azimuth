@@ -18,10 +18,7 @@ AzimuthReference(
   assays = NULL,
   metadata = NULL,
   reference.version = "0.0.0",
-  verbose = FALSE,
-  normalization.method = "LogNormalize",
-  avgref = NULL,
-  sdref = NULL
+  verbose = FALSE
 )
 }
 \arguments{
