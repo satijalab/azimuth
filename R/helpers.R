@@ -3,13 +3,26 @@
 #'
 #' @param object Object to convert, must contain only RNA counts matrix
 #' @param reference.names Gene names of reference
-#' @param linked table with human/mouse homologies
+#' @param homolog.table Location of file (or URL) containing table with
+#' human/mouse homologies
+#' @return query object with converted feature names, likely subsetted
 #'
 #' @importFrom stringr str_match
 #'
-#' @return query object with converted feature names, likely subsetted
+#' @export
 #'
-ConvertGeneNames <- function(object, reference.names, linked) {
+ConvertGeneNames <- function(object, reference.names, homolog.table) {
+  uri <- httr::build_url(url = httr::parse_url(url = homolog.table))
+  if (grepl(pattern = '^://', x = uri)) {
+    if (!file.exists(homolog.table)) {
+      stop("Homolog file doesn't exist at path provided: ", homolog.table)
+    }
+  } else {
+    if (!Online(url = homolog.table)) {
+      stop("Cannot find the homolog table at the URL given: ", homolog.table)
+    }
+  }
+  linked <- readRDS(file = homolog.table)
   query.names <- rownames(x = object)
   # remove version numbers
   ensembl.id <- '(?:ENSG|ENSMUS)'
@@ -114,8 +127,6 @@ HoverBoxStyle <- function(x, y) {
 #' @importFrom SeuratObject CreateSeuratObject Assays GetAssayData
 #' DefaultAssay<-
 #' @importFrom Seurat Read10X_h5 as.sparse Assays DietSeurat as.Seurat
-#'
-#' @keywords internal
 #'
 #' @section 10X H5 File (extension \code{h5}):
 #' 10X HDF5 files are supported for all versions of Cell Ranger; data is read
@@ -363,14 +374,13 @@ LoadH5AD <- function(path) {
 #' @param path Path or URL to the two RDS files
 #' @param seconds Timeout to check for URLs in seconds
 #'
-#' @return A list with three entries:
+#' @return A list with two entries:
 #' \describe{
 #'  \item{\code{map}}{
 #'   The downsampled reference \code{\link[Seurat]{Seurat}}
 #'   object (for mapping)
 #'  }
 #'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
-#'  \item{\code{avgexp}}{Average expression (for pseudobulk check)}
 #' }
 #'
 #' @importFrom SeuratObject Idents<-
@@ -391,8 +401,7 @@ LoadH5AD <- function(path) {
 LoadReference <- function(path, seconds = 10L) {
   ref.names <- list(
     map = 'ref.Rds',
-    ann = 'idx.annoy',
-    homologs = 'homologs.rds'
+    ann = 'idx.annoy'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -404,8 +413,7 @@ LoadReference <- function(path, seconds = 10L) {
     }
     mapref <- file.path(path, ref.names$map)
     annref <- file.path(path, ref.names$ann)
-    homologs <- file.path(path, ref.names$homologs)
-    exists <- file.exists(c(mapref, annref, homologs))
+    exists <- file.exists(c(mapref, annref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -413,22 +421,6 @@ LoadReference <- function(path, seconds = 10L) {
       )
     }
   } else {
-    Online <- function(url, strict = FALSE) {
-      if (isTRUE(x = strict)) {
-        code <- 200L
-        comp <- identical
-      } else {
-        code <- 404L
-        comp <- Negate(f = identical)
-      }
-      return(comp(
-        x = httr::status_code(x = httr::GET(
-          url = url,
-          httr::timeout(seconds = seconds
-          ))),
-        y = code
-      ))
-    }
     ref.uris <- paste(uri, ref.names, sep = '/')
     names(x = ref.uris) <- names(x = ref.names)
     online <- vapply(
@@ -444,12 +436,10 @@ LoadReference <- function(path, seconds = 10L) {
       )
     }
     mapref <- url(description = ref.uris[['map']])
-    homologs <- url(description = ref.uris[['homologs']])
     annref <- tempfile()
     download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
     on.exit(expr = {
       close(con = mapref)
-      close(con = homologs)
       unlink(x = annref)
     })
   }
@@ -460,13 +450,9 @@ LoadReference <- function(path, seconds = 10L) {
     object = map[["refdr.annoy.neighbors"]],
     file = annref
   )
-  # Load the homologs
-  homologs <- readRDS(file = homologs)
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
-
-
   cm <- sparseMatrix(
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
     dimnames = list("placeholder", Cells(x = plotref.dr))
@@ -482,8 +468,7 @@ LoadReference <- function(path, seconds = 10L) {
   gc(verbose = FALSE)
   return(list(
     map = map,
-    plot = plot,
-    homologs = homologs
+    plot = plot
   ))
 }
 
@@ -517,6 +502,30 @@ NNTransform <- function(
   rownames(x = ori.index) <- rownames(x = ind)
   slot(object = object[[neighbor.slot]], name = "nn.idx") <- ori.index
   return(object)
+}
+
+# Check if file is available at given URL
+#
+# @param url URL to file
+# @param strict Ensure http code is 200
+#
+# @return Boolean indicating file presence
+#
+Online <- function(url, strict = FALSE) {
+  if (isTRUE(x = strict)) {
+    code <- 200L
+    comp <- identical
+  } else {
+    code <- 404L
+    comp <- Negate(f = identical)
+  }
+  return(comp(
+    x = httr::status_code(x = httr::GET(
+      url = url,
+      httr::timeout(seconds = seconds
+      ))),
+    y = code
+  ))
 }
 
 # Make An English List

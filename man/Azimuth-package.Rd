@@ -83,6 +83,9 @@ Provide (as a string) the code to render the box on the welcome page
 }
 
 }
+\item{\code{Azimuth.app.homologs}}{
+URL or path to file containing the human/mouse homolog table.
+}
 }
 }
 

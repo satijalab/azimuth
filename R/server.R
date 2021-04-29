@@ -301,9 +301,8 @@ AzimuthServer <- function(input, output, session) {
                 app.env$object <- ConvertGeneNames(
                   object = app.env$object,
                   reference.names = rownames(x = refs$map),
-                  linked = refs$homologs
+                  homolog.table = getOption(x = 'Azimuth.app.homologs')
                 )
-
                 if (react.env$path == getOption(x = 'Azimuth.app.demodataset') |
                     react.env$path == getOption(x = 'Azimuth.app.demodataset2') |
                     react.env$path == getOption(x = 'Azimuth.app.demodataset3') |

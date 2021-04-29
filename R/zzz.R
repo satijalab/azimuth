@@ -75,6 +75,9 @@
 #'    )
 #'    ```
 #'   }
+#'   \item{\code{Azimuth.app.homologs}}{
+#'    URL or path to file containing the human/mouse homolog table.
+#'   }
 #'  }
 #' }
 #'
@@ -171,6 +174,7 @@ default.options <- list(
   Azimuth.app.plotseed = NULL,
   Azimuth.app.reference = 'https://seurat.nygenome.org/references/pbmc',
   Azimuth.app.welcomebox = "",
+  Azimuth.app.homologs = '',
   Azimuth.app.refdescriptor = "",
   Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,

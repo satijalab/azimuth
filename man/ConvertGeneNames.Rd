@@ -5,14 +5,15 @@
 \title{Converts gene names of query to match type/species of reference names (human
 or mouse).}
 \usage{
-ConvertGeneNames(object, reference.names, linked)
+ConvertGeneNames(object, reference.names, homolog.table)
 }
 \arguments{
 \item{object}{Object to convert, must contain only RNA counts matrix}
 
 \item{reference.names}{Gene names of reference}
 
-\item{linked}{table with human/mouse homologies}
+\item{homolog.table}{Location of file (or URL) containing table with
+human/mouse homologies}
 }
 \value{
 query object with converted feature names, likely subsetted
