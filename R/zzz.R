@@ -363,7 +363,7 @@ PlottableMetadataNames <- function(
     }
   ) & ! (grepl(pattern = ".score$", x = colnames(x = object[[]]))) |
     (grepl(pattern = "^predicted.", x = colnames(x = object[[]])) &
-       ! (grepl(pattern = ".score$", x = colnames(x = object[[]])))) |
+    ! (grepl(pattern = ".score$", x = colnames(x = object[[]])))) |
     colnames(x = object[[]]) %in% exceptions
   return(colnames(object[[]])[column.status])
 }
