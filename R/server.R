@@ -58,6 +58,7 @@ AzimuthServer <- function(input, output, session) {
     demo = FALSE,
     demo.inputs = NULL,
     demo.tracker = NULL,
+    demo.files = NULL,
     default.assay = NULL,
     default.feature = NULL,
     default.metadata = NULL,
@@ -188,7 +189,20 @@ AzimuthServer <- function(input, output, session) {
     })
   }
   demos <- getOption("Azimuth.app.demodataset")
-  app.env$demo.inputs <- paste0("triggerdemo", 1:nrow(getOption("Azimuth.app.demodataset")))
+  if (!inherits(x = demos, what = "data.frame")) {
+    if (is.null(x = names(x = demos))) {
+      if (length(x = demos) > 1) {
+        demo.names <- paste0("Demo", 1:length(x = demos))
+      } else {
+        demo.names <- "Load demo dataset"
+      }
+    } else {
+      demo.names <- names(x = demos)
+    }
+    demos <- data.frame(name = demo.names, file = demos)
+  }
+  app.env$demo.files <- demos$file
+  app.env$demo.inputs <- paste0("triggerdemo", 1:nrow(x = demos))
   app.env$demo.tracker <- rep(x = 0, times = nrow(x = demos))
   for (i in 1:nrow(x = demos)) {
     insertUI(
@@ -279,7 +293,7 @@ AzimuthServer <- function(input, output, session) {
         for (i in 1:length(x = app.env$demo.inputs)) {
           if (input[[app.env$demo.inputs[i]]] != app.env$demo.tracker[i]) {
             app.env$demo.tracker[i] <- app.env$demo.tracker[i] + 1
-            react.env$path <- getOption(x = 'Azimuth.app.demodataset')$file[i]
+            react.env$path <- app.env$demo.files[i]
           }
         }
       }
@@ -306,7 +320,7 @@ AzimuthServer <- function(input, output, session) {
                   reference.names = rownames(x = refs$map),
                   homolog.table = getOption(x = 'Azimuth.app.homologs')
                 )
-                if (react.env$path %in% getOption(x = 'Azimuth.app.demodataset')$file) {
+                if (react.env$path %in% app.env$demo.files) {
                   app.env$demo <- TRUE
                 } else {
                   app.env$demo <- FALSE
