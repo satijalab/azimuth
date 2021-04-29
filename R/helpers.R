@@ -1,7 +1,8 @@
-#' Converts feature names of query to match type/species of reference names
+#' Converts gene names of query to match type/species of reference names (human
+#' or mouse).
 #'
-#' @param object object to convert, must contain only RNA counts matrix
-#' @param reference.names rownames of reference
+#' @param object Object to convert, must contain only RNA counts matrix
+#' @param reference.names Gene names of reference
 #' @param linked table with human/mouse homologies
 #'
 #' @importFrom stringr str_match
@@ -9,52 +10,69 @@
 #' @return query object with converted feature names, likely subsetted
 #'
 ConvertGeneNames <- function(object, reference.names, linked) {
-  names = rownames(object)
+  query.names <- rownames(x = object)
   # remove version numbers
   ensembl.id <- '(?:ENSG|ENSMUS)'
-  capture.nonversion <- paste0('(',ensembl.id,'.*)\\.(?:.*)')
-  pattern <- paste0('(?:',capture.nonversion,')|(.*)')
-  names <- Filter(f = function(x)!is.na(x),
-                  x = as.vector(t(stringr:::str_match(names, pattern)[,2:3])))
+  capture.nonversion <- paste0('(', ensembl.id, '.*)\\.(?:.*)')
+  pattern <- paste0('(?:', capture.nonversion,')|(.*)')
+  query.names <- Filter(
+    f = function(x) !is.na(x = x),
+    x = as.vector(x = t(x = str_match(string = query.names, pattern = pattern)[, 2:3]))
+  )
   # determine idtype and species of query
-  names.sub = sample(names, min(length(names), 5000)) # 5000 because sometimes ensembl IDs are mixed with regular gene names
-  idtype <- names(which.max(apply(linked,2,function(col){length(intersect(col,names.sub))})))
-  species <- ifelse(length(grep('\\.mouse',idtype))>0, 'mouse', 'human')
-  idtype <- gsub('\\.mouse|\\.human','',idtype)
-  message('detected inputs from ', toupper(species),' with id type ',idtype)
-  totalid = paste0(idtype,'.',species)
+  # 5000 because sometimes ensembl IDs are mixed with regular gene names
+  query.names.sub = sample(
+    x = query.names,
+    size = min(length(x = query.names), 5000)
+  )
+  idtype <- names(x = which.max(x = apply(
+    X = linked,
+    MARGIN = 2,
+    FUN = function(col) {
+      length(x = intersect(x = col, y = query.names.sub))
+    }
+  )))
+  species <- ifelse(test = length(x = grep(pattern = '\\.mouse', x = idtype)) > 0, 'mouse', 'human')
+  idtype <- gsub(pattern = '\\.mouse|\\.human', replacement = '', x = idtype)
+  message('detected inputs from ', toupper(x = species), ' with id type ', idtype)
+  totalid <- paste0(idtype, '.', species)
 
   # determine idtype and species of ref
-  reference.names.sub = sample(reference.names, min(length(reference.names), 5000))
-  idtype.ref <- names(which.max(apply(linked,2,function(col){length(intersect(col,reference.names))})))
-  species.ref <- ifelse(length(grep('\\.mouse',idtype.ref))>0, 'mouse', 'human')
-  idtype.ref <- gsub('\\.mouse|\\.human','',idtype.ref)
-  message('reference rownames detected ', toupper(species.ref),' with id type ',idtype.ref)
-  totalid.ref = paste0(idtype.ref,'.',species.ref)
+  reference.names.sub <- sample(x = reference.names, size = min(length(x = reference.names), 5000))
+  idtype.ref <- names(x = which.max(x = apply(
+    X = linked,
+    MARGIN = 2,
+    FUN = function(col) {
+      length(x = intersect(x = col, y = reference.names))
+    }
+  )))
+  species.ref <- ifelse(test = length(x = grep(pattern = '\\.mouse', x = idtype.ref)) > 0, 'mouse', 'human')
+  idtype.ref <- gsub(pattern = '\\.mouse|\\.human', replacement = '', x = idtype.ref)
+  message('reference rownames detected ', toupper(x = species.ref),' with id type ', idtype.ref)
+  totalid.ref <- paste0(idtype.ref, '.', species.ref)
 
   if (totalid == totalid.ref) {
     return(object)
   } else {
     # set up table indexed by query ids (totalid)
-    linked.unique <- linked[!duplicated(linked[[totalid]]),]
-    new.indices <- which(names %in% linked.unique[[totalid]])
-    message(paste0("Found ",length(new.indices)," out of ",length(names)," total inputs in conversion table"))
-    names <- names[new.indices]
-    rownames(linked.unique) <- linked.unique[[totalid]]
-    linked.unique <- linked.unique[names,]
+    linked.unique <- linked[!duplicated(x = linked[[totalid]]), ]
+    new.indices <- which(query.names %in% linked.unique[[totalid]])
+    message("Found ", length(x = new.indices), " out of ",
+            length(x = query.names), " total inputs in conversion table")
+    query.names <- query.names[new.indices]
+    rownames(x = linked.unique) <- linked.unique[[totalid]]
+    linked.unique <- linked.unique[names, ]
     # get converted totalid.ref
-    new.names <- linked.unique[,totalid.ref]
+    new.names <- linked.unique[, totalid.ref]
     # remove duplicates
-    notdup <- !duplicated(new.names)
+    notdup <- !duplicated(x = new.names)
     new.indices <- new.indices[notdup]
     new.names <- new.names[notdup]
-
     # subset/rename object accordingly
-    object <- subset(object, features=rownames(object)[new.indices] )
-    rownames(object@assays$RNA@counts) <- new.names
-    rownames(object@assays$RNA@data) <- new.names
-    rownames(object@assays$RNA@meta.features) <- new.names
-
+    object <- CreateSeuratObject(
+      counts = GetAssayData(object = object[["RNA"]], slot = "counts")[rownames(x = object)[new.indices], ],
+      meta.data = object[[]]
+    )
     return(object)
   }
 }

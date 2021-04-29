@@ -20,6 +20,7 @@ RUN R --no-echo -e "BiocManager::install(c('glmGamPoi'))"
 RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr'), repo='https://cloud.r-project.org')"
 RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveazure/seurat-disk'), dependencies = FALSE)"
 
+
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"
 COPY . /root/azimuth

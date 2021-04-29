@@ -2,14 +2,15 @@
 % Please edit documentation in R/helpers.R
 \name{ConvertGeneNames}
 \alias{ConvertGeneNames}
-\title{Converts feature names of query to match type/species of reference names}
+\title{Converts gene names of query to match type/species of reference names (human
+or mouse).}
 \usage{
 ConvertGeneNames(object, reference.names, linked)
 }
 \arguments{
-\item{object}{object to convert, must contain only RNA counts matrix}
+\item{object}{Object to convert, must contain only RNA counts matrix}
 
-\item{reference.names}{rownames of reference}
+\item{reference.names}{Gene names of reference}
 
 \item{linked}{table with human/mouse homologies}
 }
@@ -17,5 +18,6 @@ ConvertGeneNames(object, reference.names, linked)
 query object with converted feature names, likely subsetted
 }
 \description{
-Converts feature names of query to match type/species of reference names
+Converts gene names of query to match type/species of reference names (human
+or mouse).
 }
