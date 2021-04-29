@@ -30,7 +30,8 @@ NULL
 #' @importFrom shinydashboard menuItem renderMenu renderValueBox
 #' sidebarMenu valueBox
 #' @importFrom shinyjs addClass enable disable hide removeClass show onclick
-#' @importFrom stringr str_interp
+#' disable
+#' @importFrom stringr str_interp str_trim str_split
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile setNames median
 #' @importFrom utils write.table packageVersion
@@ -39,11 +40,11 @@ NULL
 #' @keywords internal
 #'
 AzimuthServer <- function(input, output, session) {
-  hide(id="legend")
-  shinyjs:::disable(id='metacolor.ref')
+  hide(id = "legend")
+  disable(id = 'metacolor.ref')
   # hide demo dataset button if required
   if (is.null(x = getOption(x = 'Azimuth.app.demodataset'))) {
-    hide(id="triggerdemo")
+    hide(id = "demobuttons")
   }
   mt.key <- 'percent.mt'
   mito.pattern <- getOption(x = 'Azimuth.app.mito', default = '^MT-')
@@ -55,6 +56,8 @@ AzimuthServer <- function(input, output, session) {
     anchors = NULL,
     clusterpreservationqc = NULL,
     demo = FALSE,
+    demo.inputs = NULL,
+    demo.tracker = NULL,
     default.assay = NULL,
     default.feature = NULL,
     default.metadata = NULL,
@@ -184,14 +187,28 @@ AzimuthServer <- function(input, output, session) {
       ))
     })
   }
+  demos <- getOption("Azimuth.app.demodataset")
+  app.env$demo.inputs <- paste0("triggerdemo", 1:nrow(getOption("Azimuth.app.demodataset")))
+  app.env$demo.tracker <- rep(x = 0, times = nrow(x = demos))
+  for (i in 1:nrow(x = demos)) {
+    insertUI(
+      selector = '#demobuttons',
+      where = 'beforeEnd',
+      immediate = TRUE,
+      ui = actionButton(
+        inputId = paste0('triggerdemo', i),
+        label = demos$name[i],
+        width = '85%'
+      )
+    )
+  }
   withProgress(
     message = "Loading reference",
     expr = {
       disable(id = 'file')
-      disable(id = 'triggerdemo')
-      disable(id = 'triggerdemo2')
-      disable(id = 'triggerdemo3')
-      disable(id = 'triggerdemo4')
+      for (i in 1:nrow(x = demos)) {
+        disable(id = paste0("triggerdemo", i))
+      }
       setProgress(value = 0)
       refs <- LoadReference(
         path = getOption(
@@ -201,10 +218,9 @@ AzimuthServer <- function(input, output, session) {
       )
       setProgress(value = 1)
       enable(id = 'file')
-      enable(id = 'triggerdemo')
-      enable(id = 'triggerdemo2')
-      enable(id = 'triggerdemo3')
-      enable(id = 'triggerdemo4')
+      for (i in 1:nrow(x = demos)) {
+        enable(id = paste0("triggerdemo", i))
+      }
     }
   )
   if (!is.null(x = googlesheet)) {
@@ -229,8 +245,8 @@ AzimuthServer <- function(input, output, session) {
     }
     refs$map <- SetColorMap(object = refs$map, value = colormap)
   }
-  metadata.notransfer <- stringr:::str_trim(
-    stringr:::str_split(
+  metadata.notransfer <- str_trim(
+    str_split(
       getOption(x = "Azimuth.app.metadata_notransfer", default = NULL),
       ','
     )[[1]]
@@ -256,32 +272,19 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   observeEvent(
-    eventExpr = input$triggerdemo,
+    eventExpr = sapply(X = app.env$demo.inputs, FUN = function(x) input[[x]]),
     handlerExpr = {
-      ResetEnv()
-      react.env$path <- getOption(x = 'Azimuth.app.demodataset')
-    }
-  )
-  observeEvent(
-    eventExpr = input$triggerdemo2,
-    handlerExpr = {
-      ResetEnv()
-      react.env$path <- getOption(x = 'Azimuth.app.demodataset2')
-    }
-  )
-  observeEvent(
-    eventExpr = input$triggerdemo3,
-    handlerExpr = {
-      ResetEnv()
-      react.env$path <- getOption(x = 'Azimuth.app.demodataset3')
-    }
-  )
-  observeEvent(
-    eventExpr = input$triggerdemo4,
-    handlerExpr = {
-      ResetEnv()
-      react.env$path <- getOption(x = 'Azimuth.app.demodataset4')
-    }
+      if (!any(sapply(X = app.env$demo.inputs, FUN = is.null))) {
+        ResetEnv()
+        for (i in 1:length(x = app.env$demo.inputs)) {
+          if (input[[app.env$demo.inputs[i]]] != app.env$demo.tracker[i]) {
+            app.env$demo.tracker[i] <- app.env$demo.tracker[i] + 1
+            react.env$path <- getOption(x = 'Azimuth.app.demodataset')$file[i]
+          }
+        }
+      }
+    },
+    ignoreInit = TRUE
   )
   observeEvent(
     eventExpr = react.env$path,
@@ -303,10 +306,7 @@ AzimuthServer <- function(input, output, session) {
                   reference.names = rownames(x = refs$map),
                   homolog.table = getOption(x = 'Azimuth.app.homologs')
                 )
-                if (react.env$path == getOption(x = 'Azimuth.app.demodataset') |
-                    react.env$path == getOption(x = 'Azimuth.app.demodataset2') |
-                    react.env$path == getOption(x = 'Azimuth.app.demodataset3') |
-                    react.env$path == getOption(x = 'Azimuth.app.demodataset4')) {
+                if (react.env$path %in% getOption(x = 'Azimuth.app.demodataset')$file) {
                   app.env$demo <- TRUE
                 } else {
                   app.env$demo <- FALSE
@@ -540,10 +540,9 @@ AzimuthServer <- function(input, output, session) {
         if (!is.null(x = react.env$progress)) {
           react.env$progress$close()
           enable(id = 'file')
-          enable(id = 'triggerdemo')
-          enable(id = 'triggerdemo2')
-          enable(id = 'triggerdemo3')
-          enable(id = 'triggerdemo4')
+          for (demo.id in app.env$demo.inputs) {
+            enable(id = demo.id)
+          }
           react.env$progress <- NULL
         }
         updateSelectizeInput(
@@ -576,10 +575,9 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       react.env$start <- Sys.time()
       disable(id = 'file')
-      disable(id = 'triggerdemo')
-      disable(id = 'triggerdemo2')
-      disable(id = 'triggerdemo3')
-      disable(id = 'triggerdemo4')
+      for (demo.id in app.env$demo.inputs) {
+        disable(id = demo.id)
+      }
       for (id in qc.ids) {
         try(expr = disable(id = id), silent = TRUE)
       }
@@ -734,10 +732,9 @@ AzimuthServer <- function(input, output, session) {
           app.env$anchors <- NULL
           react.env$progress$close()
           enable(id = 'file')
-          enable(id = 'triggerdemo')
-          enable(id = 'triggerdemo2')
-          enable(id = 'triggerdemo3')
-          enable(id = 'triggerdemo4')
+          for (demo.id in app.env$demo.inputs) {
+            enable(id = demo.id)
+          }
           gc(verbose = FALSE)
         } else {
           query.unique <- length(x = unique(x = slot(object = app.env$anchors, name = "anchors")[, "cell2"]))
@@ -846,10 +843,9 @@ AzimuthServer <- function(input, output, session) {
           react.env$map <- FALSE
           react.env$progress$close()
           enable(id = 'file')
-          enable(id = 'triggerdemo')
-          enable(id = 'triggerdemo2')
-          enable(id = 'triggerdemo3')
-          enable(id = 'triggerdemo4')
+          for (demo.id in app.env$demo.inputs) {
+            enable(id = demo.id)
+          }
           gc(verbose = FALSE)
         } else {
           app.env$object <- IntegrateEmbeddings(
@@ -1191,10 +1187,9 @@ AzimuthServer <- function(input, output, session) {
         })
         react.env$progress$close()
         enable(id = 'file')
-        enable(id = 'triggerdemo')
-        enable(id = 'triggerdemo2')
-        enable(id = 'triggerdemo3')
-        enable(id = 'triggerdemo4')
+        for (demo.id in app.env$demo.inputs) {
+          enable(id = demo.id)
+        }
         react.env$metadata <- TRUE
         react.env$biomarkers <- FALSE
       }

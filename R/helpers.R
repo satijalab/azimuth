@@ -74,7 +74,7 @@ ConvertGeneNames <- function(object, reference.names, homolog.table) {
             length(x = query.names), " total inputs in conversion table")
     query.names <- query.names[new.indices]
     rownames(x = linked.unique) <- linked.unique[[totalid]]
-    linked.unique <- linked.unique[names, ]
+    linked.unique <- linked.unique[query.names, ]
     # get converted totalid.ref
     new.names <- linked.unique[, totalid.ref]
     # remove duplicates
@@ -82,8 +82,10 @@ ConvertGeneNames <- function(object, reference.names, homolog.table) {
     new.indices <- new.indices[notdup]
     new.names <- new.names[notdup]
     # subset/rename object accordingly
+    counts <- GetAssayData(object = object[["RNA"]], slot = "counts")[rownames(x = object)[new.indices], ]
+    rownames(x = counts) <- new.names
     object <- CreateSeuratObject(
-      counts = GetAssayData(object = object[["RNA"]], slot = "counts")[rownames(x = object)[new.indices], ],
+      counts = counts,
       meta.data = object[[]]
     )
     return(object)

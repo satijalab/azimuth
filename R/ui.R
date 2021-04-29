@@ -50,10 +50,9 @@ AzimuthUI <- tagList(
         trigger = 'focus',
         options = list(container = 'body')
       ),
-      actionButton(inputId = 'triggerdemo', label = 'Demo neonatal heart'),
-      actionButton(inputId = 'triggerdemo2', label = 'Demo adult pancreas'),
-      actionButton(inputId = 'triggerdemo3', label = 'Demo fetal kidney'),
-      actionButton(inputId = 'triggerdemo4', label = 'Demo subsampled BBI'),
+      div(
+        id = "demobuttons"
+      ),
       htmlOutput(outputId = 'message', inline = FALSE),
       sidebarMenu(
         menuItem(
