@@ -86,6 +86,10 @@ Provide (as a string) the code to render the box on the welcome page
 \item{\code{Azimuth.app.homologs}}{
 URL or path to file containing the human/mouse homolog table.
 }
+\item{\code{Azimuth.app.metatableheatmap}}{
+Display the meta.data table as a heatmap rather than in tabular form.
+defaults to FALSE.
+}
 }
 }
 

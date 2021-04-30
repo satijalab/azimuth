@@ -78,6 +78,10 @@
 #'   \item{\code{Azimuth.app.homologs}}{
 #'    URL or path to file containing the human/mouse homolog table.
 #'   }
+#'   \item{\code{Azimuth.app.metatableheatmap}}{
+#'    Display the meta.data table as a heatmap rather than in tabular form.
+#'    defaults to FALSE.
+#'   }
 #'  }
 #' }
 #'
@@ -180,6 +184,7 @@ default.options <- list(
   Azimuth.app.welcomebox = "",
   Azimuth.app.homologs = '',
   Azimuth.app.refdescriptor = "",
+  Azimuth.app.metatableheatmap = FALSE,
   Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,

@@ -354,11 +354,11 @@ AzimuthUI <- tagList(
                 inline = TRUE
               )
             ),
-            plotlyOutput(
-              outputId = 'table.metadata',
+            div(
+              id = 'tablemetadata'
             ),
             width = 12,
-            height='auto'
+            height = 'auto'
           )
         ),
         # Feature tab

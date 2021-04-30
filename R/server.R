@@ -259,14 +259,18 @@ AzimuthServer <- function(input, output, session) {
     }
     refs$map <- SetColorMap(object = refs$map, value = colormap)
   }
-  metadata.notransfer <- str_trim(
-    str_split(
-      getOption(x = "Azimuth.app.metadata_notransfer", default = NULL),
-      ','
-    )[[1]]
-  )
   metadata.annotate <- names(x = GetColorMap(object = refs$map))
-  possible.metadata.transfer <- setdiff(metadata.annotate, metadata.notransfer)
+  if (!is.null(x = getOption(x = "Azimuth.app.metadata_notransfer", default = NULL))) {
+    metadata.notransfer <- str_trim(
+      str_split(
+        getOption(x = "Azimuth.app.metadata_notransfer", default = NULL),
+        ','
+      )[[1]]
+    )
+    possible.metadata.transfer <- setdiff(x = metadata.annotate, y = metadata.notransfer)
+  } else {
+    possible.metadata.transfer <- metadata.annotate
+  }
   if (length(x = possible.metadata.transfer) > 1) {
     react.env$xferopts <- TRUE
   }
@@ -1196,6 +1200,22 @@ AzimuthServer <- function(input, output, session) {
             )
           )
         })
+        if (getOption(x = "Azimuth.app.metatableheatmap")) {
+          insertUI(
+            selector = '#tablemetadata',
+            where = 'beforeEnd',
+            immediate = TRUE,
+            ui = plotlyOutput(outputId = 'metadata.heatmap')
+          )
+        } else {
+          insertUI(
+            selector = '#tablemetadata',
+            where = 'beforeEnd',
+            immediate = TRUE,
+            ui = tableOutput(outputId = 'metadata.table')
+          )
+        }
+
         react.env$progress$close()
         enable(id = 'file')
         for (demo.id in app.env$demo.inputs) {
@@ -1212,15 +1232,15 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (isTRUE(x = react.env$metadata)) {
         #  Add the discrete metadata dropdowns
-        metadata.discrete <- sort(x =
-                                    PlottableMetadataNames(
-                                      object = app.env$object,
-                                      exceptions = app.env$metadataxfer,
-                                      min.levels = 1,
-                                      max.levels = 50
-                                    )
+        metadata.discrete <- sort(
+          x = PlottableMetadataNames(
+                object = app.env$object,
+                exceptions = app.env$metadataxfer,
+                min.levels = 1,
+                max.levels = 50
+          )
         )
-        app.env$metadata.discrete=metadata.discrete
+        app.env$metadata.discrete <- metadata.discrete
         for (id in c('metarow', 'metacol', 'metagroup')) {
           if (id == 'metarow') {
             show.metadata <- 'query'
@@ -2385,20 +2405,20 @@ AzimuthServer <- function(input, output, session) {
     selection = 'single',
     options = list(dom = 't')
   )
-  # output$table.metadata <- renderTable(
-  #   expr = {
-  #     if (!is.null(x = app.env$object)) {
-  #       CategoryTable(
-  #         object = app.env$object,
-  #         category.1 = input$metarow,
-  #         category.2 = input$metacol,
-  #         percentage = (input$radio.pct == "Percentage")
-  #       )
-  #     }
-  #   },
-  #   rownames = TRUE
-  # )
-  output$table.metadata <- renderPlotly({
+  output$metadata.table <- renderTable(
+    expr = {
+      if (!is.null(x = app.env$object)) {
+        CategoryTable(
+          object = app.env$object,
+          category.1 = input$metarow,
+          category.2 = input$metacol,
+          percentage = (input$radio.pct == "Percentage")
+        )
+      }
+    },
+    rownames = TRUE
+  )
+  output$metadata.heatmap <- renderPlotly({
     table <- CategoryTable(
       object = app.env$object,
       category.1 = input$metarow,
