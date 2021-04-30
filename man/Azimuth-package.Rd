@@ -130,6 +130,10 @@ Defaults to \code{5000}
 Annoy (approximate nearest neighbor) n.trees parameter
 Defaults to \code{20}
 }
+\item{\code{Azimuth.map.ndims}}{
+Number of dimensions to use in FindTransferAnchors and TransferData
+Defaults to \code{50}
+}
 \item{\code{Azimuth.de.mincells}}{
 Minimum number of cells per cluster for differential expression; defaults
 to \code{15}

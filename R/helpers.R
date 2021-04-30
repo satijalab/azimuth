@@ -452,6 +452,13 @@ LoadReference <- function(path, seconds = 10L) {
     object = map[["refdr.annoy.neighbors"]],
     file = annref
   )
+  # Validate that reference contains required dims
+  if (ncol(x = map[["refDR"]]) < getOption(x = "Azimuth.map.ndims")) {
+    stop("Provided reference doesn't contain at least ",
+         getOption(x = "Azimuth.map.ndims"), " dimensions. Please either
+         regenerate reference with requested dimensionality or adjust ",
+         "the Azimuth.map.ndims option.")
+  }
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)

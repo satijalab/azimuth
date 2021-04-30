@@ -667,8 +667,6 @@ AzimuthServer <- function(input, output, session) {
               do.center = TRUE,
               new.assay.name = "refAssay"
             ))
-            print(max(app.env$object[['refAssay']]@scale.data))
-            print(min(app.env$object[['refAssay']]@scale.data))
           },
           error = function(e) {
             app.env$object <- suppressWarnings(expr = SCTransform(
@@ -710,11 +708,10 @@ AzimuthServer <- function(input, output, session) {
             x = rownames(x = refs$map),
             y = VariableFeatures(object = app.env$object)
           ),
-          dims = 1:100,
+          dims = 1:getOption(x = "Azimuth.map.ndims"),
           n.trees = n.trees,
           verbose = TRUE,
-          # mapping.score.k = 100,
-          mapping.score.k = NULL
+          mapping.score.k = 100
         )
         nanchors <- nrow(x = slot(object = app.env$anchors, name = "anchors"))
         app.env$nanchors <- nanchors
@@ -810,7 +807,7 @@ AzimuthServer <- function(input, output, session) {
         app.env$object <- TransferData(
           reference = refs$map,
           query = app.env$object,
-          dims = 1:100,
+          dims = 1:getOption(x = "Azimuth.map.ndims"),
           anchorset = app.env$anchors,
           refdata = refdata,
           n.trees = n.trees,
