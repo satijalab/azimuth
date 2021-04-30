@@ -82,6 +82,11 @@
 #'    Display the meta.data table as a heatmap rather than in tabular form.
 #'    defaults to FALSE.
 #'   }
+#'   \item{\code{Azimuth.app.overlayedreference}}{
+#'    Display the mapped query on top of greyed out reference in the 'Cell
+#'    Plots' tab.
+#'    defaults to FALSE
+#'   }
 #'  }
 #' }
 #'
@@ -185,6 +190,7 @@ default.options <- list(
   Azimuth.app.homologs = '',
   Azimuth.app.refdescriptor = "",
   Azimuth.app.metatableheatmap = FALSE,
+  Azimuth.app.overlayedreference = FALSE,
   Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,

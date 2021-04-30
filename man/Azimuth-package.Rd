@@ -90,6 +90,11 @@ URL or path to file containing the human/mouse homolog table.
 Display the meta.data table as a heatmap rather than in tabular form.
 defaults to FALSE.
 }
+\item{\code{Azimuth.app.overlayedreference}}{
+Display the mapped query on top of greyed out reference in the 'Cell
+Plots' tab.
+defaults to FALSE
+}
 }
 }
 

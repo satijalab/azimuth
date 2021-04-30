@@ -252,57 +252,12 @@ AzimuthUI <- tagList(
         ),
         tabItem(
           tabName = 'tab_cell',
-          box(
-            title = 'Mapped Query',
-            checkboxInput(inputId = 'legend', label = 'Show legend'),
-            checkboxGroupInput(
-              inputId = "label.opts", label = NULL,
-              choiceNames = c("Show labels", "Filter cluster labels (size <2%)"),
-              choiceValues = c("labels", "filterlabels"),
-              selected = c("labels", "filterlabels"), inline = TRUE),
-            checkboxInput(inputId = 'showrefonly', label = 'View reference only'),
-            selectizeInput(
-              inputId = 'metacolor.ref',
-              label = 'Reference metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            div(
-              style = "position:relative",
-              plotOutput(
-                outputId = 'refdim',
-                hover = hoverOpts(
-                  id = "refdim_hover_location",
-                  delay = 5,
-                  delayType = "debounce",
-                  nullOutside = TRUE
-                )
-              ),
-              uiOutput("refdim_hover_box")
-            ),
+          div(
+            id = "topdim",
             width = 12
           ),
-          box(
-            title = 'Query',
-            selectizeInput(
-              inputId = 'metacolor.query',
-              label = 'Query metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            div(
-              style = "position:relative",
-              plotOutput(
-                outputId = 'objdim',
-                hover = hoverOpts(
-                  id = "objdim_hover_location",
-                  delay = 5,
-                  delayType = "debounce",
-                  nullOutside = TRUE
-                )
-              ),
-              uiOutput("objdim_hover_box")
-            ),
+          div(
+            id = "bottomdim",
             width = 12
           ),
           box(

@@ -77,6 +77,7 @@ AzimuthServer <- function(input, output, session) {
     plots.refdim_df = NULL,
     plots.refdim_intro_df = NULL,
     plots.objdim_df = NULL,
+    plots.querydim_df = NULL,
     fresh.plot = TRUE,
     singlepred = NULL,
     emptyref = NULL,
@@ -1215,7 +1216,109 @@ AzimuthServer <- function(input, output, session) {
             ui = tableOutput(outputId = 'metadata.table')
           )
         }
-
+        if (getOption(x = "Azimuth.app.overlayedreference")) {
+          insertUI(
+            selector = "#topdim",
+            where = "beforeEnd",
+            immediate = TRUE,
+            ui = box(
+              title = 'Mapped Query',
+              checkboxInput(inputId = 'legend', label = 'Show legend'),
+              checkboxGroupInput(
+                inputId = "label.opts", label = NULL,
+                choiceNames = c("Show labels", "Filter cluster labels (size <2%)"),
+                choiceValues = c("labels", "filterlabels"),
+                selected = c("labels", "filterlabels"), inline = TRUE),
+              checkboxInput(inputId = 'showrefonly', label = 'View reference only'),
+              selectizeInput(
+                inputId = 'metacolor.ref',
+                label = 'Reference metadata to color by',
+                choices = '',
+                multiple = TRUE,
+              ),
+              selectizeInput(
+                inputId = 'metacolor.query',
+                label = 'Query metadata to color by',
+                choices = '',
+                multiple = TRUE,
+              ),
+              div(
+                style = "position:relative",
+                plotOutput(
+                  outputId = 'objdim',
+                  hover = hoverOpts(
+                    id = "objdim_hover_location",
+                    delay = 5,
+                    delayType = "debounce",
+                    nullOutside = TRUE
+                  ),
+                  height='750px'
+                ),
+                uiOutput("objdim_hover_box")
+              ),
+              width = 12,
+              height = 'auto'
+            )
+          )
+        } else {
+          insertUI(
+            selector = "#topdim",
+            where = "beforeEnd",
+            immediate = TRUE,
+            ui = box(
+              title = 'Reference',
+              checkboxGroupInput(inputId = "dimplot.opts", label = NULL, choiceNames = c("Show labels", "Show legend"), choiceValues = c("labels", "legend"), selected = "legend", inline = TRUE),
+              selectizeInput(
+                inputId = 'metacolor.ref',
+                label = 'Metadata to color by',
+                choices = '',
+                multiple = TRUE,
+              ),
+              div(
+                style = "position:relative",
+                plotOutput(
+                  outputId = 'refdim',
+                  hover = hoverOpts(
+                    id = "refdim_hover_location",
+                    delay = 5,
+                    delayType = "debounce",
+                    nullOutside = TRUE
+                  )
+                ),
+                uiOutput("refdim_hover_box")
+              ),
+              width = 12
+            )
+          )
+          insertUI(
+            selector = "#bottomdim",
+            where = "beforeEnd",
+            immediate = TRUE,
+            ui = box(
+              title = 'Query',
+              selectizeInput(
+                inputId = 'metacolor.query',
+                label = 'Metadata to color by',
+                choices = '',
+                multiple = TRUE,
+              ),
+              div(
+                style = "position:relative",
+                plotOutput(
+                  outputId = 'querydim',
+                  hover = hoverOpts(
+                    id = "querydim_hover_location",
+                    delay = 5,
+                    delayType = "debounce",
+                    nullOutside = TRUE
+                  )
+                ),
+                uiOutput("querydim_hover_box")
+              ),
+              width = 12
+            )
+          )
+        }
         react.env$progress$close()
         enable(id = 'file')
         for (demo.id in app.env$demo.inputs) {
@@ -1642,38 +1745,15 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = input$showrefonly,
     handlerExpr = {
       if (!is.null(app.env$metadata.discrete)) {
-        # app.env$disable<-TRUE
         if (input$showrefonly) {
           # change to appropriate input$metacolor.ref if its an option
-          shinyjs:::disable(id='metacolor.query')
-          # if (length(input$metacolor.query) & all(grepl('^predicted.',input$metacolor.query))) {
-          #   updateSelectizeInput(
-          #     session = session,
-          #     inputId = 'metacolor.ref',
-          #     selected = gsub('^predicted.','',input$metacolor.query),
-          #     choices = app.env$metadataxfer,
-          #     server = TRUE,
-          #     options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
-          #   )
-          # }
-          shinyjs:::enable(id='metacolor.ref')
+          disable(id = 'metacolor.query')
+          enable(id = 'metacolor.ref')
         } else {
           # change to appropriate input$metacolor.query
-          shinyjs:::disable(id='metacolor.ref')
-          # if (length(input$metacolor.ref) & all(input$metacolor.ref %in% app.env$metadataxfer)) {
-          #   updateSelectizeInput(
-          #     session = session,
-          #     inputId = 'metacolor.query',
-          #     selected = paste0('predicted.',input$metacolor.ref),
-          #     choices = c(grep(pattern = '^predicted.', x = app.env$metadata.discrete, value = TRUE),
-          #                 grep(pattern = '^predicted.', x = app.env$metadata.discrete, value = TRUE, invert = TRUE)),
-          #     server = TRUE,
-          #     options = selectize.opts[-which(x = names(x = selectize.opts) == 'maxItems')]
-          #   )
-          # }
-          shinyjs:::enable(id='metacolor.query')
+          disable(id = 'metacolor.ref')
+          enable(id = 'metacolor.query')
         }
-        # app.env$disable<-FALSE
       }
     }
   )
@@ -1811,19 +1891,9 @@ AzimuthServer <- function(input, output, session) {
       maxpoints = 1,
       addDist = TRUE
     )
-    # print(hover) # for debugging
-    # print(point) # for debugging
     if (nrow(x = point) == 0) {
       return(NULL)
     }
-    # hovertext <- do.call(
-    #   what = paste0,
-    #   args = as.list(c(
-    #     paste0("<b>", point[[default_xfer]], "</b><br>"),
-    #     sapply(X = setdiff(possible.metadata.transfer, default_xfer), FUN = function(md) {
-    #       paste0("<u>", md, "</u>: ", point[[md]], "<br>")
-    #     }
-    #     ))))
     hovertext <- do.call(
       what = paste0,
       args = lapply(X = metadata.annotate, FUN = function(md) {
@@ -1835,95 +1905,96 @@ AzimuthServer <- function(input, output, session) {
       p(HTML(text = hovertext))
     )
   })
-  # output$refdim <- renderPlot(expr = {
-  #   if (!is.null(x = input$metacolor.ref)) {
-  #     colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
-  #     # no interactivity if multiple plots per row (less useful in this case)
-  #     if (length(x = colormaps) == 1) {
-  #       ## already stored reference dataframe in app.env
-  #       # p <- (ggplot(data=cbind(as.data.frame(refs$plot[['refUMAP']]@cell.embeddings),
-  #       #                         refs$plot@meta.data),
-  #       #              ggplot2:::aes_string(x='UMAP_1',y='UMAP_2',color=input$metacolor.ref)) +
-  #       #         ggplot2:::geom_point(size=0.3) + #### AUTO PT SIZING sizing for plot and legend
-  #       #         ggplot2:::scale_color_manual(values = colormaps[[i]]) +
-  #       #         ggplot2:::ggtitle(input$metacolor.ref)
-  #       # )
-  #       # app.env$plots.refdim[[1]] <- p$data
-  #       app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
-  #       DimPlot(
-  #         object = refs$plot,
-  #         label = isTRUE('labels' %in% input$label.opts),
-  #         group.by = input$metacolor.ref,
-  #         cols = colormaps[[1]],
-  #         repel = TRUE,
-  #         raster = FALSE
-  #       )[[1]] +
-  #         labs(x = "UMAP 1", y = "UMAP 2") +
-  #         if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
-  #     } else {
-  #       app.env$plots.refdim_df <- NULL
-  #       plots <- list()
-  #       for (i in 1:length(x = colormaps)) {
-  #         plots[[i]] <- DimPlot(
-  #           object = refs$plot,
-  #           label = isTRUE('labels' %in% input$label.opts),
-  #           group.by = input$metacolor.ref[i],
-  #           cols = colormaps[[i]],
-  #           repel = TRUE,
-  #           raster = FALSE
-  #         ) + labs(x = "UMAP 1", y = "UMAP 2") +
-  #           if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
-  #       }
-  #       wrap_plots(plots, nrow = 1)
-  #     }
-  #   }
-  # })
-  # output$refdim_hover_box <- renderUI({
-  #   if (!is.null(x = app.env$plots.refdim_df)) {
-  #     hover <- input$refdim_hover_location
-  #     df <- app.env$plots.refdim_df
-  #     if (!is.null(x = hover)){
-  #       hover[['mapping']] <- setNames(object = as.list(x = colnames(x = app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
-  #     }
-  #     point <- nearPoints(
-  #       df = df,
-  #       coordinfo = hover,
-  #       threshold = 10,
-  #       maxpoints = 1,
-  #       addDist = TRUE
-  #     )
-  #     if (nrow(x = point) == 0) {
-  #       return(NULL)
-  #     }
-  #     hovertext <- do.call(
-  #       what = paste0,
-  #       args = as.list(c(
-  #         paste0("<b>", point[[input$metacolor.ref]], "</b><br>"),
-  #         sapply(X = setdiff(possible.metadata.transfer, input$metacolor.ref), FUN = function(md) {
-  #           paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
-  #         })
-  #       ))
-  #     )
-  #     wellPanel(
-  #       style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
-  #       p(HTML(text = hovertext))
-  #     )
-  #   }
-  # })
+
+  output$refdim <- renderPlot(expr = {
+    if (!is.null(x = input$metacolor.ref)) {
+      colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
+      # no interactivity if multiple plots per row (less useful in this case)
+      if (length(x = colormaps) == 1) {
+        ## already stored reference dataframe in app.env
+        app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
+        DimPlot(
+          object = refs$plot,
+          label = isTRUE('labels' %in% input$label.opts),
+          group.by = input$metacolor.ref,
+          cols = colormaps[[1]],
+          repel = TRUE,
+          raster = FALSE
+        )[[1]] +
+          labs(x = "UMAP 1", y = "UMAP 2") +
+          if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
+      } else {
+        app.env$plots.refdim_df <- NULL
+        plots <- list()
+        for (i in 1:length(x = colormaps)) {
+          plots[[i]] <- DimPlot(
+            object = refs$plot,
+            label = isTRUE('labels' %in% input$label.opts),
+            group.by = input$metacolor.ref[i],
+            cols = colormaps[[i]],
+            repel = TRUE,
+            raster = FALSE
+          ) + labs(x = "UMAP 1", y = "UMAP 2") +
+            if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
+        }
+        wrap_plots(plots, nrow = 1)
+      }
+    }
+  })
+
+  output$refdim_hover_box <- renderUI({
+    if (!is.null(x = app.env$plots.refdim_df)) {
+      hover <- input$refdim_hover_location
+      df <- app.env$plots.refdim_df
+      if (!is.null(x = hover)){
+        hover[['mapping']] <- setNames(object = as.list(x = colnames(x = app.env$plots.refdim_intro_df)[1:2]), nm = c('x', 'y'))
+      }
+      point <- nearPoints(
+        df = df,
+        coordinfo = hover,
+        threshold = 10,
+        maxpoints = 1,
+        addDist = TRUE
+      )
+      if (nrow(x = point) == 0) {
+        return(NULL)
+      }
+      hovertext <- do.call(
+        what = paste0,
+        args = as.list(c(
+          paste0("<b>", point[[input$metacolor.ref]], "</b><br>"),
+          sapply(X = setdiff(possible.metadata.transfer, input$metacolor.ref), FUN = function(md) {
+            paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
+          })
+        ))
+      )
+      wellPanel(
+        style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
+        p(HTML(text = hovertext))
+      )
+    }
+  })
+
   output$objdim <- renderPlot(expr = {
-    if (!is.null(x = app.env$object) && app.env$disable==FALSE) {
+    if (!is.null(x = app.env$object) && app.env$disable == FALSE) {
       # create empty ref
-      if (is.null(app.env$emptyref) | is.null(app.env$merged)) {
+      if (is.null(x = app.env$emptyref) | is.null(x = app.env$merged)) {
         app.env$emptyref <- refs$plot
-        Idents(app.env$emptyref) <- '.'
-        for (md in colnames(app.env$emptyref@meta.data)) {app.env$emptyref[[md]] <- '.' }
-        for (md in setdiff(colnames(app.env$object@meta.data),
-                           colnames(app.env$emptyref@meta.data) )) {app.env$emptyref[[md]] <- '.'}
+        Idents(object = app.env$emptyref) <- '.'
+        for (md in colnames(x = app.env$emptyref[[]])) {
+          app.env$emptyref[[md]] <- '.'
+        }
+        for (md in setdiff(
+          x = colnames(x = app.env$object[[]]),
+          y = colnames(x = app.env$emptyref[[]])
+        )) {
+          app.env$emptyref[[md]] <- '.'
+        }
         app.env$object[['refUMAP']] <- app.env$object[['umap.proj']]
-        app.env$merged <- merge(app.env$emptyref, app.env$object, merge.dr='refUMAP')
+        app.env$merged <- merge(app.env$emptyref, app.env$object, merge.dr = 'refUMAP')
       }
 
-      if (isFALSE(input$showrefonly) &
+      if (isFALSE(x = input$showrefonly) &
           length(x = Reductions(object = app.env$object)) &
           !is.null(x = input$metacolor.query)) { # SHOW OVERLAY
         app.env$plots.refdim_df <- NULL # hide reference hover box
@@ -1945,7 +2016,8 @@ AzimuthServer <- function(input, output, session) {
             object = app.env$merged,
             group.by = input$metacolor.query,
             label = FALSE,
-            cols = colormap[names(x = colormap) %in% c('.',unique(as.vector(app.env$object[[input$metacolor.query,drop=T]])))],
+            cols = colormap[names(x = colormap) %in% c(
+              '.', unique(x = as.vector(x = app.env$object[[input$metacolor.query, drop = TRUE]])))],
             repel = TRUE,
             raster = FALSE,
             reduction = "refUMAP"
@@ -1953,14 +2025,14 @@ AzimuthServer <- function(input, output, session) {
             xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]]) +
             labs(x = "UMAP 1", y = "UMAP 2") +
-            if (isFALSE(input$legend)) NoLegend()
-          if (isTRUE('labels' %in% input$label.opts)) {
-            keep <- if (isTRUE('filterlabels' %in% input$label.opts)) {
-              t <- table(as.vector(app.env$object[[input$metacolor.query,drop=T]]))
-              names(t)[which(t > 0.02*ncol(app.env$object))]
+            if (isFALSE(x = input$legend)) NoLegend()
+          if (isTRUE(x = 'labels' %in% input$label.opts)) {
+            keep <- if (isTRUE(x = 'filterlabels' %in% input$label.opts)) {
+              t <- table(as.vector(x = app.env$object[[input$metacolor.query, drop = TRUE]]))
+              names(x = t)[which(x = t > 0.02 * ncol(x = app.env$object))]
             } else NULL
             return(LabelClusters(
-              p,
+              plot = p,
               id = input$metacolor.query,
               clusters = keep
             ))
@@ -1973,28 +2045,31 @@ AzimuthServer <- function(input, output, session) {
             group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
             colormap <- GetColorMap(object = refs$map)[[group.var]]
             if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
-              colormap <- CreateColorMap(ids=unique(as.vector(app.env$object[[input$metacolor.query[i],drop=T]])))
+              colormap <- CreateColorMap(
+                ids = unique(x = as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]]))
+              )
             }
             colormap['.'] <- '#F1F1F1'
             p <- DimPlot(
               object = app.env$merged,
               group.by = input$metacolor.query[i],
-              cols = colormap[names(x = colormap) %in% c('.',unique(as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])))],
+              cols = colormap[names(x = colormap) %in% c(
+                '.', unique(x = as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])))],
               repel = TRUE,
               raster = FALSE,
               reduction = "refUMAP"
             )[[1]] + xlim(app.env$plot.ranges[[1]]) +
               ylim(app.env$plot.ranges[[2]]) +
               labs(x = "UMAP 1", y = "UMAP 2") +
-              if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
+              if (isFALSE(x = input$legend) | OversizedLegend(annotation.list = app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
             if (isTRUE('labels' %in% input$label.opts)) {
-              keep <- if (isTRUE('filterlabels' %in% input$label.opts)) {
-                t <- table(as.vector(app.env$object[[input$metacolor.query[i],drop=T]]))
-                print(names(t)[which(t > 0.02*ncol(app.env$object))])
-                names(t)[which(t > 0.02*ncol(app.env$object))]
+              keep <- if (isTRUE(x = 'filterlabels' %in% input$label.opts)) {
+                t <- table(as.vector(x = app.env$object[[input$metacolor.query[i], drop = TRUE]]))
+                print(names(x = t)[which(t > 0.02 * ncol(x = app.env$object))])
+                names(x = t)[which(t > 0.02 * ncol(x = app.env$object))]
               } else NULL
               plots[[i]] <- LabelClusters(
-                p,
+                plot = p,
                 id = input$metacolor.query[i],
                 clusters = keep
               )
@@ -2019,7 +2094,7 @@ AzimuthServer <- function(input, output, session) {
               raster = FALSE
             )[[1]] +
               labs(x = "UMAP 1", y = "UMAP 2") +
-              if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
+              if (isFALSE(input$legend) | OversizedLegend(annotation.list = refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
           } else {
             app.env$plots.refdim_df <- NULL
             plots <- list()
@@ -2032,7 +2107,7 @@ AzimuthServer <- function(input, output, session) {
                 repel = TRUE,
                 raster = FALSE
               ) + labs(x = "UMAP 1", y = "UMAP 2") +
-                if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
+                if (isFALSE(x = input$legend) | OversizedLegend(annotation.list = refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
             }
             wrap_plots(plots, nrow = 1)
           }
@@ -2040,59 +2115,60 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   })
-  # output$objdim <- renderPlot(expr = {
-  #   if (!is.null(x = app.env$object)) {
-  #     if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
-  #       if (length(x = input$metacolor.query) == 1) {
-  #         # get colormap if avail
-  #         group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query)
-  #         colormap <- GetColorMap(object = refs$map)[[group.var]]
-  #         if (!grepl(pattern = "^predicted.", x = input$metacolor.query)) {
-  #           colormap <- NULL
-  #         }
-  #         # make dataframe so don't need to recompute during hover
-  #         app.env$plots.objdim_df <- cbind(
-  #           as.data.frame(x = Embeddings(object = app.env$object[['umap.proj']])),
-  #           app.env$object[[]]
-  #         )
-  #         DimPlot(
-  #           object = app.env$object,
-  #           group.by = input$metacolor.query,
-  #           label = isTRUE('labels' %in% input$label.opts),
-  #           cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
-  #           repel = TRUE,
-  #           reduction = "umap.proj"
-  #         )[[1]] +
-  #           xlim(app.env$plot.ranges[[1]]) +
-  #           ylim(app.env$plot.ranges[[2]]) +
-  #           labs(x = "UMAP 1", y = "UMAP 2") +
-  #           if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query, drop = TRUE]])) NoLegend()
-  #       } else {
-  #         app.env$plots.objdim_df <- NULL
-  #         plots <- list()
-  #         for (i in 1:length(x = input$metacolor.query)) {
-  #           group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
-  #           colormap <- GetColorMap(object = refs$map)[[group.var]]
-  #           if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
-  #             colormap <- NULL
-  #           }
-  #           plots[[i]] <- DimPlot(
-  #             object = app.env$object,
-  #             group.by = input$metacolor.query[i],
-  #             label = isTRUE('labels' %in% input$label.opts),
-  #             cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
-  #             repel = TRUE,
-  #             reduction = "umap.proj"
-  #           ) + xlim(app.env$plot.ranges[[1]]) +
-  #             ylim(app.env$plot.ranges[[2]]) +
-  #             labs(x = "UMAP 1", y = "UMAP 2") +
-  #             if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
-  #         }
-  #         wrap_plots(plots, nrow = 1)
-  #       }
-  #     }
-  #   }
-  # })
+  output$querydim <- renderPlot(expr = {
+    if (!is.null(x = app.env$object)) {
+      if (length(x = Reductions(object = app.env$object)) & !is.null(x = input$metacolor.query)) {
+        if (length(x = input$metacolor.query) == 1) {
+          # get colormap if avail
+          group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query)
+          colormap <- GetColorMap(object = refs$map)[[group.var]]
+          if (!grepl(pattern = "^predicted.", x = input$metacolor.query)) {
+            colormap <- NULL
+          }
+          # make dataframe so don't need to recompute during hover
+          app.env$plots.querydim_df <- cbind(
+            as.data.frame(x = Embeddings(object = app.env$object[['umap.proj']])),
+            app.env$object[[]]
+          )
+          DimPlot(
+            object = app.env$object,
+            group.by = input$metacolor.query,
+            label = isTRUE('labels' %in% input$label.opts),
+            cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
+            repel = TRUE,
+            reduction = "umap.proj"
+          )[[1]] +
+            xlim(app.env$plot.ranges[[1]]) +
+            ylim(app.env$plot.ranges[[2]]) +
+            labs(x = "UMAP 1", y = "UMAP 2") +
+            if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query, drop = TRUE]])) NoLegend()
+        } else {
+          app.env$plots.querydim_df <- NULL
+          plots <- list()
+          for (i in 1:length(x = input$metacolor.query)) {
+            group.var <- gsub(pattern = "^predicted.", replacement = "", x = input$metacolor.query[i])
+            colormap <- GetColorMap(object = refs$map)[[group.var]]
+            if (!grepl(pattern = "^predicted.", x = input$metacolor.query[i])) {
+              colormap <- NULL
+            }
+            plots[[i]] <- DimPlot(
+              object = app.env$object,
+              group.by = input$metacolor.query[i],
+              label = isTRUE('labels' %in% input$label.opts),
+              cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
+              repel = TRUE,
+              reduction = "umap.proj"
+            ) + xlim(app.env$plot.ranges[[1]]) +
+              ylim(app.env$plot.ranges[[2]]) +
+              labs(x = "UMAP 1", y = "UMAP 2") +
+              if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
+          }
+          wrap_plots(plots, nrow = 1)
+        }
+      }
+    }
+  })
+
   output$objdim_hover_box <- renderUI({
     if (!is.null(x = app.env$plots.objdim_df)) {
       hover <- input$objdim_hover_location
@@ -2153,6 +2229,45 @@ AzimuthServer <- function(input, output, session) {
           sapply(X = setdiff(metadata.annotate, input$metacolor.ref), FUN = function(md) {
             paste0("<span>", md, "</span>: <i>", point[[md]], "</i><br>")
           })
+        ))
+      )
+      wellPanel(
+        style = HoverBoxStyle(x = hover$coords_css$x, y = hover$coords_css$y),
+        p(HTML(text = hovertext))
+      )
+    }
+  })
+  output$querydim_hover_box <- renderUI({
+    if (!is.null(x = app.env$plots.querydim_df)) {
+      hover <- input$querydim_hover_location
+      df <- app.env$plots.querydim_df
+      if (!is.null(x = hover)){
+        hover[['mapping']] <- setNames(object = as.list(x = colnames(x = app.env$plots.querydim_df)[1:2]), nm = c('x', 'y'))
+      }
+      point <- nearPoints(
+        df = df,
+        coordinfo = hover,
+        threshold = 10,
+        maxpoints = 1,
+        addDist = TRUE
+      )
+      if (nrow(x = point) == 0) {
+        return(NULL)
+      }
+      hovertext <- do.call(
+        what = paste0,
+        args = as.list(c(
+          paste0("<b>", point[[input$metacolor.query]], "</b><br>"),
+          if (grepl(pattern = "^predicted.", x = input$metacolor.query)) {
+            paste0(
+              "<i>prediction score</i>: <span>",
+              format(
+                x = round(x = point[[paste0(input$metacolor.query,'.score')]], digits = 2),
+                nsmall = 2
+              ),
+              "</span><br>"
+            )
+          }
         ))
       )
       wellPanel(
