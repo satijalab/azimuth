@@ -471,9 +471,6 @@ LoadReference <- function(path, seconds = 10L) {
   )
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
-  if (length(Cells(plot)) > 100000) {
-    plot <- subset(plot,cells=sample(Cells(plot),100000))
-  }
   gc(verbose = FALSE)
   return(list(
     map = map,
