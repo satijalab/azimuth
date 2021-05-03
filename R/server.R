@@ -217,6 +217,124 @@ AzimuthServer <- function(input, output, session) {
       )
     )
   }
+  if (getOption(x = "Azimuth.app.metatableheatmap")) {
+    insertUI(
+      selector = '#tablemetadata',
+      where = 'beforeEnd',
+      immediate = TRUE,
+      ui = plotlyOutput(outputId = 'metadata.heatmap')
+    )
+  } else {
+    insertUI(
+      selector = '#tablemetadata',
+      where = 'beforeEnd',
+      immediate = TRUE,
+      ui = tableOutput(outputId = 'metadata.table')
+    )
+  }
+  if (getOption(x = "Azimuth.app.overlayedreference")) {
+    insertUI(
+      selector = "#topdim",
+      where = "beforeEnd",
+      immediate = TRUE,
+      ui = box(
+        title = 'Mapped Query',
+        checkboxInput(inputId = 'legend', label = 'Show legend'),
+        checkboxGroupInput(
+          inputId = "label.opts", label = NULL,
+          choiceNames = c("Show labels", "Filter cluster labels (size <2%)"),
+          choiceValues = c("labels", "filterlabels"),
+          selected = c("labels", "filterlabels"), inline = TRUE),
+        checkboxInput(inputId = 'showrefonly', label = 'View reference only'),
+        selectizeInput(
+          inputId = 'metacolor.ref',
+          label = 'Reference metadata to color by',
+          choices = '',
+          multiple = TRUE,
+        ),
+        selectizeInput(
+          inputId = 'metacolor.query',
+          label = 'Query metadata to color by',
+          choices = '',
+          multiple = TRUE,
+        ),
+        div(
+          style = "position:relative",
+          plotOutput(
+            outputId = 'objdim',
+            hover = hoverOpts(
+              id = "objdim_hover_location",
+              delay = 5,
+              delayType = "debounce",
+              nullOutside = TRUE
+            ),
+            height='750px'
+          ),
+          uiOutput("objdim_hover_box")
+        ),
+        width = 12,
+        height = 'auto'
+      )
+    )
+  } else {
+    insertUI(
+      selector = "#topdim",
+      where = "beforeEnd",
+      immediate = TRUE,
+      ui = box(
+        title = 'Reference',
+        checkboxGroupInput(inputId = "dimplot.opts", label = NULL, choiceNames = c("Show labels", "Show legend"), choiceValues = c("labels", "legend"), selected = "legend", inline = TRUE),
+        selectizeInput(
+          inputId = 'metacolor.ref',
+          label = 'Metadata to color by',
+          choices = '',
+          multiple = TRUE,
+        ),
+        div(
+          style = "position:relative",
+          plotOutput(
+            outputId = 'refdim',
+            hover = hoverOpts(
+              id = "refdim_hover_location",
+              delay = 5,
+              delayType = "debounce",
+              nullOutside = TRUE
+            )
+          ),
+          uiOutput("refdim_hover_box")
+        ),
+        width = 12
+      )
+    )
+    insertUI(
+      selector = "#bottomdim",
+      where = "beforeEnd",
+      immediate = TRUE,
+      ui = box(
+        title = 'Query',
+        selectizeInput(
+          inputId = 'metacolor.query',
+          label = 'Metadata to color by',
+          choices = '',
+          multiple = TRUE,
+        ),
+        div(
+          style = "position:relative",
+          plotOutput(
+            outputId = 'querydim',
+            hover = hoverOpts(
+              id = "querydim_hover_location",
+              delay = 5,
+              delayType = "debounce",
+              nullOutside = TRUE
+            )
+          ),
+          uiOutput("querydim_hover_box")
+        ),
+        width = 12
+      )
+    )
+  }
   withProgress(
     message = "Loading reference",
     expr = {
@@ -1201,124 +1319,6 @@ AzimuthServer <- function(input, output, session) {
             )
           )
         })
-        if (getOption(x = "Azimuth.app.metatableheatmap")) {
-          insertUI(
-            selector = '#tablemetadata',
-            where = 'beforeEnd',
-            immediate = TRUE,
-            ui = plotlyOutput(outputId = 'metadata.heatmap')
-          )
-        } else {
-          insertUI(
-            selector = '#tablemetadata',
-            where = 'beforeEnd',
-            immediate = TRUE,
-            ui = tableOutput(outputId = 'metadata.table')
-          )
-        }
-        if (getOption(x = "Azimuth.app.overlayedreference")) {
-          insertUI(
-            selector = "#topdim",
-            where = "beforeEnd",
-            immediate = TRUE,
-            ui = box(
-              title = 'Mapped Query',
-              checkboxInput(inputId = 'legend', label = 'Show legend'),
-              checkboxGroupInput(
-                inputId = "label.opts", label = NULL,
-                choiceNames = c("Show labels", "Filter cluster labels (size <2%)"),
-                choiceValues = c("labels", "filterlabels"),
-                selected = c("labels", "filterlabels"), inline = TRUE),
-              checkboxInput(inputId = 'showrefonly', label = 'View reference only'),
-              selectizeInput(
-                inputId = 'metacolor.ref',
-                label = 'Reference metadata to color by',
-                choices = '',
-                multiple = TRUE,
-              ),
-              selectizeInput(
-                inputId = 'metacolor.query',
-                label = 'Query metadata to color by',
-                choices = '',
-                multiple = TRUE,
-              ),
-              div(
-                style = "position:relative",
-                plotOutput(
-                  outputId = 'objdim',
-                  hover = hoverOpts(
-                    id = "objdim_hover_location",
-                    delay = 5,
-                    delayType = "debounce",
-                    nullOutside = TRUE
-                  ),
-                  height='750px'
-                ),
-                uiOutput("objdim_hover_box")
-              ),
-              width = 12,
-              height = 'auto'
-            )
-          )
-        } else {
-          insertUI(
-            selector = "#topdim",
-            where = "beforeEnd",
-            immediate = TRUE,
-            ui = box(
-              title = 'Reference',
-              checkboxGroupInput(inputId = "dimplot.opts", label = NULL, choiceNames = c("Show labels", "Show legend"), choiceValues = c("labels", "legend"), selected = "legend", inline = TRUE),
-              selectizeInput(
-                inputId = 'metacolor.ref',
-                label = 'Metadata to color by',
-                choices = '',
-                multiple = TRUE,
-              ),
-              div(
-                style = "position:relative",
-                plotOutput(
-                  outputId = 'refdim',
-                  hover = hoverOpts(
-                    id = "refdim_hover_location",
-                    delay = 5,
-                    delayType = "debounce",
-                    nullOutside = TRUE
-                  )
-                ),
-                uiOutput("refdim_hover_box")
-              ),
-              width = 12
-            )
-          )
-          insertUI(
-            selector = "#bottomdim",
-            where = "beforeEnd",
-            immediate = TRUE,
-            ui = box(
-              title = 'Query',
-              selectizeInput(
-                inputId = 'metacolor.query',
-                label = 'Metadata to color by',
-                choices = '',
-                multiple = TRUE,
-              ),
-              div(
-                style = "position:relative",
-                plotOutput(
-                  outputId = 'querydim',
-                  hover = hoverOpts(
-                    id = "querydim_hover_location",
-                    delay = 5,
-                    delayType = "debounce",
-                    nullOutside = TRUE
-                  )
-                ),
-                uiOutput("querydim_hover_box")
-              ),
-              width = 12
-            )
-          )
-        }
         react.env$progress$close()
         enable(id = 'file')
         for (demo.id in app.env$demo.inputs) {
