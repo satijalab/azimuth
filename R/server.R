@@ -190,7 +190,7 @@ AzimuthServer <- function(input, output, session) {
     })
   }
   demos <- getOption("Azimuth.app.demodataset")
-  if (!inherits(x = demos, what = "data.frame")) {
+  if (!inherits(x = demos, what = "data.frame") & !is.null(x = demos)) {
     if (is.null(x = names(x = demos))) {
       if (length(x = demos) > 1) {
         demo.names <- paste0("Demo", 1:length(x = demos))
