@@ -13,7 +13,7 @@ if (!requireNamespace("glmGamPoi", quietly = TRUE)) {
 }
 
 # Ensure Azimuth is installed
-if (packageVersion(pkg = "Azimuth") < package_version(x = "0.3.1")) {
+if (packageVersion(pkg = "Azimuth") < package_version(x = "0.4.0")) {
   stop("Please install azimuth - remotes::install_github('satijalab/azimuth')", call. = FALSE)
 }
 
@@ -29,6 +29,11 @@ reference <- LoadReference(path = "${ref.uri}")
 # Load the query object for mapping
 # Change the file path based on where the query file is located on your system.
 query <- LoadFileInput(path = "${path}")
+query <- ConvertGeneNames(
+  object = query,
+  reference.names = rownames(x = reference$map),
+  homolog.table = 'https://seurat.nygenome.org/azimuth/references/homologs.rds'
+)
 
 # Calculate nCount_RNA and nFeature_RNA if the query does not
 # contain them already
