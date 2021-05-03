@@ -411,10 +411,10 @@ AzimuthServer <- function(input, output, session) {
   observeEvent(
     eventExpr = sapply(X = app.env$demo.inputs, FUN = function(x) input[[x]]),
     handlerExpr = {
-      if (!all(sapply(X = app.env$demo.inputs, FUN = is.null))) {
+      if (isTRUE(x = !all(sapply(X = app.env$demo.inputs, FUN = is.null)))) {
         ResetEnv()
         for (i in 1:length(x = app.env$demo.inputs)) {
-          if (input[[app.env$demo.inputs[i]]] != app.env$demo.tracker[i]) {
+          if (isTRUE(x = input[[app.env$demo.inputs[i]]] != app.env$demo.tracker[i])) {
             app.env$demo.tracker[i] <- app.env$demo.tracker[i] + 1
             react.env$path <- app.env$demo.files[i]
           }
