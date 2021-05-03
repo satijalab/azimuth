@@ -67,6 +67,20 @@ ConvertGeneNames <- function(object, reference.names, homolog.table) {
   if (totalid == totalid.ref) {
     return(object)
   } else {
+    display.names <- setNames(
+      c('ENSEMBL gene', 'ENSEMBL transcript', 'gene name', 'transcript name'),
+      nm = c('Gene.stable.ID', 'Transcript.stable.ID','Gene.name','Transcript.name')
+    )
+    showNotification(
+      paste0(
+        "Converted ",species," ",display.names[idtype]," IDs to ",
+        species.ref," ",display.names[idtype.ref]," IDs"
+      ),
+      duration = 3,
+      type = 'warning',
+      closeButton = TRUE,
+      id = 'no-progress-notification'
+    )
     # set up table indexed by query ids (totalid)
     linked.unique <- linked[!duplicated(x = linked[[totalid]]), ]
     new.indices <- which(query.names %in% linked.unique[[totalid]])
