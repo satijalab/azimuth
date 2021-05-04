@@ -8,6 +8,7 @@
 #' @return query object with converted feature names, likely subsetted
 #'
 #' @importFrom stringr str_match
+#' @importFrom shiny isRunning
 #'
 #' @export
 #'
@@ -21,6 +22,10 @@ ConvertGeneNames <- function(object, reference.names, homolog.table) {
     if (!Online(url = homolog.table)) {
       stop("Cannot find the homolog table at the URL given: ", homolog.table)
     }
+    homolog.table <- url(description = homolog.table)
+    on.exit(expr = {
+      close(con = homolog.table)
+    })
   }
   linked <- readRDS(file = homolog.table)
   query.names <- rownames(x = object)
@@ -71,16 +76,18 @@ ConvertGeneNames <- function(object, reference.names, homolog.table) {
       c('ENSEMBL gene', 'ENSEMBL transcript', 'gene name', 'transcript name'),
       nm = c('Gene.stable.ID', 'Transcript.stable.ID','Gene.name','Transcript.name')
     )
-    showNotification(
-      paste0(
-        "Converted ",species," ",display.names[idtype]," IDs to ",
-        species.ref," ",display.names[idtype.ref]," IDs"
-      ),
-      duration = 3,
-      type = 'warning',
-      closeButton = TRUE,
-      id = 'no-progress-notification'
-    )
+    if (isRunning()) {
+      showNotification(
+        paste0(
+          "Converted ",species," ",display.names[idtype]," IDs to ",
+          species.ref," ",display.names[idtype.ref]," IDs"
+        ),
+        duration = 3,
+        type = 'warning',
+        closeButton = TRUE,
+        id = 'no-progress-notification'
+      )
+    }
     # set up table indexed by query ids (totalid)
     linked.unique <- linked[!duplicated(x = linked[[totalid]]), ]
     new.indices <- which(query.names %in% linked.unique[[totalid]])
@@ -542,7 +549,7 @@ Online <- function(url, strict = FALSE) {
   return(comp(
     x = httr::status_code(x = httr::GET(
       url = url,
-      httr::timeout(seconds = seconds
+      httr::timeout(seconds = getOption('timeout')
       ))),
     y = code
   ))
