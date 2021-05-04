@@ -1179,6 +1179,7 @@ AzimuthServer <- function(input, output, session) {
               ref.embeddings = Embeddings(object = refdr.ref),
               nn.method = "annoy",
               n.trees = n.trees,
+              ndim = getOption(x = "Azimuth.map.ndims"),
               kanchors = mapping.score.k
             )
           }
