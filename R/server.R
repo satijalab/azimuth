@@ -998,8 +998,8 @@ AzimuthServer <- function(input, output, session) {
               app.env$default.metadata <- names(x = refdata)[1]
             }
           }
-          # react.env$score <- TRUE
-          react.env$cluster.score <- TRUE
+          react.env$score <- TRUE
+          # react.env$cluster.score <- TRUE
           react.env$map <- FALSE
         }
       }
@@ -1191,7 +1191,8 @@ AzimuthServer <- function(input, output, session) {
         app.env$anchors <- NULL
         rm(refdr)
         gc(verbose = FALSE)
-        react.env$transform <- TRUE
+        # react.env$transform <- TRUE
+        react.env$cluster.score <- TRUE
         react.env$score <- FALSE
       }
     }
@@ -1915,27 +1916,27 @@ AzimuthServer <- function(input, output, session) {
         app.env$plots.refdim_df <- app.env$plots.refdim_intro_df
         DimPlot(
           object = refs$plot,
-          label = isTRUE('labels' %in% input$label.opts),
+          label = isTRUE("labels" %in% input$dimplot.opts),
           group.by = input$metacolor.ref,
           cols = colormaps[[1]],
           repel = TRUE,
           raster = FALSE
         )[[1]] +
           labs(x = "UMAP 1", y = "UMAP 2") +
-          if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
+          if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref, drop = TRUE]])) NoLegend()
       } else {
         app.env$plots.refdim_df <- NULL
         plots <- list()
         for (i in 1:length(x = colormaps)) {
           plots[[i]] <- DimPlot(
             object = refs$plot,
-            label = isTRUE('labels' %in% input$label.opts),
+            label = isTRUE("labels" %in% input$dimplot.opts),
             group.by = input$metacolor.ref[i],
             cols = colormaps[[i]],
             repel = TRUE,
             raster = FALSE
           ) + labs(x = "UMAP 1", y = "UMAP 2") +
-            if (isFALSE(input$legend) | OversizedLegend(refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
+            if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(refs$plot[[input$metacolor.ref[i], drop = TRUE]])) NoLegend()
         }
         wrap_plots(plots, nrow = 1)
       }
@@ -2133,7 +2134,7 @@ AzimuthServer <- function(input, output, session) {
           DimPlot(
             object = app.env$object,
             group.by = input$metacolor.query,
-            label = isTRUE('labels' %in% input$label.opts),
+            label = isTRUE('labels' %in% input$dimplot.opts),
             cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query, drop = TRUE]])],
             repel = TRUE,
             reduction = "umap.proj"
@@ -2141,7 +2142,7 @@ AzimuthServer <- function(input, output, session) {
             xlim(app.env$plot.ranges[[1]]) +
             ylim(app.env$plot.ranges[[2]]) +
             labs(x = "UMAP 1", y = "UMAP 2") +
-            if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query, drop = TRUE]])) NoLegend()
+            if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(app.env$object[[input$metacolor.query, drop = TRUE]])) NoLegend()
         } else {
           app.env$plots.querydim_df <- NULL
           plots <- list()
@@ -2154,14 +2155,14 @@ AzimuthServer <- function(input, output, session) {
             plots[[i]] <- DimPlot(
               object = app.env$object,
               group.by = input$metacolor.query[i],
-              label = isTRUE('labels' %in% input$label.opts),
+              label = isTRUE('labels' %in% input$dimplot.opts),
               cols = colormap[names(x = colormap) %in% unique(x = app.env$object[[input$metacolor.query[i], drop = TRUE]])],
               repel = TRUE,
               reduction = "umap.proj"
             ) + xlim(app.env$plot.ranges[[1]]) +
               ylim(app.env$plot.ranges[[2]]) +
               labs(x = "UMAP 1", y = "UMAP 2") +
-              if (isFALSE(input$legend) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
+              if (isFALSE(x = "legend" %in% input$dimplot.opts) | OversizedLegend(app.env$object[[input$metacolor.query[i], drop = TRUE]])) NoLegend()
           }
           wrap_plots(plots, nrow = 1)
         }
@@ -2569,14 +2570,14 @@ AzimuthServer <- function(input, output, session) {
     filename = paste0(tolower(x = app.title), '_pred.tsv'),
     content = function(file) {
       req <- paste0("predicted.", c(app.env$metadataxfer, paste0(app.env$metadataxfer, ".score")))
-      # if (resolved(x = app.env$mapping.score)) {
-      #   req <- c(req, 'mapping.score')
-      # }
+      if (resolved(x = app.env$mapping.score)) {
+        req <- c(req, 'mapping.score')
+      }
       if (all(req %in% colnames(x = app.env$object[[]]))) {
         pred.df <- app.env$object[[req]]
-        # if (resolved(x = app.env$mapping.score)) {
-        #   pred.df$mapping.score <- value(app.env$mapping.score)
-        # }
+        if (resolved(x = app.env$mapping.score)) {
+          pred.df$mapping.score <- value(app.env$mapping.score)
+        }
         pred.df <- cbind(cell = rownames(x = pred.df), pred.df)
         write.table(
           x = pred.df,
