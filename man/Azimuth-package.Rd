@@ -50,6 +50,9 @@ Logging is only enabled if this and other \code{google*} options are set
 \item{\code{Azimuth.app.max_cells}}{
 Maximum number of cells allowed to upload
 }
+\item{\code{Azimuth.app.metadata_notransfer}}{
+Metadata to annotate in reference but not transfer to query
+}
 \item{\code{Azimuth.app.mito}}{
 Regular expression pattern indicating mitochondrial features in query
 object
@@ -79,6 +82,18 @@ Provide (as a string) the code to render the box on the welcome page
 )
 }
 
+}
+\item{\code{Azimuth.app.homologs}}{
+URL or path to file containing the human/mouse homolog table.
+}
+\item{\code{Azimuth.app.metatableheatmap}}{
+Display the meta.data table as a heatmap rather than in tabular form.
+defaults to FALSE.
+}
+\item{\code{Azimuth.app.overlayedreference}}{
+Display the mapped query on top of greyed out reference in the 'Cell
+Plots' tab.
+defaults to FALSE
 }
 }
 }
@@ -123,6 +138,10 @@ Defaults to \code{5000}
 \item{\code{Azimuth.map.ntrees}}{
 Annoy (approximate nearest neighbor) n.trees parameter
 Defaults to \code{20}
+}
+\item{\code{Azimuth.map.ndims}}{
+Number of dimensions to use in FindTransferAnchors and TransferData
+Defaults to \code{50}
 }
 \item{\code{Azimuth.de.mincells}}{
 Minimum number of cells per cluster for differential expression; defaults

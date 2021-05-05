@@ -22,7 +22,7 @@ RoxygenNote: 7.1.1
 biocViews:
 Remotes:
   immunogenomics/presto,
-  mojaveazure/seurat-disk,
+  mojaveazure/seurat-disk
 Depends:
   R (>= 4.0.0)
 Imports:
@@ -52,6 +52,7 @@ Imports:
   stringr (>= 1.4.0),
   tools,
   utils,
+  plotly,
   withr (>= 2.3.0)
 Collate:
     'zzz.R'

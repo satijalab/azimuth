@@ -12,14 +12,13 @@ LoadReference(path, seconds = 10L)
 \item{seconds}{Timeout to check for URLs in seconds}
 }
 \value{
-A list with three entries:
+A list with two entries:
 \describe{
  \item{\code{map}}{
   The downsampled reference \code{\link[Seurat]{Seurat}}
   object (for mapping)
  }
  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
- \item{\code{avgexp}}{Average expression (for pseudobulk check)}
 }
 }
 \description{
