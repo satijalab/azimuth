@@ -41,6 +41,9 @@
 #'   \item{\code{Azimuth.app.max_cells}}{
 #'    Maximum number of cells allowed to upload
 #'   }
+#'   \item{\code{Azimuth.app.metadata_notransfer}}{
+#'    Metadata to annotate in reference but not transfer to query
+#'   }
 #'   \item{\code{Azimuth.app.mito}}{
 #'    Regular expression pattern indicating mitochondrial features in query
 #'    object
@@ -71,6 +74,18 @@
 #'      width = 12
 #'    )
 #'    ```
+#'   }
+#'   \item{\code{Azimuth.app.homologs}}{
+#'    URL or path to file containing the human/mouse homolog table.
+#'   }
+#'   \item{\code{Azimuth.app.metatableheatmap}}{
+#'    Display the meta.data table as a heatmap rather than in tabular form.
+#'    defaults to FALSE.
+#'   }
+#'   \item{\code{Azimuth.app.overlayedreference}}{
+#'    Display the mapped query on top of greyed out reference in the 'Cell
+#'    Plots' tab.
+#'    defaults to FALSE
 #'   }
 #'  }
 #' }
@@ -115,6 +130,10 @@
 #'   \item{\code{Azimuth.map.ntrees}}{
 #'    Annoy (approximate nearest neighbor) n.trees parameter
 #'    Defaults to \code{20}
+#'   }
+#'   \item{\code{Azimuth.map.ndims}}{
+#'     Number of dimensions to use in FindTransferAnchors and TransferData
+#'     Defaults to \code{50}
 #'   }
 #'   \item{\code{Azimuth.de.mincells}}{
 #'    Minimum number of cells per cluster for differential expression; defaults
@@ -168,7 +187,10 @@ default.options <- list(
   Azimuth.app.plotseed = NULL,
   Azimuth.app.reference = 'https://seurat.nygenome.org/references/pbmc',
   Azimuth.app.welcomebox = "",
+  Azimuth.app.homologs = '',
   Azimuth.app.refdescriptor = "",
+  Azimuth.app.metatableheatmap = FALSE,
+  Azimuth.app.overlayedreference = FALSE,
   Azimuth.de.digits = 3L,
   Azimuth.de.mincells = 15L,
   Azimuth.map.ncells = 100L,
@@ -178,6 +200,7 @@ default.options <- list(
   Azimuth.map.postmapqccolors = c(2, 3.75),
   Azimuth.map.postmapqcds = 5000L,
   Azimuth.map.ntrees = 20L,
+  Azimuth.map.ndims = 50L,
   Azimuth.sct.ncells = 2000L,
   Azimuth.sct.nfeats = 2000L
 )

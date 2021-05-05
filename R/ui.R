@@ -8,6 +8,7 @@
 #' tableOutput textOutput textAreaInput uiOutput verbatimTextOutput hoverOpts
 #' checkboxGroupInput
 #' @importFrom shinyBS bsButton bsPopover bsTooltip
+#' @importFrom plotly plotlyOutput renderPlotly toWebGL
 #' @importFrom shinydashboard box dashboardBody dashboardHeader dashboardSidebar
 #' dashboardPage menuItem sidebarMenu sidebarMenuOutput tabItem tabItems
 #' valueBoxOutput
@@ -49,7 +50,9 @@ AzimuthUI <- tagList(
         trigger = 'focus',
         options = list(container = 'body')
       ),
-      actionButton(inputId = 'triggerdemo', label = 'Load demo dataset'),
+      div(
+        id = "demobuttons"
+      ),
       htmlOutput(outputId = 'message', inline = FALSE),
       sidebarMenu(
         menuItem(
@@ -68,6 +71,7 @@ AzimuthUI <- tagList(
       tags$head(
         tags$style(
           HTML(".content-wrapper { overflow: auto }
+          .wrapper {height: auto !important; position:relative; overflow-x:hidden; overflow-y:hidden}
           .shiny-notification {
             position: fixed;
             font-size: 15px;
@@ -106,11 +110,13 @@ AzimuthUI <- tagList(
                     delay = 5,
                     delayType = "debounce",
                     nullOutside = TRUE
-                  )
+                  ),
+                  height='1000px'
                 ),
                 uiOutput("refdim_intro_hover_box")
               ),
-              width = 12
+              width = 12,
+              height='1000px'
             ),
           )
         ),
@@ -246,51 +252,12 @@ AzimuthUI <- tagList(
         ),
         tabItem(
           tabName = 'tab_cell',
-          box(
-            title = 'Reference',
-            checkboxGroupInput(inputId = "dimplot.opts", label = NULL, choiceNames = c("Show labels", "Show legend"), choiceValues = c("labels", "legend"), selected = "legend", inline = TRUE),
-            selectizeInput(
-              inputId = 'metacolor.ref',
-              label = 'Metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            div(
-              style = "position:relative",
-              plotOutput(
-                outputId = 'refdim',
-                hover = hoverOpts(
-                  id = "refdim_hover_location",
-                  delay = 5,
-                  delayType = "debounce",
-                  nullOutside = TRUE
-                )
-              ),
-              uiOutput("refdim_hover_box")
-            ),
+          div(
+            id = "topdim",
             width = 12
           ),
-          box(
-            title = 'Query',
-            selectizeInput(
-              inputId = 'metacolor.query',
-              label = 'Metadata to color by',
-              choices = '',
-              multiple = TRUE,
-            ),
-            div(
-              style = "position:relative",
-              plotOutput(
-                outputId = 'objdim',
-                hover = hoverOpts(
-                  id = "objdim_hover_location",
-                  delay = 5,
-                  delayType = "debounce",
-                  nullOutside = TRUE
-                )
-              ),
-              uiOutput("objdim_hover_box")
-            ),
+          div(
+            id = "bottomdim",
             width = 12
           ),
           box(
@@ -342,8 +309,11 @@ AzimuthUI <- tagList(
                 inline = TRUE
               )
             ),
-            tableOutput(outputId = 'table.metadata'),
-            width = 12
+            div(
+              id = 'tablemetadata'
+            ),
+            width = 12,
+            height = 'auto'
           )
         ),
         # Feature tab
