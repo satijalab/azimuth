@@ -1,4 +1,4 @@
-FROM satijalab/seurat:4.0.0
+FROM satijalab/seurat:4.0.1
 
 RUN apt-get update
 RUN apt-get install -y libv8-dev
