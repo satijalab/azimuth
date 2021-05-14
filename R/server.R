@@ -2600,7 +2600,7 @@ AzimuthServer <- function(input, output, session) {
     }
   )
   output$dlall <- downloadHandler(
-    filename = paste0(tolower(x = app.title), '_all.Rds'),
+    filename = paste0(tolower(x = app.title), '_results.Rds'),
     content = function(file) {
       results <- list()
       if (!is.null(x = app.env$object)) {
