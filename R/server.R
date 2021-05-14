@@ -2025,7 +2025,7 @@ AzimuthServer <- function(input, output, session) {
   output$text.dlall <- renderText(
     expr = {
       c(
-        "object <- AzimuthToSeurat(object, azimuth_results = readRDS('azimuth_all.Rds'))"
+        "object <- AddAzimuthResults(object, azimuth_results = readRDS('azimuth_results.Rds'))"
       )
     },
     sep = "\n"
