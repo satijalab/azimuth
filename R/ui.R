@@ -471,6 +471,18 @@ AzimuthUI <- tagList(
               ),
               width = 6
             )
+          ),
+          div(
+            id = 'alldl',
+            box(
+              title = 'All results',
+              verbatimTextOutput(outputId = 'text.dlall'),
+              downloadButton(
+                outputId = 'dlall',
+                label = 'Download'
+              ),
+              width = 6
+            )
           )
         ),
         # Feedback tab
