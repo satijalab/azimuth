@@ -90,7 +90,7 @@ mdemit <- function(..., highlight = "r") {
 [![Lifecycle](https://img.shields.io/badge/lifecycle-`r stage`-`r color`.svg)](`r github.url`)
 <!-- badges: end -->
 
-`r pkg` is a Shiny app demonstrating a query-reference mapping algorithm for single-cell data. The reference data accompanying the app and the algorithms used are described in the publication ["Integrated analysis of multimodal single-cell data" (Y. Hao, S. Hao, et al., bioRxiv 2020)](https://satijalab.org/v4preprint).
+`r pkg` is a Shiny app demonstrating a query-reference mapping algorithm for single-cell data. The reference data accompanying the app and the algorithms used are described in the publication ["Integrated analysis of multimodal single-cell data" (Y. Hao, S. Hao, et al., Cell 2021)](https://doi.org/10.1016/j.cell.2021.04.048).
 
 We have made instances of the app available for public use, [described here](https://azimuth.hubmapconsortium.org).
 

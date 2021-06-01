@@ -2479,6 +2479,14 @@ AzimuthServer <- function(input, output, session) {
     },
     sep = "\n"
   )
+  output$text.dlall <- renderText(
+    expr = {
+      c(
+        "object <- AddAzimuthResults(object, azimuth_results = 'azimuth_results.Rds')"
+      )
+    },
+    sep = "\n"
+  )
   # Tables
   output$table.qc <- renderTable(
     expr = {
@@ -2589,6 +2597,35 @@ AzimuthServer <- function(input, output, session) {
           sep = '\t'
         )
       }
+    }
+  )
+  output$dlall <- downloadHandler(
+    filename = paste0(tolower(x = app.title), '_results.Rds'),
+    content = function(file) {
+      results <- list()
+      if (!is.null(x = app.env$object)) {
+        if ('impADT' %in% Assays(object = app.env$object)) {
+          results$impADT <- app.env$object[['impADT']]
+        }
+        if ('umap.proj' %in% Reductions(object = app.env$object)) {
+          results$umap <- app.env$object[['umap.proj']]
+        }
+      }
+
+      req <- paste0("predicted.", c(app.env$metadataxfer, paste0(app.env$metadataxfer, ".score")))
+      if (resolved(x = app.env$mapping.score)) {
+        req <- c(req, 'mapping.score')
+      }
+      if (all(req %in% colnames(x = app.env$object[[]]))) {
+        pred.df <- app.env$object[[req]]
+        if (resolved(x = app.env$mapping.score)) {
+          pred.df$mapping.score <- value(app.env$mapping.score)
+        }
+        pred.df <- cbind(cell = rownames(x = pred.df), pred.df)
+        results$pred.df <- pred.df
+      }
+
+      saveRDS(results, file = file)
     }
   )
   output$dlscript <- downloadHandler(

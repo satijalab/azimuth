@@ -1,3 +1,9 @@
+# Azimuth 0.4.1 (2021-06-01)
+
+## Added
+
+- Ability to download all Azimuth results on Downloads tab 
+
 # Azimuth 0.4.0 (2021-05-04)
 
 ## Added
