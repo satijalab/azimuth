@@ -596,6 +596,28 @@ OversizedLegend <- function(annotation.list) {
   return(length(x = unique(x = as.vector(x = annotation.list))) > 50)
 }
 
+# Toggle demo button enable/disable
+#
+# @param action Whether to enable or disable the buttons
+# @param demos data.frame containing demo dataset name and file paht
+#
+# @return No return value
+#
+ToggleDemos <- function(action = c("enable", "disable"), demos = NULL) {
+  if (!is.null(x = demos)) {
+    if (action == "enable") {
+      for (i in 1:nrow(x = demos)) {
+        enable(id = paste0("triggerdemo", i))
+      }
+    }
+   if (action == "disable") {
+     for (i in 1:nrow(x = demos)) {
+       disable(id = paste0("triggerdemo", i))
+     }
+   }
+  }
+}
+
 # Theme for the plot on welcome page
 #
 WelcomePlot <- function(...) {
