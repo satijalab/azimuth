@@ -2642,6 +2642,7 @@ AzimuthServer <- function(input, output, session) {
       e$sct.ncells <- getOption(x = 'Azimuth.sct.ncells')
       e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
       e$ntrees <- getOption(x = 'Azimuth.map.ntrees')
+      e$ndims <- getOption(x = "Azimuth.map.ndims")
       e$adt.key <- adt.key
       e$do.adt <- do.adt
       e$metadataxfer <- app.env$metadataxfer
