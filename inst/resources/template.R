@@ -105,7 +105,7 @@ anchors <- FindTransferAnchors(
   reference.reduction = "refDR",
   normalization.method = "SCT",
   features = intersect(rownames(x = reference$map), VariableFeatures(object = query)),
-  dims = 1:50,
+  dims = 1:${ndims},
   n.trees = ${ntrees},
   mapping.score.k = 100
 )
@@ -130,7 +130,7 @@ if (${do.adt}) {
 query <- TransferData(
   reference = reference$map,
   query = query,
-  dims = 1:50,
+  dims = 1:${ndims},
   anchorset = anchors,
   refdata = refdata,
   n.trees = ${ntrees},
