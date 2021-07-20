@@ -84,7 +84,8 @@ AzimuthServer <- function(input, output, session) {
     merged = NULL,
     metadata.discrete = NULL,
     metadata.notransfer = NULL,
-    disable = FALSE
+    disable = FALSE,
+    query.names = character()
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -448,6 +449,13 @@ AzimuthServer <- function(input, output, session) {
                 }
                 app.env$object$query <- 'query'
                 Idents(object = app.env$object) <- 'query'
+                # check that no names overlap with reference
+                query.cell.names <- paste0("query", 1:ncol(x = app.env$object))
+                while (any(query.cell.names %in% Cells(x = refs$map))) {
+                  query.cell.names <- paste0(query.cell.names, "x")
+                }
+                app.env$query.names <- Cells(x = app.env$object)
+                app.env$object <- RenameCells(object = app.env$object, new.names = query.cell.names)
 
                 app.env$default.assay <- DefaultAssay(object = app.env$object)
                 new.mt <- any(grepl(
@@ -1311,6 +1319,7 @@ AzimuthServer <- function(input, output, session) {
             )
           )
         })
+        app.env$object <- RenameCells(object = app.env$object, new.names = app.env$query.names)
         react.env$progress$close()
         enable(id = 'file')
         ToggleDemos(action = "enable", demos = demos)

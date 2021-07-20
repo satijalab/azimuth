@@ -1,3 +1,8 @@
+# Unreleased
+
+## Changes
+- Bug fix when query cell name(s) overlap with reference names
+
 # Azimuth 0.4.1 (2021-06-01)
 
 ## Added
