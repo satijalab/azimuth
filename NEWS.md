@@ -2,6 +2,7 @@
 
 ## Changes
 - Bug fix when query cell name(s) overlap with reference names
+- Bug fix for Windows path specification for the reference directory
 
 # Azimuth 0.4.1 (2021-06-01)
 

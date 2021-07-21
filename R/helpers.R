@@ -430,7 +430,7 @@ LoadReference <- function(path, seconds = 10L) {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
   }
   uri <- httr::build_url(url = httr::parse_url(url = path))
-  if (grepl(pattern = '^://', x = uri)) {
+  if (grepl(pattern = '^://', x = uri) | grepl(pattern = '^[a-zA-Z]{1}://', x = uri)) {
     if (!dir.exists(paths = path)) {
       stop("Cannot find directory ", path, call. = FALSE)
     }
