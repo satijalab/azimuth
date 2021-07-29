@@ -430,7 +430,7 @@ LoadReference <- function(path, seconds = 10L) {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
   }
   uri <- httr::build_url(url = httr::parse_url(url = path))
-  if (grepl(pattern = '^://', x = uri)) {
+  if (grepl(pattern = '^://', x = uri) | grepl(pattern = '^[a-zA-Z]{1}://', x = uri)) {
     if (!dir.exists(paths = path)) {
       stop("Cannot find directory ", path, call. = FALSE)
     }
@@ -594,6 +594,28 @@ Oxford <- function(..., join = c('and', 'or')) {
 # Determine if there are a prohibitive # of annotations for legend
 OversizedLegend <- function(annotation.list) {
   return(length(x = unique(x = as.vector(x = annotation.list))) > 50)
+}
+
+# Toggle demo button enable/disable
+#
+# @param action Whether to enable or disable the buttons
+# @param demos data.frame containing demo dataset name and file paht
+#
+# @return No return value
+#
+ToggleDemos <- function(action = c("enable", "disable"), demos = NULL) {
+  if (!is.null(x = demos)) {
+    if (action == "enable") {
+      for (i in 1:nrow(x = demos)) {
+        enable(id = paste0("triggerdemo", i))
+      }
+    }
+   if (action == "disable") {
+     for (i in 1:nrow(x = demos)) {
+       disable(id = paste0("triggerdemo", i))
+     }
+   }
+  }
 }
 
 # Theme for the plot on welcome page

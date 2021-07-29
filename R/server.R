@@ -84,7 +84,8 @@ AzimuthServer <- function(input, output, session) {
     merged = NULL,
     metadata.discrete = NULL,
     metadata.notransfer = NULL,
-    disable = FALSE
+    disable = FALSE,
+    query.names = character()
   )
   react.env <- reactiveValues(
     no = FALSE,
@@ -190,32 +191,34 @@ AzimuthServer <- function(input, output, session) {
     })
   }
   demos <- getOption("Azimuth.app.demodataset")
-  if (!inherits(x = demos, what = "data.frame") & !is.null(x = demos)) {
-    if (is.null(x = names(x = demos))) {
-      if (length(x = demos) > 1) {
-        demo.names <- paste0("Demo", 1:length(x = demos))
+  if (!is.null(x = demos)) {
+    if (!inherits(x = demos, what = "data.frame")) {
+      if (is.null(x = names(x = demos))) {
+        if (length(x = demos) > 1) {
+          demo.names <- paste0("Demo", 1:length(x = demos))
+        } else {
+          demo.names <- "Load demo dataset"
+        }
       } else {
-        demo.names <- "Load demo dataset"
+        demo.names <- names(x = demos)
       }
-    } else {
-      demo.names <- names(x = demos)
+      demos <- data.frame(name = demo.names, file = demos)
     }
-    demos <- data.frame(name = demo.names, file = demos)
-  }
-  app.env$demo.files <- demos$file
-  app.env$demo.inputs <- paste0("triggerdemo", 1:nrow(x = demos))
-  app.env$demo.tracker <- rep(x = 0, times = nrow(x = demos))
-  for (i in 1:nrow(x = demos)) {
-    insertUI(
-      selector = '#demobuttons',
-      where = 'beforeEnd',
-      immediate = TRUE,
-      ui = actionButton(
-        inputId = paste0('triggerdemo', i),
-        label = demos$name[i],
-        width = '85%'
+    app.env$demo.files <- demos$file
+    app.env$demo.inputs <- paste0("triggerdemo", 1:nrow(x = demos))
+    app.env$demo.tracker <- rep(x = 0, times = nrow(x = demos))
+    for (i in 1:nrow(x = demos)) {
+      insertUI(
+        selector = '#demobuttons',
+        where = 'beforeEnd',
+        immediate = TRUE,
+        ui = actionButton(
+          inputId = paste0('triggerdemo', i),
+          label = demos$name[i],
+          width = '85%'
+        )
       )
-    )
+    }
   }
   if (getOption(x = "Azimuth.app.metatableheatmap")) {
     insertUI(
@@ -339,9 +342,7 @@ AzimuthServer <- function(input, output, session) {
     message = "Loading reference",
     expr = {
       disable(id = 'file')
-      for (i in 1:nrow(x = demos)) {
-        disable(id = paste0("triggerdemo", i))
-      }
+      ToggleDemos(action = "disable", demos = demos)
       setProgress(value = 0)
       refs <- LoadReference(
         path = getOption(
@@ -351,9 +352,7 @@ AzimuthServer <- function(input, output, session) {
       )
       setProgress(value = 1)
       enable(id = 'file')
-      for (i in 1:nrow(x = demos)) {
-        enable(id = paste0("triggerdemo", i))
-      }
+      ToggleDemos(action = "enable", demos = demos)
     }
   )
   if (!is.null(x = googlesheet)) {
@@ -450,6 +449,13 @@ AzimuthServer <- function(input, output, session) {
                 }
                 app.env$object$query <- 'query'
                 Idents(object = app.env$object) <- 'query'
+                # check that no names overlap with reference
+                query.cell.names <- paste0("query", 1:ncol(x = app.env$object))
+                while (any(query.cell.names %in% Cells(x = refs$map))) {
+                  query.cell.names <- paste0(query.cell.names, "x")
+                }
+                app.env$query.names <- Cells(x = app.env$object)
+                app.env$object <- RenameCells(object = app.env$object, new.names = query.cell.names)
 
                 app.env$default.assay <- DefaultAssay(object = app.env$object)
                 new.mt <- any(grepl(
@@ -677,9 +683,7 @@ AzimuthServer <- function(input, output, session) {
         if (!is.null(x = react.env$progress)) {
           react.env$progress$close()
           enable(id = 'file')
-          for (demo.id in app.env$demo.inputs) {
-            enable(id = demo.id)
-          }
+          ToggleDemos(action = "enable", demos = demos)
           react.env$progress <- NULL
         }
         updateSelectizeInput(
@@ -712,9 +716,7 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       react.env$start <- Sys.time()
       disable(id = 'file')
-      for (demo.id in app.env$demo.inputs) {
-        disable(id = demo.id)
-      }
+      ToggleDemos(action = "disable", demos = demos)
       for (id in qc.ids) {
         try(expr = disable(id = id), silent = TRUE)
       }
@@ -866,9 +868,7 @@ AzimuthServer <- function(input, output, session) {
           app.env$anchors <- NULL
           react.env$progress$close()
           enable(id = 'file')
-          for (demo.id in app.env$demo.inputs) {
-            enable(id = demo.id)
-          }
+          ToggleDemos(action = "enable", demos = demos)
           gc(verbose = FALSE)
         } else {
           query.unique <- length(x = unique(x = slot(object = app.env$anchors, name = "anchors")[, "cell2"]))
@@ -977,9 +977,7 @@ AzimuthServer <- function(input, output, session) {
           react.env$map <- FALSE
           react.env$progress$close()
           enable(id = 'file')
-          for (demo.id in app.env$demo.inputs) {
-            enable(id = demo.id)
-          }
+          ToggleDemos(action = "enable", demos = demos)
           gc(verbose = FALSE)
         } else {
           app.env$object <- IntegrateEmbeddings(
@@ -1321,11 +1319,10 @@ AzimuthServer <- function(input, output, session) {
             )
           )
         })
+        app.env$object <- RenameCells(object = app.env$object, new.names = app.env$query.names)
         react.env$progress$close()
         enable(id = 'file')
-        for (demo.id in app.env$demo.inputs) {
-          enable(id = demo.id)
-        }
+        ToggleDemos(action = "enable", demos = demos)
         react.env$metadata <- TRUE
         react.env$biomarkers <- FALSE
       }
@@ -2654,6 +2651,7 @@ AzimuthServer <- function(input, output, session) {
       e$sct.ncells <- getOption(x = 'Azimuth.sct.ncells')
       e$sct.nfeats <- getOption(x = 'Azimuth.sct.nfeats')
       e$ntrees <- getOption(x = 'Azimuth.map.ntrees')
+      e$ndims <- getOption(x = "Azimuth.map.ndims")
       e$adt.key <- adt.key
       e$do.adt <- do.adt
       e$metadataxfer <- app.env$metadataxfer

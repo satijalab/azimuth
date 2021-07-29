@@ -1,13 +1,19 @@
+# Azimuth 0.4.2 (2021-07-28)
+
+## Changes
+- Demo dataset is now optional
+- Add default hosted homolog file location
+- Bug fix when query cell name(s) overlap with reference names
+- Bug fix for Windows path specification for the reference directory
+
 # Azimuth 0.4.1 (2021-06-01)
 
 ## Added
-
 - Ability to download all Azimuth results on Downloads tab 
 
 # Azimuth 0.4.0 (2021-05-04)
 
 ## Added
-
 - Option to have `meta.data` in reference that will display on hover but not be transferable via `Azimuth.app.metadata_notransfer`
 - Option to display `meta.data` table in heatmap form with `Azimuth.app.metatableheatmap`
 - Option to switch default `DimPlot` display in the cell plots tab to show the query overlayed on the reference with `Azimuth.app.overlayedreference`
