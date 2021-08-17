@@ -768,6 +768,7 @@ AzimuthServer <- function(input, output, session) {
           ))
         }
         app.env$object <- app.env$object[, cells.use]
+        app.env$query.names <- app.env$query.names[cells.use]
         react.env$sctransform <- TRUE
       }
     }
