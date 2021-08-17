@@ -1203,7 +1203,7 @@ AzimuthServer <- function(input, output, session) {
       if (isTRUE(x = react.env$transform)) {
         react.env$progress$set(value = 0.8, message = 'Running UMAP transform')
         app.env$object[["query_ref.nn"]] <- FindNeighbors(
-          object = Embeddings(refs$map[["refDR"]]),
+          object = Embeddings(refs$map[["refDR"]])[, 1:getOption("Azimuth.map.ndims")],
           query = Embeddings(app.env$object[["integrated_dr"]]),
           return.neighbor = TRUE,
           l2.norm = TRUE,
