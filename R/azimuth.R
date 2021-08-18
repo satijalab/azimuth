@@ -521,11 +521,12 @@ ClusterPreservationScore <- function(query, ds.amount) {
   if (ncol(x = query) > ds.amount) {
     query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
   }
-  query <- RunPCA(object = query, verbose = FALSE)
+  dims <- min(50, getOption(x = "Azimuth.map.ndims"))
+  query <- RunPCA(object = query, npcs = dims, verbose = FALSE)
   query <- FindNeighbors(
     object = query,
     reduction = 'pca',
-    dims = 1:getOption(x = "Azimuth.map.ndims"),
+    dims = 1:dims,
     graph.name = paste0("pca_", c("nn", "snn"))
   )
   query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_nn"]])
@@ -533,7 +534,7 @@ ClusterPreservationScore <- function(query, ds.amount) {
   query <- FindNeighbors(
     object = query,
     reduction = 'integrated_dr',
-    dims = 1:getOption(x = "Azimuth.map.ndims"),
+    dims = 1:dims,
     return.neighbor = TRUE,
     graph.name ="integrated_neighbors_nn"
   )
