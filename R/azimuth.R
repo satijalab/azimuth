@@ -521,11 +521,23 @@ ClusterPreservationScore <- function(query, ds.amount) {
   if (ncol(x = query) > ds.amount) {
     query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
   }
-  query <- RunPCA(object = query, verbose = FALSE)
-  query <- FindNeighbors(object = query, reduction = 'pca', dims = 1:50, graph.name = paste0("pca_", c("nn", "snn")))
+  dims <- min(50, getOption(x = "Azimuth.map.ndims"))
+  query <- RunPCA(object = query, npcs = dims, verbose = FALSE)
+  query <- FindNeighbors(
+    object = query,
+    reduction = 'pca',
+    dims = 1:dims,
+    graph.name = paste0("pca_", c("nn", "snn"))
+  )
   query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_nn"]])
   query <- FindClusters(object = query, resolution = 0.6, graph.name = 'pca_snn')
-  query <- FindNeighbors(object = query, reduction = 'integrated_dr', dims = 1:50, return.neighbor = TRUE, graph.name ="integrated_neighbors_nn")
+  query <- FindNeighbors(
+    object = query,
+    reduction = 'integrated_dr',
+    dims = 1:dims,
+    return.neighbor = TRUE,
+    graph.name ="integrated_neighbors_nn"
+  )
   ids <- Idents(object = query)
   integrated.neighbor.indices <- Indices(object = query[["integrated_neighbors_nn"]])
   proj_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
