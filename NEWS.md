@@ -1,3 +1,9 @@
+# Azimuth 0.4.3 (2021-08-18)
+
+## Changes
+- Bug fix for cell renaming when interactively subsetting
+- Bug fix for references created with fewer than 50 dimensions
+
 # Azimuth 0.4.2 (2021-07-28)
 
 ## Changes
