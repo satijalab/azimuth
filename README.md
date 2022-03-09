@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# Azimuth v0.4.3
+# Azimuth v0.4.4
 
 <!-- badges: start -->
 
@@ -26,26 +26,34 @@ package](https://satijalab.org/seurat).
 **Note**: you may need to update some packages prior to installing
 Azimuth; from a fresh R session run:
 
-    update.packages(oldPkgs = c("withr", "rlang"))
+``` r
+update.packages(oldPkgs = c("withr", "rlang"))
+```
 
 You can install Azimuth from GitHub with:
 
-    if (!requireNamespace('remotes', quietly = TRUE) {
-      install.packages('remotes')
-    }
-    remotes::install_github('satijalab/azimuth', ref = 'master')
+``` r
+if (!requireNamespace('remotes', quietly = TRUE) {
+  install.packages('remotes')
+}
+remotes::install_github('satijalab/azimuth', ref = 'master')
+```
 
 ## Running the app
 
 The app is launched as:
 
-    Azimuth::AzimuthApp()
+``` r
+Azimuth::AzimuthApp()
+```
 
 By default, the appropriate reference files are loaded into memory by
 accessing a web URL. If you instead have a directory containing
 reference files at `/path/to/reference`, specify it as:
 
-    Azimuth::AzimuthApp(reference = '/path/to/reference')
+``` r
+Azimuth::AzimuthApp(reference = '/path/to/reference')
+```
 
 ### Downloading the app reference files
 
@@ -62,10 +70,12 @@ namespaces (e.g. `Azimuth.de.digits` as shown in the example below)
 including non-Azimuth namespaces, must be specified using their full
 name.
 
-    Azimuth::AzimuthApp(max_cells = 100000)
+``` r
+Azimuth::AzimuthApp(max_cells = 100000)
 
 
-    Azimuth::AzimuthApp('Azimuth.de.digits' = 5)
+Azimuth::AzimuthApp('Azimuth.de.digits' = 5)
+```
 
 We also support reading options from a JSON-formatted config file.
 Provide the path to the config file as the parameter `config` to
@@ -73,13 +83,17 @@ Provide the path to the config file as the parameter `config` to
 described above regarding setting options through parameters, the
 “Azimuth.app.” prefix may be omitted.
 
-    Azimuth::AzimuthApp(config = 'config.json')
+``` r
+Azimuth::AzimuthApp(config = 'config.json')
+```
 
 You can also set Azimuth or other options in R. (The full name must
 always be specified, even for options in the Azimuth.app namespace.)
 
-    options('Azimuth.de.digits' = 5)
-    Azimuth::AzimuthApp()
+``` r
+options('Azimuth.de.digits' = 5)
+Azimuth::AzimuthApp()
+```
 
 Options can be set in any of these three ways simultaneously. Please
 note that options set in R will be overwritten by the same option

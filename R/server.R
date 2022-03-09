@@ -2480,7 +2480,7 @@ AzimuthServer <- function(input, output, session) {
   output$text.dlall <- renderText(
     expr = {
       c(
-        "object <- AddAzimuthResults(object, azimuth_results = 'azimuth_results.Rds')"
+        "object <- AddAzimuthResults(object, filename = 'azimuth_results.Rds')"
       )
     },
     sep = "\n"
