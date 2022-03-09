@@ -307,10 +307,10 @@ LoadH5AD <- function(path) {
     return(Exists(name = md) && inherits(x = adata[[md]], what = 'H5Group'))
   }
   LoadFromDataSet <- function(md) {
-    if (Exists(name = md) && inherits(x = adata[[md]], what = 'H5D')) {
+    if (Exists(name = md) && inherits(x = adata[[md]], what = 'H5D') && 'index' %in% names(adata[[md]][])) {
       return (adata[[md]][]$index)
     } else {
-      stop("Could not load features", call. = FALSE)
+      stop(paste("Could not load", md), call. = FALSE)
     }
   }
   GetIndex <- function(md) {
@@ -366,12 +366,12 @@ LoadH5AD <- function(path) {
     )
     return(as.data.frame(x = df, row.names = GetRowNames(md = md)))
   }
-  if (Exists(name = "raw/X")) {
-    md <- "raw/var"
-    x <- adata[["raw/X"]]
-  } else if (Exists(name = "X")) {
-    md <- "var"
-    x <- adata[["X"]]
+  if (Exists(name = 'raw/X')) {
+    md <- 'raw/var'
+    x <- adata[['raw/X']]
+  } else if (Exists(name = 'X')) {
+    md <- 'var'
+    x <- adata[['X']]
   } else {
     stop("Cannot find counts matrix", call. = FALSE)
   }
@@ -391,10 +391,10 @@ LoadH5AD <- function(path) {
   } else {
     warning("Could not determine matrix format")
   }
-  if (mtx.type != "csr") {
-    p <- as.integer(x[["indptr"]][])
-    i <- as.integer(x[["indices"]][])
-    data <- as.double(x[["data"]][])
+  if (mtx.type != 'csr') {
+    p <- as.integer(x[['indptr']][])
+    i <- as.integer(x[['indices']][])
+    data <- as.double(x[['data']][])
     # csc -> csr
     converted.mtx <- csc_tocsr(
       n_row = as.integer(mtx.shape[1]),
@@ -405,7 +405,7 @@ LoadH5AD <- function(path) {
     )
     # csr -> dgC
     counts <- new(
-      Class = "dgCMatrix",
+      Class = 'dgCMatrix',
       p = converted.mtx$p,
       i = converted.mtx$i,
       x = converted.mtx$x,
@@ -419,7 +419,7 @@ LoadH5AD <- function(path) {
     metadata <- data.frame() # no cell-level metadata will be loaded
     # features and cell names may be stored in an H5D instead of an H5Group
     rownames <- LoadFromDataSet(md = md)
-    colnames <- LoadFromDataSet(md = "obs")
+    colnames <- LoadFromDataSet(md = 'obs')
   } else {
     metadata <- LoadMetadata(md = 'obs') # gather additional cell-level metadata
     rownames <- GetRowNames(md = md)
