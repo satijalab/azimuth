@@ -380,6 +380,7 @@ LoadH5AD <- function(path) {
   if (ncol(x = metadata)) {
     object <- AddMetaData(object = object, metadata = metadata)
   }
+  object <- subset(object, subset = nCount_RNA > 0)
   return(object)
 }
 
