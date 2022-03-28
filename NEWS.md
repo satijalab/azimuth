@@ -1,3 +1,8 @@
+# Azimuth 0.4.4 (2022-03-08)
+
+## Changes
+- `LoadH5AD()` now supports H5AD files containing CSC matrices at X or X/raw. Previously only CSR matrices were readable.
+
 # Azimuth 0.4.3 (2021-08-18)
 
 ## Changes
