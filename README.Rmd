@@ -128,7 +128,7 @@ The app is launched as:
 cat(mdemit(launchcmd()))
 ```
 
-By default, the appropriate reference files are loaded into memory by accessing a web URL. If you instead have a directory containing reference files at `/path/to/reference`, specify it as:
+By default, the appropriate reference files are loaded into memory by accessing a web URL. If you instead have a directory containing reference files at `/path/to/reference` (directory must contain files named `ref.Rds` and `idx.annoy`), specify it as:
 
 ```{r launch.ref, echo=FALSE, results="asis"}
 cat(mdemit(launchcmd("reference = '/path/to/reference'")))
