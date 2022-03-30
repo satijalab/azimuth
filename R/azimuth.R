@@ -8,7 +8,7 @@ NULL
 #'
 #' @param query Seurat object to map to reference
 #' @param reference Name of reference to map to
-#' @param annotation.level list of annotation levels to map. If not specified, all will be mapped.
+#' @param annotation.levels list of annotation levels to map. If not specified, all will be mapped.
 #'
 #' @section Specifying options:
 #' R options can be provided as named arguments to \code{AzimuthApp} through
@@ -28,6 +28,7 @@ NULL
 #' @importFrom shiny runApp shinyApp
 #' @importFrom withr with_options
 #' @importFrom jsonlite read_json
+#' @importFrom SeuratData InstalledData LoadData AvailableData
 #'
 #' @export
 #'
@@ -47,10 +48,6 @@ RunAzimuth <- function(
   verbose = TRUE
 ) {
   start.time <- Sys.time()
-  if (!PackageCheck('SeuratData', error = FALSE)) {
-    stop("Please install SeuratData in order to download references.")
-  }
-
   reference <- tolower(reference)
   if (reference %in% InstalledData()$Dataset) {
     # only get the `map` object since no plotting is done
@@ -60,7 +57,7 @@ RunAzimuth <- function(
     # only get the `map` object since no plotting is done
     reference <- LoadData(reference, type = "azimuth")$map
   } else {
-    possible.references <- grepl("*ref", AvailableData()$Dataset, value = TRUE)
+    possible.references <- AvailableData()$Dataset[grepl("*ref", AvailableData()$Dataset)]
     print("Choose on of:")
     print(possible.references)
     stop(paste("Could not find a reference for", reference))
