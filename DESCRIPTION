@@ -22,7 +22,8 @@ RoxygenNote: 7.1.2
 biocViews:
 Remotes:
   immunogenomics/presto,
-  mojaveazure/seurat-disk
+  mojaveazure/seurat-disk,
+  satijalab/seurat-data
 Depends:
   R (>= 4.0.0)
 Imports:
