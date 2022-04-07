@@ -49,6 +49,29 @@ RunAzimuth <- function(
 ) {
   start.time <- Sys.time()
   reference <- tolower(reference)
+
+  if (typeof(query) == "Seurat") {
+    # do nothing
+  } else if (typeof(query) == "character" && endsWith(query, "h5ad")) {
+    query <- LoadH5AD(query)
+  }
+
+  reference.mapping <- list(
+    "pbmc" = "pbmcref",
+    "pbmc-ref" = "pbmcref",
+    "pbmcreference" = "pbmcref",
+    "lung" = "lungref",
+    "lungreference" = "lungref",
+    "lung-ref" = "lungref",
+    "lung-reference" = "lungref",
+    "kidney" = "kidneyref",
+    "kidneyreference" = "kidneyref",
+    "kidney-ref" = "kidneyref",
+    "pancreas" = "pancreasref",
+    "pancreas-ref" = "pancreasref",
+    "pancreasreference" = "pancreasref"
+  )
+
   if (reference %in% InstalledData()$Dataset) {
     # only get the `map` object since no plotting is done
     reference <- LoadData(reference, type = "azimuth")$map
