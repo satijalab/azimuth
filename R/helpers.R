@@ -9,7 +9,7 @@
 #'
 #' @importFrom stringr str_match
 #' @importFrom shiny isRunning
-#'
+#' @useDynLib Azimuth
 #' @export
 #'
 ConvertGeneNames <- function(object, reference.names, homolog.table) {
@@ -306,6 +306,13 @@ LoadH5AD <- function(path) {
   IsMetaData <- function(md) {
     return(Exists(name = md) && inherits(x = adata[[md]], what = 'H5Group'))
   }
+  LoadFromDataSet <- function(md) {
+    if (Exists(name = md) && inherits(x = adata[[md]], what = 'H5D') && 'index' %in% names(adata[[md]][])) {
+      return (adata[[md]][]$index)
+    } else {
+      stop(paste("Could not load", md), call. = FALSE)
+    }
+  }
   GetIndex <- function(md) {
     return(
       if (adata[[md]]$attr_exists(attr_name = '_index')) {
@@ -361,21 +368,65 @@ LoadH5AD <- function(path) {
   }
   if (Exists(name = 'raw/X')) {
     md <- 'raw/var'
-    counts <- as.matrix(x = adata[['raw/X']])
+    x <- adata[['raw/X']]
   } else if (Exists(name = 'X')) {
     md <- 'var'
-    counts <- as.matrix(x = adata[['X']])
+    x <- adata[['X']]
   } else {
-    stop("Cannot find counts matrix")
+    stop("Cannot find counts matrix", call. = FALSE)
   }
-  if (!IsMetaData(md = md)) {
-    stop("Cannot find feature-level metadata", call. = FALSE)
-  } else if (!IsMetaData(md = 'obs')) {
-    stop("Cannot find cell-level metadata", call. = FALSE)
+  # check different possible attributes to try and get matrix shape
+  if (isTRUE(x$attr_exists(attr_name = 'h5sparse_shape'))) {
+    mtx.shape <- h5attr(x, 'h5sparse_shape')
+  } else if (isTRUE(x$attr_exists(attr_name = 'shape'))) {
+    mtx.shape <- h5attr(x, 'shape')
+  } else {
+    warning("Could not determine matrix shape")
   }
-  metadata <- LoadMetadata(md = 'obs')
-  rownames(x = counts) <- GetRowNames(md = md)
-  colnames(x = counts) <- rownames(x = metadata)
+  # check different attributes to try and deduce matrix type
+  if (isTRUE(x$attr_exists(attr_name = 'h5sparse_format'))) {
+    mtx.type <- h5attr(x, 'h5sparse_format')
+  } else if (isTRUE(x$attr_exists(attr_name = 'encoding-type'))) {
+    mtx.type <- substr(h5attr(x, 'encoding-type'), 0, 3)
+  } else {
+    warning("Could not determine matrix format")
+  }
+  if (mtx.type != 'csr') {
+    p <- as.integer(x[['indptr']][])
+    i <- as.integer(x[['indices']][])
+    data <- as.double(x[['data']][])
+    # csc -> csr
+    converted.mtx <- csc_tocsr(
+      n_row = as.integer(mtx.shape[1]),
+      n_col = as.integer(mtx.shape[2]),
+      Ap = p,
+      Ai = i,
+      Ax = data
+    )
+    # csr -> dgC
+    counts <- new(
+      Class = 'dgCMatrix',
+      p = converted.mtx$p,
+      i = converted.mtx$i,
+      x = converted.mtx$x,
+      Dim = c(mtx.shape[2], mtx.shape[1])
+    )
+  } else {
+    # x must be a CSR matrix
+    counts <- as.matrix(x = x)
+  }
+  if (!IsMetaData(md = md) && !IsMetaData(md = 'obs')) {
+    metadata <- data.frame() # no cell-level metadata will be loaded
+    # features and cell names may be stored in an H5D instead of an H5Group
+    rownames <- LoadFromDataSet(md = md)
+    colnames <- LoadFromDataSet(md = 'obs')
+  } else {
+    metadata <- LoadMetadata(md = 'obs') # gather additional cell-level metadata
+    rownames <- GetRowNames(md = md)
+    colnames <- rownames(metadata)
+  }
+  rownames(x = counts) <- rownames
+  colnames(x = counts) <- colnames
   object <- CreateSeuratObject(counts = counts)
   if (ncol(x = metadata)) {
     object <- AddMetaData(object = object, metadata = metadata)

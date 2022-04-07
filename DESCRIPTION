@@ -40,6 +40,7 @@ Imports:
   methods,
   patchwork (>= 1.0.1),
   presto,
+  Rcpp (>= 1.0.7),
   rlang (>= 0.4.8),
   scales (>= 1.1.1),
   Seurat (>= 4.0.0),
@@ -56,7 +57,9 @@ Imports:
   utils,
   plotly,
   withr (>= 2.3.0)
+LinkingTo: Rcpp(>= 0.11.0)
 Collate:
+    'RcppExports.R'
     'zzz.R'
     'ui.R'
     'helpers.R'
