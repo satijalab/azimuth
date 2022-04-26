@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# Azimuth v0.4.4
+# Azimuth v0.4.5
 
 <!-- badges: start -->
 

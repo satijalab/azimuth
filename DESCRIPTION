@@ -64,4 +64,5 @@ Collate:
     'ui.R'
     'helpers.R'
     'azimuth.R'
+    'generics.R'
     'server.R'

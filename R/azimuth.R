@@ -4,90 +4,56 @@
 #'
 NULL
 
-#' RunAzimuth
-#'
-#' @param query Seurat object to map to reference
-#' @param reference Name of reference to map to
+#' @inheritParams RunAzimuth
+#' @param reference Name of reference to map to or a path to a directory containing ref.Rds and idx.annoy
 #' @param annotation.levels list of annotation levels to map. If not specified, all will be mapped.
+#' @param umap.name name of umap reduction in the returned object
+#' @param do.adt transfer ADT assay
+#' @param assay query assay name
 #'
-#' @section Specifying options:
-#' R options can be provided as named arguments to \code{AzimuthApp} through
-#' dots (...), set in a config file, or set globally. Arguments provided to
-#' \code{AzimuthApp} through dots take precedence if the same option is provided
-#' in a config file. Options provided through dots or a config file take
-#' precedence if the same option was set globally.
+#' @return Seurat object with reference reductions and annotations
 #'
-#' Options in the \code{\link[Azimuth:Azimuth-package]{Azimuth.app}} namespace
-#' can be specified using a shorthand notation in both the config file and as
-#' arguments to \code{AzimuthApp}. For example, the option
-#' \code{Azimuth.app.reference} can be shortened to \code{reference} in the
-#' config file or as an argument to \code{AzimuthApp}
-#'
-#' @return None, launches the mapping Shiny app
-#'
-#' @importFrom shiny runApp shinyApp
-#' @importFrom withr with_options
-#' @importFrom jsonlite read_json
-#' @importFrom SeuratData InstalledData LoadData AvailableData
+#' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
 #'
 #' @export
-#'
-#' @seealso \code{\link{Azimuth-package}}
+#' @method RunAzimuth Seurat
+#' @rdname RunAzimuth
 #'
 #' @examples
-#' if (interactive()) {
-#'   AzimuthApp(system.file("resources", "config.json", package = "Azimuth"))
-#' }
+#' data("pbmc_small")
+#' pbmc_small <- RunAzimuth(pbmc_small, reference = "pbmc")
 #'
-RunAzimuth <- function(
+RunAzimuth.Seurat <- function(
   query,
   reference,
   annotation.levels = NULL,
   umap.name = "ref.umap",
   do.adt = FALSE,
-  verbose = TRUE
+  verbose = TRUE,
+  assay = "RNA",
+  k.weight = 50,
+  n.trees = 20,
+  mapping.score.k = 100
 ) {
-  start.time <- Sys.time()
-  reference <- tolower(reference)
-
-  if (typeof(query) == "Seurat") {
-    # do nothing
-  } else if (typeof(query) == "character" && endsWith(query, "h5ad")) {
-    query <- LoadH5AD(query)
-  }
-
-  reference.mapping <- list(
-    "pbmc" = "pbmcref",
-    "pbmc-ref" = "pbmcref",
-    "pbmcreference" = "pbmcref",
-    "lung" = "lungref",
-    "lungreference" = "lungref",
-    "lung-ref" = "lungref",
-    "lung-reference" = "lungref",
-    "kidney" = "kidneyref",
-    "kidneyreference" = "kidneyref",
-    "kidney-ref" = "kidneyref",
-    "pancreas" = "pancreasref",
-    "pancreas-ref" = "pancreasref",
-    "pancreasreference" = "pancreasref"
-  )
-
-  if (reference %in% InstalledData()$Dataset) {
-    # only get the `map` object since no plotting is done
-    reference <- LoadData(reference, type = "azimuth")$map
-  } else if (reference %in% AvailableData()$Dataset) {
-    InstallData(reference)
-    # only get the `map` object since no plotting is done
-    reference <- LoadData(reference, type = "azimuth")$map
+  if (dir.exists(reference)) {
+    reference <- LoadReference(reference)$map
   } else {
-    possible.references <- AvailableData()$Dataset[grepl("*ref", AvailableData()$Dataset)]
-    print("Choose on of:")
-    print(possible.references)
-    stop(paste("Could not find a reference for", reference))
+    reference <- tolower(reference)
+    if (reference %in% InstalledData()$Dataset) {
+      # only get the `map` object since no plotting is performed
+      reference <- LoadData(reference, type = "azimuth")$map
+    } else if (reference %in% AvailableData()$Dataset) {
+      InstallData(reference)
+      # only get the `map` object since no plotting is performed
+      reference <- LoadData(reference, type = "azimuth")$map
+    } else {
+      possible.references <- AvailableData()$Dataset[grepl("*ref", AvailableData()$Dataset)]
+      print("Choose one of:")
+      print(possible.references)
+      stop(paste("Could not find a reference for", reference))
+    }
   }
-
-  # Load reference and gather version information
-  dims <- min(50, getOption(x = "Azimuth.map.ndims"))
+  dims <- as.double(length(slot(reference, "reductions")$refDR))
   if (isTRUE(do.adt) && !("ADT" %in% Assays(reference))) {
     warning("Cannot impute an ADT assay because the reference does not have antibody data")
     do.adt = FALSE
@@ -135,14 +101,14 @@ RunAzimuth <- function(
       object = query,
       pattern = '^MT-',
       col.name = 'percent.mt',
-      assay = "RNA"
+      assay = assay
     )
   }
 
   # Preprocess with SCTransform
   query <- SCTransform(
     object = query,
-    assay = "RNA",
+    assay = assay,
     new.assay.name = "refAssay",
     residual.features = rownames(x = reference),
     reference.SCT.model = reference[["refAssay"]]@SCTModel.list$refmodel,
@@ -153,8 +119,7 @@ RunAzimuth <- function(
     do.scale = FALSE,
     do.center = TRUE,
     verbose = verbose
-    )
-
+  )
   # Find anchors between query and reference
   anchors <- FindTransferAnchors(
     reference = reference,
@@ -167,11 +132,10 @@ RunAzimuth <- function(
     normalization.method = "SCT",
     features = intersect(rownames(x = reference), VariableFeatures(object = query)),
     dims = 1:dims,
-    n.trees = 20,
-    mapping.score.k = 100,
+    n.trees = n.trees,
+    mapping.score.k = mapping.score.k,
     verbose = verbose
   )
-
   # Transferred labels are in metadata columns named "predicted.*"
   # The maximum prediction score is in a metadata column named "predicted.*.score"
   # The prediction scores for each class are in an assay named "prediction.score.*"
@@ -196,9 +160,9 @@ RunAzimuth <- function(
     refdata = refdata,
     n.trees = 20,
     store.weights = TRUE,
+    k.weight = k.weight,
     verbose = verbose
   )
-
   # Calculate the embeddings of the query data on the reference SPCA
   query <- IntegrateEmbeddings(
     anchorset = anchors,
@@ -208,7 +172,6 @@ RunAzimuth <- function(
     reuse.weights.matrix = TRUE,
     verbose = verbose
   )
-
   # Calculate the query neighbors in the reference
   # with respect to the integrated embeddings
   query[["query_ref.nn"]] <- FindNeighbors(
@@ -218,7 +181,6 @@ RunAzimuth <- function(
     l2.norm = TRUE,
     verbose = verbose
   )
-
   # The reference used in the app is downsampled compared to the reference on which
   # the UMAP model was computed. This step, using the helper function NNTransform,
   # corrects the Neighbors to account for the downsampling.
@@ -226,7 +188,6 @@ RunAzimuth <- function(
     object = query,
     meta.data = reference[[]]
   )
-
   # Project the query to the reference UMAP.
   query[[umap.name]] <- RunUMAP(
     object = query[["query_ref.nn"]],
@@ -234,13 +195,27 @@ RunAzimuth <- function(
     reduction.key = 'UMAP_',
     verbose = verbose
   )
-
   # Calculate mapping score and add to metadata
   query <- AddMetaData(
     object = query,
     metadata = MappingScore(anchors = anchors, ndim = dims),
     col.name = "mapping.score"
   )
+  return(query)
+}
+
+
+#' @inheritParams RunAzimuth
+#' @export
+#' @method RunAzimuth character
+#' @rdname RunAzimuth
+#'
+RunAzimuth.character <- function(
+  query,
+  ...
+) {
+  obj <- LoadH5AD(path = query)
+  return(RunAzimuth(obj, ...))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

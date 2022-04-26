@@ -1,3 +1,9 @@
+# Azimuth 0.4.5 (2022-04-27)
+
+## Changes
+- `RunAzimuth()` added to support local annotation.
+- `LoadH5AD()` assumes matrix is CSR if metadata to resolve matrix type is unavailable.
+
 # Azimuth 0.4.4 (2022-03-08)
 
 ## Changes

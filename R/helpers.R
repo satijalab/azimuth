@@ -389,6 +389,7 @@ LoadH5AD <- function(path) {
   } else if (isTRUE(x$attr_exists(attr_name = 'encoding-type'))) {
     mtx.type <- substr(h5attr(x, 'encoding-type'), 0, 3)
   } else {
+    mtx.type <- 'csr' # assume matrix is csr
     warning("Could not determine matrix format")
   }
   if (mtx.type != 'csr') {
