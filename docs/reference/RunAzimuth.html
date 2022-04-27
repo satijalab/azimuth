@@ -86,7 +86,11 @@
     <div id="arguments">
     <h2>Arguments</h2>
     <dl><dt>query</dt>
-<dd><p>Seurat object or H5AD path</p></dd>
+<dd><p>Seurat object or following type of path:</p><ul><li><p>A <code>.h5</code> matrix</p></li>
+<li><p>A <code>.rds</code> file containing a Seurat object</p></li>
+<li><p>A <code>.h5ad</code> anndata object</p></li>
+<li><p>A <code>.h5seurat</code> object</p></li>
+</ul></dd>
 <dt>reference</dt>
 <dd><p>Name of reference to map to or a path to a directory containing ref.Rds and idx.annoy</p></dd>
 <dt>annotation.levels</dt>

@@ -19,10 +19,6 @@ NULL
 #' @method RunAzimuth Seurat
 #' @rdname RunAzimuth
 #'
-#' @examples
-#' data("pbmc_small")
-#' pbmc_small <- RunAzimuth(pbmc_small, reference = "pbmc")
-#'
 RunAzimuth.Seurat <- function(
   query,
   reference,
@@ -214,7 +210,7 @@ RunAzimuth.character <- function(
   query,
   ...
 ) {
-  obj <- LoadH5AD(path = query)
+  obj <- LoadFileInput(path = query)
   return(RunAzimuth(obj, ...))
 }
 

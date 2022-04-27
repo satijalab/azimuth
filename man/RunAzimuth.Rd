@@ -24,7 +24,13 @@
 RunAzimuth(query, ...)
 }
 \arguments{
-\item{query}{Seurat object or H5AD path}
+\item{query}{Seurat object or following type of path:
+\itemize{
+ \item A \code{.h5} matrix
+ \item A \code{.rds} file containing a Seurat object
+ \item A \code{.h5ad} anndata object
+ \item A \code{.h5seurat} object
+}}
 
 \item{reference}{Name of reference to map to or a path to a directory containing ref.Rds and idx.annoy}
 
@@ -43,9 +49,4 @@ Returns a Seurat object containing celltype annotations
 }
 \description{
 Run Azimuth annotation
-}
-\examples{
-data("pbmc_small")
-pbmc_small <- RunAzimuth(pbmc_small, reference = "pbmc")
-
 }
