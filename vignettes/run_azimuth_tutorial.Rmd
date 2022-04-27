@@ -1,0 +1,119 @@
+---
+title: "Azimuth annotation"
+output:
+  html_document:
+    theme: united
+    df_print: kable
+date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
+---
+***
+
+```{r setup, include=FALSE}
+all_times <- list()  # store the time for each chunk
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+    } else {
+      res <- difftime(Sys.time(), now, units = "secs")
+      all_times[[options$label]] <<- res
+    }
+  }
+}))
+knitr::opts_chunk$set(
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 95),
+  message = FALSE,
+  warning = FALSE,
+  time_it = TRUE
+)
+```
+
+In this vignette, we demonstrate the use of a function `RunAzimuth` which facilitates annotation of single cell datasets.
+
+<details>
+  <summary>**View data download code**</summary>
+
+To download all the required files, you can run the following lines in a shell:
+
+```{sh, eval=FALSE}
+wget https://cf.10xgenomics.com/samples/cell-arc/2.0.0/10k_PBMC_Multiome_nextgem_Chromium_X/10k_PBMC_Multiome_nextgem_Chromium_X_filtered_feature_bc_matrix.tar.gz
+tar -xf 10k_PBMC_Multiome_nextgem_Chromium_X_filtered_feature_bc_matrix.tar.gz
+rm 10k_PBMC_Multiome_nextgem_Chromium_X_filtered_feature_bc_matrix.tar.gz
+wget https://cf.10xgenomics.com/samples/cell-exp/6.1.0/10k_PBMC_3p_nextgem_Chromium_X/10k_PBMC_3p_nextgem_Chromium_X_filtered_feature_bc_matrix.h5
+wget "https://storage.googleapis.com/datarepo-4ef3f5a3-bucket/0e5e329e-2709-4ceb-bfe3-97d23a652ac0/3428f967-3376-4051-b6f7-8dd84580ca5b/human_cd34_bm_rep1.h5ad?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=datarepo-jade-api%40terra-datarepo-production.iam.gserviceaccount.com%2F20220427%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20220427T175459Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=6387c45e853dc0a3115887fa1ad159af8b35f5c0cf04fb6af686e576ae7104204c5ed48413735f7f0b04ce97c7818a57ed07bf09cccc22e442148031caf55010b3b6302be0cf59ad9223bb6de13113618fc109a249971d8e6d3f01345ecfffe354803db24b5e0cfa408cbc2f20a4ed94807d839be6652da7c6b36dfc88e2a45d62ef6175b544f15c79b4118509662dcf9e9ceed2be4369aa1e61e37099d4f76286c4ca52666c9653193a00780fa0cf509b679dfe91055711eb769851777cfdf8ad492107b89f41bf4a78967964ee23cafa36f97fcace960a76e4f708f5f5e381eeb7b49b9b4f58687c1ffecbd49658a60532149552fb53180ae8669bad69fbf2" -O human_cd34_bm_rep1.h5ad
+```
+
+</details>
+
+# Annotating cells with RunAzimuth
+
+```{r libraries}
+library(Azimuth)
+library(Seurat)
+library(future)
+options(future.globals.maxSize = 8000 * 1024^2)
+```
+
+## Annotate PBMCs
+
+dataset from: https://www.10xgenomics.com/resources/datasets/10k-human-pbmcs-3-ht-v3-1-chromium-x-3-1-high
+
+```{r pbmc_load}
+# read in a 10x PBMC dataset
+counts <- Read10X(data.dir = "/brahms/hartmana/run_azimuth_data/filtered_feature_bc_matrix")
+pbmc = CreateSeuratObject(counts = counts)
+```
+
+```{r pbmc_annotate, message=FALSE, warning=FALSE}
+# annotate the seurat object with the PBMC reference
+pbmc <- RunAzimuth(pbmc, reference = "pbmcref", verbose = FALSE)
+```
+
+```{r pbmc_dimplot, fig.width=5, fig.height=5}
+Idents(pbmc) <- pbmc$predicted.celltype.l1
+DimPlot(pbmc, label = T) + NoLegend()
+```
+
+```{r pbmc_bcells, fig.width=8, fig.height=4}
+p1 <- DimPlot(pbmc, cells.highlight = list("B" = WhichCells(pbmc, idents = "B")))
+p2 <- FeaturePlot(pbmc, features = c("MS4A1"), max.cutof = "q95")
+p1 + p2
+```
+
+## Alternatively run the workflow on the same dataset beginning from an .h5 file
+
+```{r pbmc_annotate_2, message=FALSE, warning=FALSE}
+pbmc.2 <- RunAzimuth(query = "/brahms/hartmana/run_azimuth_data/10k_PBMC_3p_nextgem_Chromium_X_filtered_feature_bc_matrix.h5", reference = "pbmcref", verbose = FALSE)
+```
+
+```{r pbmc_dimplot_2, fig.width=5, fig.height=5}
+Idents(pbmc.2) <- pbmc.2$predicted.celltype.l2
+DimPlot(pbmc.2, label = T, repel=T, cols="polychrome") + NoLegend()
+```
+
+## Annotate CD34+ cells from Human Bone Marrow
+
+dataset from: https://data.humancellatlas.org/explore/projects/091cf39b-01bc-42e5-9437-f419a66c8a45/project-matrices
+
+```{r bm_annotate, message=FALSE, warning=FALSE}
+bm <- RunAzimuth(
+  query = "/brahms/hartmana/run_azimuth_data/human_cd34_bm_rep1.h5ad",
+  reference = "bonemarrowref",
+  verbose = FALSE
+)
+```
+
+As expected, query cells primarily map to CD34+ celltypes which represent a subset of celltypes present in the reference.
+
+```{r bm_plots, fig.width=5, fig.height=5}
+DimPlot(bm, group.by = "predicted.celltype.l2", label = TRUE, repel = TRUE) + NoLegend()
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
+
