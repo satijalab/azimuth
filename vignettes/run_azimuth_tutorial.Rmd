@@ -29,7 +29,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-In this vignette, we demonstrate the use of a function `RunAzimuth` which facilitates annotation of single cell datasets.
+In this vignette, we demonstrate the use of a function `RunAzimuth()` which facilitates annotation of single cell datasets.
 
 <details>
   <summary>**View data download code**</summary>
