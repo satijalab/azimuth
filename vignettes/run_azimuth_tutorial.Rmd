@@ -51,8 +51,6 @@ wget "https://storage.googleapis.com/datarepo-4ef3f5a3-bucket/0e5e329e-2709-4ceb
 ```{r libraries}
 library(Azimuth)
 library(Seurat)
-library(future)
-options(future.globals.maxSize = 8000 * 1024^2)
 ```
 
 ## Annotate PBMCs
@@ -65,9 +63,9 @@ counts <- Read10X(data.dir = "/brahms/hartmana/run_azimuth_data/filtered_feature
 pbmc = CreateSeuratObject(counts = counts)
 ```
 
-```{r pbmc_annotate, message=FALSE, warning=FALSE}
+```{r pbmc_annotate, message=FALSE, warning=FALSE, results='hide'}
 # annotate the seurat object with the PBMC reference
-pbmc <- RunAzimuth(pbmc, reference = "pbmcref", verbose = FALSE)
+pbmc <- RunAzimuth(pbmc, reference = "pbmcref")
 ```
 
 ```{r pbmc_dimplot, fig.width=5, fig.height=5}
@@ -83,8 +81,8 @@ p1 + p2
 
 ## Alternatively run the workflow on the same dataset beginning from an .h5 file
 
-```{r pbmc_annotate_2, message=FALSE, warning=FALSE}
-pbmc.2 <- RunAzimuth(query = "/brahms/hartmana/run_azimuth_data/10k_PBMC_3p_nextgem_Chromium_X_filtered_feature_bc_matrix.h5", reference = "pbmcref", verbose = FALSE)
+```{r pbmc_annotate_2, message=FALSE, warning=FALSE, results='hide'}
+pbmc.2 <- RunAzimuth(query = "/brahms/hartmana/run_azimuth_data/10k_PBMC_3p_nextgem_Chromium_X_filtered_feature_bc_matrix.h5", reference = "pbmcref")
 ```
 
 ```{r pbmc_dimplot_2, fig.width=5, fig.height=5}
@@ -96,11 +94,10 @@ DimPlot(pbmc.2, label = T, repel=T, cols="polychrome") + NoLegend()
 
 dataset from: https://data.humancellatlas.org/explore/projects/091cf39b-01bc-42e5-9437-f419a66c8a45/project-matrices
 
-```{r bm_annotate, message=FALSE, warning=FALSE}
+```{r bm_annotate, message=FALSE, warning=FALSE, results='hide'}
 bm <- RunAzimuth(
   query = "/brahms/hartmana/run_azimuth_data/human_cd34_bm_rep1.h5ad",
-  reference = "bonemarrowref",
-  verbose = FALSE
+  reference = "bonemarrowref"
 )
 ```
 

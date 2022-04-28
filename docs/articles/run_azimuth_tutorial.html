@@ -80,7 +80,7 @@
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Azimuth annotation</h1>
             
-            <h4 data-toc-skip class="date">Compiled: April 27, 2022</h4>
+            <h4 data-toc-skip class="date">Compiled: April 28, 2022</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/satijalab/azimuth/blob/HEAD/vignettes/run_azimuth_tutorial.Rmd" class="external-link"><code>vignettes/run_azimuth_tutorial.Rmd</code></a></small>
       <div class="hidden name"><code>run_azimuth_tutorial.Rmd</code></div>
@@ -103,9 +103,7 @@
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/satijalab/azimuth" class="external-link">Azimuth</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat" class="external-link">Seurat</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://future.futureverse.org" class="external-link">future</a></span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>future.globals.maxSize <span class="op">=</span> <span class="fl">8000</span> <span class="op">*</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat" class="external-link">Seurat</a></span><span class="op">)</span></code></pre></div>
 <div class="section level3">
 <h3 id="annotate-pbmcs">Annotate PBMCs<a class="anchor" aria-label="anchor" href="#annotate-pbmcs"></a>
 </h3>
@@ -116,14 +114,12 @@
 <span class="va">pbmc</span> <span class="op">=</span> <span class="fu"><a href="https://mojaveazure.github.io/seurat-object/reference/CreateSeuratObject.html" class="external-link">CreateSeuratObject</a></span><span class="op">(</span>counts <span class="op">=</span> <span class="va">counts</span><span class="op">)</span></code></pre></div>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># annotate the seurat object with the PBMC reference</span>
-<span class="va">pbmc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span><span class="va">pbmc</span>, reference <span class="op">=</span> <span class="st">"pbmcref"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## An AzimuthData object - reference version: 1.0.0 </span>
-<span class="co">## Contains 3 meta.data field(s) to transfer.</span></code></pre>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<span class="va">pbmc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span><span class="va">pbmc</span>, reference <span class="op">=</span> <span class="st">"pbmcref"</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://mojaveazure.github.io/seurat-object/reference/Idents.html" class="external-link">Idents</a></span><span class="op">(</span><span class="va">pbmc</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">pbmc</span><span class="op">$</span><span class="va">predicted.celltype.l1</span>
 <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmc</span>, label <span class="op">=</span> <span class="cn">T</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
 <p><img src="run_azimuth_tutorial_files/figure-html/pbmc_dimplot-1.png" width="480"></p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmc</span>, cells.highlight <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>B <span class="op">=</span> <span class="fu"><a href="https://mojaveazure.github.io/seurat-object/reference/WhichCells.html" class="external-link">WhichCells</a></span><span class="op">(</span><span class="va">pbmc</span>, idents <span class="op">=</span> <span class="st">"B"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
 <span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmc</span>, features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"MS4A1"</span><span class="op">)</span>, max.cutof <span class="op">=</span> <span class="st">"q95"</span><span class="op">)</span>
 <span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span></code></pre></div>
@@ -132,12 +128,10 @@
 <div class="section level3">
 <h3 id="alternatively-run-the-workflow-on-the-same-dataset-beginning-from-an--h5-file">Alternatively run the workflow on the same dataset beginning from an .h5 file<a class="anchor" aria-label="anchor" href="#alternatively-run-the-workflow-on-the-same-dataset-beginning-from-an--h5-file"></a>
 </h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">pbmc.2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span>query <span class="op">=</span> <span class="st">"10k_PBMC_3p_nextgem_Chromium_X_filtered_feature_bc_matrix.h5"</span>,
-    reference <span class="op">=</span> <span class="st">"pbmcref"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## An AzimuthData object - reference version: 1.0.0 </span>
-<span class="co">## Contains 3 meta.data field(s) to transfer.</span></code></pre>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+    reference <span class="op">=</span> <span class="st">"pbmcref"</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://mojaveazure.github.io/seurat-object/reference/Idents.html" class="external-link">Idents</a></span><span class="op">(</span><span class="va">pbmc.2</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">pbmc.2</span><span class="op">$</span><span class="va">predicted.celltype.l2</span>
 <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmc.2</span>, label <span class="op">=</span> <span class="cn">T</span>, repel <span class="op">=</span> <span class="cn">T</span>, cols <span class="op">=</span> <span class="st">"polychrome"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
 <p><img src="run_azimuth_tutorial_files/figure-html/pbmc_dimplot_2-1.png" width="480"></p>
@@ -146,17 +140,14 @@
 <h3 id="annotate-cd34-cells-from-human-bone-marrow">Annotate CD34+ cells from Human Bone Marrow<a class="anchor" aria-label="anchor" href="#annotate-cd34-cells-from-human-bone-marrow"></a>
 </h3>
 <p>dataset from: <a href="https://data.humancellatlas.org/explore/projects/091cf39b-01bc-42e5-9437-f419a66c8a45/project-matrices" class="external-link uri">https://data.humancellatlas.org/explore/projects/091cf39b-01bc-42e5-9437-f419a66c8a45/project-matrices</a></p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">bm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span>query <span class="op">=</span> <span class="st">"human_cd34_bm_rep1.h5ad"</span>, reference <span class="op">=</span> <span class="st">"bonemarrowref"</span>,
-    verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## An AzimuthData object - reference version: 1.0.0 </span>
-<span class="co">## Contains 2 meta.data field(s) to transfer.</span></code></pre>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">bm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span>query <span class="op">=</span> <span class="st">"human_cd34_bm_rep1.h5ad"</span>, reference <span class="op">=</span> <span class="st">"bonemarrowref"</span><span class="op">)</span></code></pre></div>
 <p>As expected, query cells primarily map to CD34+ celltypes which represent a subset of celltypes present in the reference.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">bm</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, label <span class="op">=</span> <span class="cn">TRUE</span>, repel <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
 <p><img src="run_azimuth_tutorial_files/figure-html/bm_plots-1.png" width="480"></p>
 <details><summary><strong>Session Info</strong>
-</summary><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+</summary><div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
 <pre><code><span class="co">## R version 4.1.3 (2022-03-10)</span>
 <span class="co">## Platform: x86_64-pc-linux-gnu (64-bit)</span>
@@ -178,8 +169,7 @@
 <span class="co">## [1] stats     graphics  grDevices datasets  utils     methods   base     </span>
 <span class="co">## </span>
 <span class="co">## other attached packages:</span>
-<span class="co">## [1] future_1.25.0      SeuratObject_4.0.4 Seurat_4.1.0       Azimuth_0.4.5     </span>
-<span class="co">## [5] shinyBS_0.61.1    </span>
+<span class="co">## [1] SeuratObject_4.0.4 Seurat_4.1.0       Azimuth_0.4.5      shinyBS_0.61.1    </span>
 <span class="co">## </span>
 <span class="co">## loaded via a namespace (and not attached):</span>
 <span class="co">##   [1] systemfonts_1.0.4              plyr_1.8.7                    </span>
@@ -227,35 +217,35 @@
 <span class="co">##  [85] bit64_4.0.5                    fs_1.5.2                      </span>
 <span class="co">##  [87] fitdistrplus_1.1-8             purrr_0.3.4                   </span>
 <span class="co">##  [89] RANN_2.6.1                     SeuratData_0.2.2              </span>
-<span class="co">##  [91] pbapply_1.5-0                  nlme_3.1-157                  </span>
-<span class="co">##  [93] mime_0.12                      formatR_1.12                  </span>
-<span class="co">##  [95] hdf5r_1.3.5                    compiler_4.1.3                </span>
-<span class="co">##  [97] rstudioapi_0.13                curl_4.3.2                    </span>
-<span class="co">##  [99] plotly_4.10.0                  png_0.1-7                     </span>
-<span class="co">## [101] spatstat.utils_2.3-0           tibble_3.1.6                  </span>
-<span class="co">## [103] bslib_0.3.1                    stringi_1.7.6                 </span>
-<span class="co">## [105] highr_0.9                      desc_1.4.1                    </span>
-<span class="co">## [107] lattice_0.20-45                Matrix_1.4-1                  </span>
-<span class="co">## [109] SeuratDisk_0.0.0.9020          shinyjs_2.1.0                 </span>
-<span class="co">## [111] vctrs_0.4.1                    pillar_1.7.0                  </span>
-<span class="co">## [113] lifecycle_1.0.1                BiocManager_1.30.16           </span>
-<span class="co">## [115] spatstat.geom_2.4-0            lmtest_0.9-40                 </span>
-<span class="co">## [117] jquerylib_0.1.4                RcppAnnoy_0.0.19              </span>
-<span class="co">## [119] bonemarrowref.SeuratData_1.0.0 data.table_1.14.2             </span>
-<span class="co">## [121] cowplot_1.1.1                  irlba_2.3.5                   </span>
-<span class="co">## [123] httpuv_1.6.5                   patchwork_1.1.1               </span>
-<span class="co">## [125] R6_2.5.1                       promises_1.2.0.1              </span>
-<span class="co">## [127] renv_0.15.4                    KernSmooth_2.23-20            </span>
-<span class="co">## [129] gridExtra_2.3                  parallelly_1.31.1             </span>
-<span class="co">## [131] codetools_0.2-18               MASS_7.3-56                   </span>
-<span class="co">## [133] assertthat_0.2.1               rprojroot_2.0.3               </span>
-<span class="co">## [135] withr_2.5.0                    presto_1.0.0                  </span>
-<span class="co">## [137] sctransform_0.3.3              mgcv_1.8-40                   </span>
-<span class="co">## [139] parallel_4.1.3                 grid_4.1.3                    </span>
-<span class="co">## [141] rpart_4.1.16                   pbmcref.SeuratData_1.0.0      </span>
-<span class="co">## [143] tidyr_1.2.0                    rmarkdown_2.13                </span>
-<span class="co">## [145] googledrive_2.0.0              Rtsne_0.16                    </span>
-<span class="co">## [147] shiny_1.7.1</span></code></pre>
+<span class="co">##  [91] pbapply_1.5-0                  future_1.25.0                 </span>
+<span class="co">##  [93] nlme_3.1-157                   mime_0.12                     </span>
+<span class="co">##  [95] formatR_1.12                   hdf5r_1.3.5                   </span>
+<span class="co">##  [97] compiler_4.1.3                 rstudioapi_0.13               </span>
+<span class="co">##  [99] curl_4.3.2                     plotly_4.10.0                 </span>
+<span class="co">## [101] png_0.1-7                      spatstat.utils_2.3-0          </span>
+<span class="co">## [103] tibble_3.1.6                   bslib_0.3.1                   </span>
+<span class="co">## [105] stringi_1.7.6                  highr_0.9                     </span>
+<span class="co">## [107] desc_1.4.1                     lattice_0.20-45               </span>
+<span class="co">## [109] Matrix_1.4-1                   SeuratDisk_0.0.0.9020         </span>
+<span class="co">## [111] shinyjs_2.1.0                  vctrs_0.4.1                   </span>
+<span class="co">## [113] pillar_1.7.0                   lifecycle_1.0.1               </span>
+<span class="co">## [115] BiocManager_1.30.16            spatstat.geom_2.4-0           </span>
+<span class="co">## [117] lmtest_0.9-40                  jquerylib_0.1.4               </span>
+<span class="co">## [119] RcppAnnoy_0.0.19               bonemarrowref.SeuratData_1.0.0</span>
+<span class="co">## [121] data.table_1.14.2              cowplot_1.1.1                 </span>
+<span class="co">## [123] irlba_2.3.5                    httpuv_1.6.5                  </span>
+<span class="co">## [125] patchwork_1.1.1                R6_2.5.1                      </span>
+<span class="co">## [127] promises_1.2.0.1               renv_0.15.4                   </span>
+<span class="co">## [129] KernSmooth_2.23-20             gridExtra_2.3                 </span>
+<span class="co">## [131] parallelly_1.31.1              codetools_0.2-18              </span>
+<span class="co">## [133] MASS_7.3-56                    assertthat_0.2.1              </span>
+<span class="co">## [135] rprojroot_2.0.3                withr_2.5.0                   </span>
+<span class="co">## [137] presto_1.0.0                   sctransform_0.3.3             </span>
+<span class="co">## [139] mgcv_1.8-40                    parallel_4.1.3                </span>
+<span class="co">## [141] grid_4.1.3                     rpart_4.1.16                  </span>
+<span class="co">## [143] pbmcref.SeuratData_1.0.0       tidyr_1.2.0                   </span>
+<span class="co">## [145] rmarkdown_2.13                 googledrive_2.0.0             </span>
+<span class="co">## [147] Rtsne_0.16                     shiny_1.7.1</span></code></pre>
 </details>
 </div>
 </div>
