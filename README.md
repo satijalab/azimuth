@@ -154,16 +154,17 @@ interactive R session and set options as desired:
 
 ## Support
 
-We do not actively support users running the app themselves and suggest
-you use version 4 of the [Seurat package](https://satijalab.org/seurat)
-to run the reference mapping workflow and related visualizations on your
-local system. Please see the [Seurat mapping
-vignette](https://satijalab.org/seurat/articles/multimodal_reference_mapping.html)
-for an example of how to use Seurat for reference mapping. If you use
-the instance of the app we are hosting on the web, you can download a
-Seurat v4 R script once your analysis is complete that will guide you in
-reproducing the analysis. You do not need Azimuth to reproduce the
-analysis.
+Azimuth annotation is currently supported in two ways; via the Azimuth
+app or via the `RunAzimuth()` function. Both methods accept the same
+kinds of files and run the same annotation workflow. To run the app
+please visit the website [here](https://azimuth.hubmapconsortium.org).
+To use `RunAzimuth()` please see [this
+tutorial](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
+
+If you use the instance of the app we are hosting on the web, you can
+download a Seurat v4 R script once your analysis is complete that will
+guide you in reproducing the analysis. You do not need Azimuth to
+reproduce the analysis.
 
 If you would like to help us improve the app, and you believe a dataset
 meets the requirements and it is publicly available for us to use for

@@ -7,7 +7,7 @@ output:
 date: 'Compiled: `r format(Sys.Date(), "%B %d, %Y")`'
 ---
 ***
-
+  
 ```{r setup, include=FALSE}
 all_times <- list()  # store the time for each chunk
 knitr::knit_hooks$set(time_it = local({
@@ -29,82 +29,133 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Overview 
+
+This vignette demonstrates how to map scRNA-seq data to Azimuth reference datasets in R.
+
+Reference-based mapping provides an attractive alternative to unsupervised analysis. When well-curated and annotated references are available, reference-mapping can rapdidly, robustly, and sensitively annotate and interpret query datasets. As part of the [Human Biomolecular Atlas Project](portal.hubmapconsortium.org), we have built integrated references for multiple human tissues, available at [azimuth.hubmapconsortium.org](azimuth.hubmapconsortium.org). Azimuth is a web-tool that maps user-uploaded datasets - starting from an unnormalized expression counts matrix.
+
+We have recently released updated software that enables the Azimuth workflow to be replicated directly in R, without the need to upload data into the web application. Reference datasets are automatically downloaded as part of out previously released [SeuratData](https://github.com/satijalab/seurat-data) framework. Datasets can then be passed through Azimuth using a single command. 
+
+As with the web application, Azimuth is compatible with a wide range of inputs, including Seurat objects, 10x HDF5 files, and Scanpy/h5ad files. Once Azimuth is run, a Seurat object is returned which contains
+
+* Cell annotations (at multiple levels of resolution)
+* Prediction scores (i.e. confidence scores) for each annotation
+* Projection onto the reference-derived 2-dimensional UMAP visualization
+
 In this vignette, we demonstrate the use of a function `RunAzimuth()` which facilitates annotation of single cell datasets.
 
 <details>
   <summary>**View data download code**</summary>
-
-To download all the required files, you can run the following lines in a shell:
-
+  
+  To download all the required files, you can run the following lines in a shell:
+  
 ```{sh, eval=FALSE}
-wget https://cf.10xgenomics.com/samples/cell-arc/2.0.0/10k_PBMC_Multiome_nextgem_Chromium_X/10k_PBMC_Multiome_nextgem_Chromium_X_filtered_feature_bc_matrix.tar.gz
-tar -xf 10k_PBMC_Multiome_nextgem_Chromium_X_filtered_feature_bc_matrix.tar.gz
-rm 10k_PBMC_Multiome_nextgem_Chromium_X_filtered_feature_bc_matrix.tar.gz
-wget https://cf.10xgenomics.com/samples/cell-exp/6.1.0/10k_PBMC_3p_nextgem_Chromium_X/10k_PBMC_3p_nextgem_Chromium_X_filtered_feature_bc_matrix.h5
-wget "https://storage.googleapis.com/datarepo-4ef3f5a3-bucket/0e5e329e-2709-4ceb-bfe3-97d23a652ac0/3428f967-3376-4051-b6f7-8dd84580ca5b/human_cd34_bm_rep1.h5ad?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=datarepo-jade-api%40terra-datarepo-production.iam.gserviceaccount.com%2F20220427%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20220427T175459Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=6387c45e853dc0a3115887fa1ad159af8b35f5c0cf04fb6af686e576ae7104204c5ed48413735f7f0b04ce97c7818a57ed07bf09cccc22e442148031caf55010b3b6302be0cf59ad9223bb6de13113618fc109a249971d8e6d3f01345ecfffe354803db24b5e0cfa408cbc2f20a4ed94807d839be6652da7c6b36dfc88e2a45d62ef6175b544f15c79b4118509662dcf9e9ceed2be4369aa1e61e37099d4f76286c4ca52666c9653193a00780fa0cf509b679dfe91055711eb769851777cfdf8ad492107b89f41bf4a78967964ee23cafa36f97fcace960a76e4f708f5f5e381eeb7b49b9b4f58687c1ffecbd49658a60532149552fb53180ae8669bad69fbf2" -O human_cd34_bm_rep1.h5ad
+wget https://figshare.com/ndownloader/files/27686835 -O human_cd34_bone_marrow.h5ad
 ```
 
 </details>
+  
+# Installation
+  
+We first install and load Seurat, Azimuth, and Seurat-Data
 
-# Annotating cells with RunAzimuth
+```{r installlibraries, eval=FALSE}
+devtools::install_github("satijalab/seurat-data")
+devtools::install_github("satijalab/azimuth", ref = "release/0.4.5")
+install.packages("Seurat")
+```
 
-```{r libraries}
-library(Azimuth)
+```{r loadlibraries}
 library(Seurat)
+library(Azimuth)
+library(SeuratData)
+library(patchwork)
 ```
 
-## Annotate PBMCs
+## Map PBMC scRNA-seq datasets from 7 different technologies
 
-dataset from: https://www.10xgenomics.com/resources/datasets/10k-human-pbmcs-3-ht-v3-1-chromium-x-3-1-high
+We first consider a benchmark dataset from [Systematic comparison of single-cell and single-nucleus RNA-sequencing methods, Nat. Biotech 2020](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7289686/), which profiled a total of 31,021 human peripheral blood mononuclear cells (PBMCs) using seven different experimental technologies. The raw data is avaialble for download [here](https://singlecell.broadinstitute.org/single_cell/study/SCP424/single-cell-comparison-pbmc-data), but the dataset is also available for easy loading via SeuratData. We load the data in, and map it to our [PBMC reference](https://azimuth.hubmapconsortium.org/references/#Human%20-%20PBMC).
 
-```{r pbmc_load}
-# read in a 10x PBMC dataset
-counts <- Read10X(data.dir = "/brahms/hartmana/run_azimuth_data/filtered_feature_bc_matrix")
-pbmc = CreateSeuratObject(counts = counts)
+```{r pbmc_load, results='hide'}
+# Install the PBMC systematic comparative analyis (pmbcsca) dataset
+InstallData("pbmcsca")
+
+# returns a Seurat object named pbmcsca
+LoadData("pbmcsca")
+
+#The RunAzimuth function can take a Seurat object as input
+pbmcsca <- RunAzimuth(pbmcsca, reference = "pbmcref")
 ```
 
-```{r pbmc_annotate, message=FALSE, warning=FALSE, results='hide'}
-# annotate the seurat object with the PBMC reference
-pbmc <- RunAzimuth(pbmc, reference = "pbmcref")
-```
+We can now visualize the outputs of Azimuth. Note that all cells are labeled with high-resolution annotations, and are projected into a harmonized space despite being analyzed from a wide variety of technologies.
 
-```{r pbmc_dimplot, fig.width=5, fig.height=5}
-Idents(pbmc) <- pbmc$predicted.celltype.l1
-DimPlot(pbmc, label = T) + NoLegend()
-```
-
-```{r pbmc_bcells, fig.width=8, fig.height=4}
-p1 <- DimPlot(pbmc, cells.highlight = list("B" = WhichCells(pbmc, idents = "B")))
-p2 <- FeaturePlot(pbmc, features = c("MS4A1"), max.cutof = "q95")
+```{r pbmc_dimplot, fig.width=12, fig.height=5}
+p1 <- DimPlot(pbmcsca, group.by = "predicted.celltype.l2", label = TRUE, label.size = 3) + NoLegend()
+p2 <- DimPlot(pbmcsca, group.by = "Method")
 p1 + p2
 ```
 
-## Alternatively run the workflow on the same dataset beginning from an .h5 file
+We can visualize the expression of canonical marker genes to examine the accuracy of predictions. Note that Azimuth normalizes data (internally) before mapping, but does not return the results, so we normalize the data here before visualization.
 
-```{r pbmc_annotate_2, message=FALSE, warning=FALSE, results='hide'}
-pbmc.2 <- RunAzimuth(query = "/brahms/hartmana/run_azimuth_data/10k_PBMC_3p_nextgem_Chromium_X_filtered_feature_bc_matrix.h5", reference = "pbmcref")
+Here, we specifically visualize:
+
+* The expression of CCR7 on CD4 and CD8 Naive T cells
+* The expression of FCGR3A on CD16+ monocytes, CD56dim NK cells, and cytotoxic CD8 T cells
+* The expression of AXL on rare populations of AXL+SIGLEC6+ dendritic cells ([ASDC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5775029/))
+* Prediction scores for the annotation CD4+ regulatory T cells (Treg)
+
+```{r pbmc_res1, fig.width=12, fig.height=10}
+pbmcsca <- NormalizeData(pbmcsca)
+Idents(pbmcsca) <- "predicted.celltype.l2"
+
+p1 <- FeaturePlot(pbmcsca, features = "CCR7")
+p2 <- FeaturePlot(pbmcsca, features = "FCGR3A")
+p3 <- VlnPlot(pbmcsca, features = "AXL", group.by = "predicted.celltype.l2", idents = c("ASDC", "pDC", "cDC1", "cDC2"))
+p4 <- FeaturePlot(pbmcsca, features = "predictionscorecelltypel2_Treg")
+
+p1 + p2 + p3 + p4 + plot_layout(ncol=2)
 ```
 
-```{r pbmc_dimplot_2, fig.width=5, fig.height=5}
-Idents(pbmc.2) <- pbmc.2$predicted.celltype.l2
-DimPlot(pbmc.2, label = T, repel=T, cols="polychrome") + NoLegend()
+## See available references
+
+You can search all available datasets in SeuratData (focusing on Azimuth references)
+
+```{r show_avail}
+available_data <- AvailableData()
+available_data[grep("Azimuth", available_data[,3]), 1:3]
 ```
 
-## Annotate CD34+ cells from Human Bone Marrow
+## Map CD34+ cells from Human Bone Marrow (stored as an h5ad file)
 
-dataset from: https://data.humancellatlas.org/explore/projects/091cf39b-01bc-42e5-9437-f419a66c8a45/project-matrices
+As a final example, we map data from CD34+ human bone marrow cells from the manuscript [Characterization of cell fate probabilities in single-cell data with Palantir
+](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7549125/). We map to our [Azimuth Human Bone Marrow reference](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Bone%20Marrow), which includes both progenitor and differentiated cells.
+
+Azimuth can also take the path to an h5ad object as input. In this case, Azimuth extracts the unnormalized counts from the object, and proceeds with mapping.
 
 ```{r bm_annotate, message=FALSE, warning=FALSE, results='hide'}
 bm <- RunAzimuth(
-  query = "/brahms/hartmana/run_azimuth_data/human_cd34_bm_rep1.h5ad",
+  query = "~/github/azimuth/vignettes/human_cd34_bone_marrow.h5ad",
   reference = "bonemarrowref"
 )
 ```
 
-As expected, query cells primarily map to CD34+ celltypes which represent a subset of celltypes present in the reference.
+As expected, query cells map to CD34+ celltypes which represent a subset of celltypes present in the reference. Rare cells that map to differentiated cell populations (i.e. CD4 memory), map with low prediction scores. Reference-mapping also harmonizes two separate runs.
 
-```{r bm_plots, fig.width=5, fig.height=5}
-DimPlot(bm, group.by = "predicted.celltype.l2", label = TRUE, repel = TRUE) + NoLegend()
+```{r bm_plots, fig.width=10, fig.height=10}
+p1 <- DimPlot(bm, group.by = "predicted.celltype.l2", label = TRUE) + NoLegend()
+p2 <- DimPlot(bm, group.by = "orig.ident") 
+sort(table(bm$predicted.celltype.l2), decreasing = TRUE)
+p3 <- VlnPlot(bm, features = "predicted.celltype.l2.score") + NoLegend()
+(p1 + p2) / p3
+```
+
+Lastly, we can visualize markers associated with lineage differentiation to verify our annotations including AVP (HSC), KLF1 (erythroid), MPO (myeloid), and VWF (platelet).
+
+```{r bm_feature_plots, fig.width=12, fig.height=10}
+# normalize before visualization
+bm <- NormalizeData(bm)
+FeaturePlot(bm, features = c("AVP", "KLF1", "MPO", "VWF"))
 ```
 
 <details>
@@ -113,4 +164,3 @@ DimPlot(bm, group.by = "predicted.celltype.l2", label = TRUE, repel = TRUE) + No
 sessionInfo()
 ```
 </details>
-
