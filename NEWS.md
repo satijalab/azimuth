@@ -4,6 +4,7 @@
 - `RunAzimuth()` added to support local annotation.
 - `LoadH5AD()` assumes matrix is CSR if metadata to resolve matrix type is unavailable.
 - Bug fix for anndata files containing cells with 0 counts.
+- Options to set default filtering thresholds (e.g. `Azimuth.app.ncount_max`)
 
 # Azimuth 0.4.4 (2022-03-08)
 
