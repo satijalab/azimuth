@@ -303,16 +303,6 @@ LoadH5AD <- function(path) {
     }
     return(exists)
   }
-  IsMetaData <- function(md) {
-    return(Exists(name = md) && inherits(x = adata[[md]], what = 'H5Group'))
-  }
-  LoadFromDataSet <- function(md) {
-    if (Exists(name = md) && inherits(x = adata[[md]], what = 'H5D') && 'index' %in% names(adata[[md]][])) {
-      return (adata[[md]][]$index)
-    } else {
-      stop(paste("Could not load", md), call. = FALSE)
-    }
-  }
   GetIndex <- function(md) {
     return(
       if (adata[[md]]$attr_exists(attr_name = '_index')) {
@@ -389,6 +379,7 @@ LoadH5AD <- function(path) {
   } else if (isTRUE(x$attr_exists(attr_name = 'encoding-type'))) {
     mtx.type <- substr(h5attr(x, 'encoding-type'), 0, 3)
   } else {
+    mtx.type <- 'csr' # assume matrix is csr
     warning("Could not determine matrix format")
   }
   if (mtx.type != 'csr') {
@@ -415,22 +406,16 @@ LoadH5AD <- function(path) {
     # x must be a CSR matrix
     counts <- as.matrix(x = x)
   }
-  if (!IsMetaData(md = md) && !IsMetaData(md = 'obs')) {
-    metadata <- data.frame() # no cell-level metadata will be loaded
-    # features and cell names may be stored in an H5D instead of an H5Group
-    rownames <- LoadFromDataSet(md = md)
-    colnames <- LoadFromDataSet(md = 'obs')
-  } else {
-    metadata <- LoadMetadata(md = 'obs') # gather additional cell-level metadata
-    rownames <- GetRowNames(md = md)
-    colnames <- rownames(metadata)
-  }
+  metadata <- LoadMetadata(md = 'obs') # gather additional cell-level metadata
+  rownames <- GetRowNames(md = md)
+  colnames <- rownames(metadata)
   rownames(x = counts) <- rownames
   colnames(x = counts) <- colnames
   object <- CreateSeuratObject(counts = counts)
   if (ncol(x = metadata)) {
     object <- AddMetaData(object = object, metadata = metadata)
   }
+  object <- subset(object, subset = nCount_RNA > 0)
   return(object)
 }
 

@@ -1,0 +1,10 @@
+pandoc: 2.11.4
+pkgdown: 2.0.3
+pkgdown_sha: ~
+articles:
+  run_azimuth_tutorial: run_azimuth_tutorial.html
+last_built: 2022-05-02T00:21Z
+urls:
+  reference: https://azimuth.hubmapconsortium.org/reference
+  article: https://azimuth.hubmapconsortium.org/articles
+

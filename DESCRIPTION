@@ -1,7 +1,7 @@
 Package: Azimuth
 Type: Package
 Title: A Shiny App Demonstrating a Query-Reference Mapping Algorithm for Single-Cell Data
-Version: 0.4.4
+Version: 0.4.5
 Date: 2021-08-18
 Authors@R: c(
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
@@ -22,7 +22,8 @@ RoxygenNote: 7.1.2
 biocViews:
 Remotes:
   immunogenomics/presto,
-  mojaveazure/seurat-disk
+  mojaveazure/seurat-disk,
+  satijalab/seurat-data
 Depends:
   R (>= 4.0.0)
 Imports:
@@ -45,6 +46,7 @@ Imports:
   Seurat (>= 4.0.0),
   SeuratDisk,
   SeuratObject,
+  SeuratData,
   shiny (>= 1.5.0),
   shinyBS (>= 0.61),
   shinydashboard (>= 0.7.1),
@@ -62,4 +64,5 @@ Collate:
     'ui.R'
     'helpers.R'
     'azimuth.R'
+    'generics.R'
     'server.R'

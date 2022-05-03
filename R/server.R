@@ -397,7 +397,7 @@ AzimuthServer <- function(input, output, session) {
     default_xfer <- possible.metadata.transfer[1]
   }
   # React to events
-  # Load the data an prepare for QC
+  # Load the data and prepare for QC
   observeEvent(
     eventExpr = input$file,
     handlerExpr = {
@@ -568,11 +568,21 @@ AzimuthServer <- function(input, output, session) {
           floor(x = min(ncount.val)),
           ceiling(x = max(ncount.val))
         )
+        ncount.min <- if (is.null(getOption(x = "Azimuth.app.ncount_min"))) {
+          ncount.val[1]
+        } else {
+          max(ncount.val[1], getOption(x = "Azimuth.app.ncount_min"))
+        }
+        ncount.max <- if (is.null(getOption(x = "Azimuth.app.ncount_max"))) {
+          ncount.val[2]
+        } else {
+          min(ncount.val[2], getOption(x = "Azimuth.app.ncount_max"))
+        }
         updateNumericInput(
           session = session,
           inputId = 'num.ncountmin',
           label = paste('min', ncount),
-          value = ncount.val[1],
+          value = ncount.min,
           min = ncount.val[1],
           max = ncount.val[2]
         )
@@ -580,7 +590,7 @@ AzimuthServer <- function(input, output, session) {
           session = session,
           inputId = 'num.ncountmax',
           label = paste('max', ncount),
-          value = ncount.val[2],
+          value = ncount.max,
           min = ncount.val[1],
           max = ncount.val[2]
         )
@@ -589,11 +599,21 @@ AzimuthServer <- function(input, output, session) {
           floor(x = min(nfeature.val)),
           ceiling(x = max(nfeature.val))
         )
+        nfeature.min <- if (is.null(getOption(x = "Azimuth.app.nfeature_min"))) {
+          nfeature.val[1]
+        } else {
+          max(nfeature.val[1], getOption(x = "Azimuth.app.nfeature_min"))
+        }
+        nfeature.max <- if (is.null(getOption(x = "Azimuth.app.nfeature_max"))) {
+          nfeature.val[2]
+        } else {
+          min(nfeature.val[2], getOption(x = "Azimuth.app.nfeature_max"))
+        }
         updateNumericInput(
           session = session,
           inputId = 'num.nfeaturemin',
           label = paste('min', nfeature),
-          value = nfeature.val[1],
+          value = nfeature.min,
           min = nfeature.val[1],
           max = nfeature.val[2]
         )
@@ -601,7 +621,7 @@ AzimuthServer <- function(input, output, session) {
           session = session,
           inputId = 'num.nfeaturemax',
           label = paste('max', nfeature),
-          value = nfeature.val[2],
+          value = nfeature.max,
           min = nfeature.val[1],
           max = nfeature.val[2]
         )
@@ -617,11 +637,21 @@ AzimuthServer <- function(input, output, session) {
             floor(x = min(mito.val)),
             ceiling(x = max(mito.val))
           )
+          mito.min <- if (is.null(getOption(x = "Azimuth.app.pctmt_min"))) {
+            mito.val[1]
+          } else {
+            max(mito.val[1], getOption(x = "Azimuth.app.pctmt_min"))
+          }
+          mito.max <- if (is.null(getOption(x = "Azimuth.app.pctmt_max"))) {
+            mito.val[2]
+          } else {
+            min(mito.val[2], getOption(x = "Azimuth.app.pctmt_max"))
+          }
           updateNumericInput(
             session = session,
             inputId = 'minmt',
             label = paste('min', mt.key),
-            value = mito.val[1],
+            value = mito.min,
             min = mito.val[1],
             max = mito.val[2]
           )
@@ -629,7 +659,7 @@ AzimuthServer <- function(input, output, session) {
             session = session,
             inputId = 'maxmt',
             label = paste('max', mt.key),
-            value = mito.val[2],
+            value = mito.max,
             min = mito.val[1],
             max = mito.val[2]
           )
