@@ -342,17 +342,24 @@ LoadH5AD <- function(path) {
       )
     }
     col.names <- col.names[!col.names %in% c('__categories', index)]
-    df <- sapply(
-      X = col.names,
-      FUN = function(i) {
-        x <- adata[[md]][[i]][]
-        if (i %in% factor.cols) {
-          x <- factor(x = x, levels = adata[[md]][['__categories']][[i]][])
-        }
-        return(x)
+    df <- tryCatch(
+      expr = {
+        sapply(
+          X = col.names,
+          FUN = function(i) {
+            x <- adata[[md]][[i]][]
+            if (i %in% factor.cols) {
+              x <- factor(x = x, levels = adata[[md]][['__categories']][[i]][])
+            }
+            return(x)
+          },
+          simplify = FALSE,
+          USE.NAMES = TRUE
+        )
       },
-      simplify = FALSE,
-      USE.NAMES = TRUE
+      error = function(err) {
+        data.frame(matrix(NA, nrow = length(adata[[md]][[index]][]), ncol = 0))
+      }
     )
     return(as.data.frame(x = df, row.names = GetRowNames(md = md)))
   }
@@ -371,6 +378,7 @@ LoadH5AD <- function(path) {
   } else if (isTRUE(x$attr_exists(attr_name = 'shape'))) {
     mtx.shape <- h5attr(x, 'shape')
   } else {
+    mtx.shape <- NULL
     warning("Could not determine matrix shape")
   }
   # check different attributes to try and deduce matrix type
@@ -379,10 +387,10 @@ LoadH5AD <- function(path) {
   } else if (isTRUE(x$attr_exists(attr_name = 'encoding-type'))) {
     mtx.type <- substr(h5attr(x, 'encoding-type'), 0, 3)
   } else {
-    mtx.type <- 'csr' # assume matrix is csr
+    mtx.type <- NULL
     warning("Could not determine matrix format")
   }
-  if (mtx.type != 'csr') {
+  if (!is.null(mtx.type) && !is.null(mtx.shape) && mtx.type == 'csc') {
     p <- as.integer(x[['indptr']][])
     i <- as.integer(x[['indices']][])
     data <- as.double(x[['data']][])
@@ -406,7 +414,7 @@ LoadH5AD <- function(path) {
     # x must be a CSR matrix
     counts <- as.matrix(x = x)
   }
-  metadata <- LoadMetadata(md = 'obs') # gather additional cell-level metadata
+  metadata <- LoadMetadata(md = 'obs')
   rownames <- GetRowNames(md = md)
   colnames <- rownames(metadata)
   rownames(x = counts) <- rownames

@@ -46,7 +46,7 @@ Imports:
   Seurat (>= 4.0.0),
   SeuratDisk,
   SeuratObject,
-  SeuratData,
+  SeuratData (>= 0.2.2),
   shiny (>= 1.5.0),
   shinyBS (>= 0.61),
   shinydashboard (>= 0.7.1),
