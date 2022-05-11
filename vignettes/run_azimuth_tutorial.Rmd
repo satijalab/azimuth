@@ -62,7 +62,7 @@ We first install and load Seurat, Azimuth, and Seurat-Data
 
 ```{r installlibraries, eval=FALSE}
 devtools::install_github("satijalab/seurat-data")
-devtools::install_github("satijalab/azimuth", ref = "release/0.4.5")
+devtools::install_github("satijalab/azimuth")
 install.packages("Seurat")
 ```
 
@@ -143,7 +143,7 @@ bm <- RunAzimuth(
 As expected, query cells map to CD34+ celltypes which represent a subset of celltypes present in the reference. Rare cells that map to differentiated cell populations (i.e. CD4 memory), map with low prediction scores. Reference-mapping also harmonizes two separate runs.
 
 ```{r bm_plots, fig.width=10, fig.height=10}
-p1 <- DimPlot(bm, group.by = "predicted.celltype.l2", label = TRUE) + NoLegend()
+p1 <- DimPlot(bm, group.by = "predicted.celltype.l2", label = TRUE, label.size = 3, repel = TRUE) + NoLegend()
 p2 <- DimPlot(bm, group.by = "orig.ident") 
 sort(table(bm$predicted.celltype.l2), decreasing = TRUE)
 p3 <- VlnPlot(bm, features = "predicted.celltype.l2.score") + NoLegend()
