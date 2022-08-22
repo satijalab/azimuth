@@ -65,9 +65,14 @@ RunAzimuth.Seurat <- function(
       print(possible.references)
       stop(paste("Could not find a reference for", reference))
     }
+    # handle expected new parameters in uwot models beginning in v0.1.13
+    # when reference is loaded via seurat data
+    print(Misc(reference[["refUMAP"]]))
+    if (!"num_precomputed_nns" %in% names(Misc(reference[["refUMAP"]])$model)) {
+      Misc(reference[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+    }
+    print(Misc(reference[["refUMAP"]]))
   }
-  print(bridge)
-  print(bridge.extension)
   dims <- as.double(length(slot(reference, "reductions")$refDR))
   if (isTRUE(do.adt) && !("ADT" %in% Assays(reference))) {
     warning("Cannot impute an ADT assay because the reference does not have antibody data")
