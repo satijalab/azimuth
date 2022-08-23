@@ -504,6 +504,12 @@ LoadReference <- function(path, seconds = 10L) {
   }
   # Load the map reference
   map <- readRDS(file = mapref)
+
+  # handle new parameters in uwot models beginning in v0.1.13
+  if (!"num_precomputed_nns" %in% names(Misc(map[["refUMAP"]])$model)) {
+    Misc(map[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+  }
+
   # Load the annoy index into the Neighbor object in the neighbors slot
   map[["refdr.annoy.neighbors"]] <- LoadAnnoyIndex(
     object = map[["refdr.annoy.neighbors"]],
