@@ -62,7 +62,7 @@ We first install and load Seurat, Azimuth, and Seurat-Data
 
 ```{r installlibraries, eval=FALSE}
 devtools::install_github("satijalab/seurat-data")
-devtools::install_github("satijalab/azimuth", ref = "release/0.4.5")
+devtools::install_github("satijalab/azimuth")
 install.packages("Seurat")
 ```
 

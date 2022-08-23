@@ -48,6 +48,10 @@ RunAzimuth.Seurat <- function(
       print(possible.references)
       stop(paste("Could not find a reference for", reference))
     }
+    # handle expected new parameters in uwot models beginning in v0.1.13
+    if (!"num_precomputed_nns" %in% names(Misc(reference[["refUMAP"]])$model)) {
+      Misc(reference[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+    }
   }
   dims <- as.double(length(slot(reference, "reductions")$refDR))
   if (isTRUE(do.adt) && !("ADT" %in% Assays(reference))) {

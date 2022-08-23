@@ -1,3 +1,8 @@
+# Azimuth 0.4.6 (2022-08-23)
+
+## Changes
+- Compatibility fix for uwot >=v0.1.13 due to changes in UMAP model parameters
+
 # Azimuth 0.4.5 (2022-04-27)
 
 ## Changes
