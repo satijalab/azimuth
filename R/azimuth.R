@@ -31,7 +31,6 @@ RunAzimuth.Seurat <- function(
   n.trees = 20,
   mapping.score.k = 100
 ) {
-  print("test")
   # Get the type of the query assay to determine whether to perform standard annotation or bridge
   if (!(assay %in% Assays(query))) {
     stop(paste("Could not find assay", assay, "in the query"))
@@ -67,11 +66,9 @@ RunAzimuth.Seurat <- function(
     }
     # handle expected new parameters in uwot models beginning in v0.1.13
     # when reference is loaded via seurat data
-    print(Misc(reference[["refUMAP"]]))
     if (!"num_precomputed_nns" %in% names(Misc(reference[["refUMAP"]])$model)) {
-      Misc(reference[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+      suppressWarnings(Misc(reference[["refUMAP"]], slot="model")$num_precomputed_nns <- 1)
     }
-    print(Misc(reference[["refUMAP"]]))
   }
   dims <- as.double(length(slot(reference, "reductions")$refDR))
   if (isTRUE(do.adt) && !("ADT" %in% Assays(reference))) {
