@@ -106,20 +106,28 @@ RunAzimuth.Seurat <- function(
   }
 
   # Preprocess with SCTransform
-  query <- SCTransform(
-    object = query,
-    assay = assay,
-    new.assay.name = "refAssay",
-    residual.features = rownames(x = reference),
-    reference.SCT.model = reference[["refAssay"]]@SCTModel.list$refmodel,
-    method = 'glmGamPoi',
-    ncells = 2000,
-    n_genes = 2000,
-    do.correct.umi = FALSE,
-    do.scale = FALSE,
-    do.center = TRUE,
-    verbose = verbose
-  )
+  if(!inherits(x = reference[["refAssay"]], what = "SCTAssay")){
+    query <- NormalizeData(query)
+    normalization.method <- "LogNormalize"
+    query.assay <- "RNA"
+  }else{
+    query <- SCTransform(
+      object = query,
+      assay = assay,
+      new.assay.name = "refAssay",
+      residual.features = rownames(x = reference),
+      reference.SCT.model = reference[["refAssay"]]@SCTModel.list$refmodel,
+      method = 'glmGamPoi',
+      ncells = 2000,
+      n_genes = 2000,
+      do.correct.umi = FALSE,
+      do.scale = FALSE,
+      do.center = TRUE,
+      verbose = verbose)
+    normalization.method <- "SCT"
+    query.assay <- "refAssay"
+  }
+  
   # Find anchors between query and reference
   anchors <- FindTransferAnchors(
     reference = reference,
@@ -127,10 +135,10 @@ RunAzimuth.Seurat <- function(
     k.filter = NA,
     reference.neighbors = "refdr.annoy.neighbors",
     reference.assay = "refAssay",
-    query.assay = "refAssay",
+    query.assay = query.assay,
     reference.reduction = "refDR",
-    normalization.method = "SCT",
-    features = intersect(rownames(x = reference), VariableFeatures(object = query)),
+    normalization.method = normalization.method,
+    features = rownames(x = reference),
     dims = 1:dims,
     n.trees = n.trees,
     mapping.score.k = mapping.score.k,
@@ -483,7 +491,7 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 #' @inheritParams CreateAzimuthData
 #' @param refUMAP Name of UMAP in reference to use for mapping
 #' @param refDR Name of DimReduc in reference to use for mapping
-#' @param refAssay Name of SCTAssay to use in reference
+#' @param refAssay Name of assay to use in reference
 #' @param dims Dimensions to use in reference neighbor finding
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param ori.index Index of the cells used in mapping in the original object on
@@ -545,15 +553,13 @@ AzimuthReference <- function(
     }
   }
   if (!refAssay %in% Assays(object = object)) {
-    stop("Seurat object provided must have the SCT Assay stored.")
+    stop("Seurat object provided must have the (", refAssay, ") assay stored.") # new 
   }
-  if (!inherits(x = object[[refAssay]], what = "SCTAssay")) {
-    stop("refAssay (", refAssay, ") is not an SCTAssay.")
+  if (refAssay == "SCT"){
+    if (length(x = levels(x = object[[refAssay]])) != 1) {
+      stop("refAssay (", refAssay, ") should contain a single SCT model.") # changed
+    }
   }
-  if (length(x = levels(x = object[[refAssay]])) != 1) {
-    stop("refAssay (", refAssay, ") should contain a single SCT model.")
-  }
-
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
 
@@ -607,9 +613,15 @@ AzimuthReference <- function(
       object[[i]] <- NULL
     }
   }
-  sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
-  object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
-  slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = sct.model)
+  if (refAssay == "SCT"){
+    model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]] # changing to generic model name (instead of sct.model)
+    object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
+    slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = model)
+  }else{
+    model <- slot(object = object[[refAssay]], name = "data")
+    object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "Assay")
+    slot(object = object[["refAssay"]], name = "data") <- model
+  }
   DefaultAssay(object = object) <- "refAssay"
   DefaultAssay(object = object[["refDR"]]) <- "refAssay"
   Tool(object = object) <- ad
@@ -619,7 +631,7 @@ AzimuthReference <- function(
     assays = c("refAssay", assays),
     dimreducs = c("refDR","refUMAP")
   )
-  ValidateAzimuthReference(object = object)
+  ValidateAzimuthReference(object = object, assay = refAssay)
   return(object)
 }
 
@@ -790,6 +802,7 @@ ClusterPreservationScore <- function(query, ds.amount) {
 #'
 #' @param object Seurat object
 #' @param ad.name Name in the tools slot containing the AzimuthData object.
+#' @param refAssay Name of assay to use in reference
 #'
 #' @return No return value
 #'
@@ -797,7 +810,7 @@ ClusterPreservationScore <- function(query, ds.amount) {
 #'
 #' @export
 #'
-ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
+ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference", refAssay = "SCT") {
   if (!inherits(x = Tool(object = object, slot = ad.name), what = "AzimuthData")) {
     stop ("Reference must contain an AzimuthData object in the tools slot.")
   }
@@ -839,11 +852,10 @@ ValidateAzimuthReference <- function(object, ad.name = "AzimuthReference") {
   if (!"refAssay" %in% Assays(object = object)) {
     stop("Must contain assay called 'refAssay'.")
   }
-  if (!inherits(x = object[["refAssay"]], what = "SCTAssay")) {
-    stop("refAssay must be an SCTAssay object.")
-  }
-  if (!"refmodel" %in% levels(x = object[["refAssay"]])) {
-    stop("refAssay must contain the SCTModel called refmodel.")
+  if (refAssay== "SCT"){ # changed and  deleted above check SCT thing
+    if (!"refmodel" %in% levels(x = object[["refAssay"]])) {
+      stop("refAssay must contain the SCTModel called refmodel.")
+    }
   }
 }
 
