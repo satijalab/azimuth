@@ -107,7 +107,7 @@ AzimuthServer <- function(input, output, session) {
     normalize = FALSE,
     sctransform = FALSE,
     lognormalize = FALSE,
-    normalization.method = FALSE
+    normalization.method = FALSE,
     start = numeric(length = 0L),
     transform = FALSE
   )
