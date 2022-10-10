@@ -631,7 +631,7 @@ AzimuthReference <- function(
     assays = c("refAssay", assays),
     dimreducs = c("refDR","refUMAP")
   )
-  ValidateAzimuthReference(object = object, assay = refAssay)
+  ValidateAzimuthReference(object = object, refAssay = refAssay)
   return(object)
 }
 
