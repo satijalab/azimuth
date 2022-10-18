@@ -3110,7 +3110,7 @@ AzimuthBridgeServer <- function(input, output, session) {
           print(refs$bridge)
           app.env$o_hits <- findOverlaps(app.env$chromatin_assay_1, refs$bridge[["ATAC"]])
           qc_table <- OverlapQC(app.env$o_hits, app.env$chromatin_assay_1, refs$bridge)
-          perc_overlap <- OverlapTotal(qc_table)
+          perc_overlap <- round(x = OverlapTotal(qc_table), digits = 4)
           print("PERC OVERLAP")
           print(perc_overlap)
           if (perc_overlap >= 80) {
@@ -3333,6 +3333,7 @@ AzimuthBridgeServer <- function(input, output, session) {
                                                                             "maxItems")])
       react.env$qc <- FALSE
       react.env$plot.qc <- TRUE
+      react.env$dist.qc <- TRUE
       print("about to make qc plots")
     }
   })
@@ -4099,8 +4100,8 @@ AzimuthBridgeServer <- function(input, output, session) {
                              selected = "", server = TRUE, options = selectize.opts)
       }
       print("doing table check")
-      print("DIFF EXPRESSION")
-      print(app.env$diff.expr)
+      print("MARKER CLUSTERS GROUP")
+      print(input$markerclustersgroup)
       table.check <- input$feature %in% rownames(x = RenderDiffExp(diff.exp = app.env$diff.expr[[paste(app.env$gene.assay, 
                                                                                                        input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters, 
                                                                    n = Inf))
@@ -4286,6 +4287,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       print("making dist plots")
       dist <- OverlapDistPlot(query_assay = isolate(app.env$object),
                               multiome = refs$bridge)
+      print("DIST")
       print(type(dist))
     }
   })
