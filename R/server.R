@@ -3750,7 +3750,7 @@ AzimuthBridgeServer <- function(input, output, session) {
   observeEvent(eventExpr = react.env$cluster.score, handlerExpr = {
     if (isTRUE(react.env$cluster.score)) {
       qc.stat <- round(x = ClusterPreservationScore(query = app.env$object, 
-                                                    ds.amount = getOption(x = "Azimuth.map.postmapqcds")), 
+                                                    ds.amount = getOption(x = "Azimuth.map.postmapqcds"), type = "bridge"), 
                        digits = 2)
       if (!is.null(googlesheet)) {
         try(sheet_append(ss = googlesheet, data = data.frame("CLUSTERPRESERVATIONQC", 
@@ -3790,7 +3790,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       app.env$object <- FindTopFeatures(app.env$object,
                                         min.cutoff = "q0")
       qc.stat <- round(x = ClusterPreservationScore(query = app.env$object, 
-                                                    ds.amount = getOption(x = "Azimuth.map.postmapqcds")), 
+                                                    ds.amount = getOption(x = "Azimuth.map.postmapqcds"), type = "bridge"), 
                        digits = 2)
       print("got qc.stat")
       if (!is.null(googlesheet)) {

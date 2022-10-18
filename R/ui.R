@@ -709,7 +709,7 @@ AzimuthBridgeUI <- tagList(
                 inputId = 'map',
                 label = 'Map cells to reference'
               )),
-              width = 4
+              width = 3
             ),
             bsPopover(
               id = 'q2',
