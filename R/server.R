@@ -4283,9 +4283,9 @@ AzimuthBridgeServer <- function(input, output, session) {
     }
   })
   output$dist.qc <- renderPlot(expr = {
-    if (!is.null(x = isolate(expr = app.env$object)) & isTRUE(x = react.env$dist.qc)) {
+    if (!is.null(x = isolate(expr = app.env$chromatin_assay_1)) & isTRUE(x = react.env$dist.qc)) {
       print("making dist plots")
-      dist <- OverlapDistPlot(query_assay = isolate(app.env$object),
+      dist <- OverlapDistPlot(query_assay = isolate(app.env$chromatin_assay_1),
                               multiome = refs$bridge)
       print("DIST")
       print(type(dist))
