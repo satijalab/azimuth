@@ -731,7 +731,7 @@ AzimuthBridgeUI <- tagList(
               width = 6
             ), 
             box( #added
-              plotOutput(output.id = 'dist.qc'), 
+              plotOutput(outputId = 'dist.qc'), 
               width = 6
             )
           ),
