@@ -36,6 +36,10 @@ NULL
 #' @importFrom stats na.omit quantile setNames median
 #' @importFrom utils write.table packageVersion
 #' @importFrom plotly plotlyOutput renderPlotly toWebGL ggplotly plot_ly
+#' @importFrom Signac CollapseToLongestTranscript GetTranscripts GetGRangesFromEnsDb RunTFIDF 
+#' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
+#' @importFrom IRanges findOverlaps
+#' @importFrom data.table as.data.table
 #'
 #' @keywords internal
 #'
@@ -3116,7 +3120,7 @@ AzimuthBridgeServer <- function(input, output, session) {
           if (perc_overlap >= 80) {
             output$valuebox.overlap <- renderValueBox(expr = {
               valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
-                       icon = icon(name = "times"), color = "green")
+                       icon = icon(name = "check"), color = "green")
             })
           }
           else if (perc_overlap < 80 & perc_overlap > 60) {
@@ -4281,14 +4285,14 @@ AzimuthBridgeServer <- function(input, output, session) {
       wrap_plots(vlnlist, ncol = length(x = vlnlist))
     }
   })
-  # output$dist.qc <- renderPlot(expr = {
-  #   if (!is.null(x = isolate(expr = app.env$object)) & isTRUE(x = react.env$dist.qc)) {
-  #     print("making dist plots")
-  #     dist <- OverlapDistPlot(query_assay = isolate(app.env$object),
-  #                             multiome = refs$bridge)
-  #     print(type(dist))
-  #   }
-  # })
+  output$dist.qc <- renderPlot(expr = {
+    if (!is.null(x = isolate(expr = app.env$object)) & isTRUE(x = react.env$dist.qc)) {
+      print("making dist plots")
+      dist <- OverlapDistPlot(query_assay = isolate(app.env$object),
+                              multiome = refs$bridge)
+      print(type(dist))
+    }
+  })
   
   output$refdim_intro <- renderPlot(expr = {
     app.env$plots.refdim_intro_df <- cbind(as.data.frame(x = Embeddings(object = refs$plot[["refUMAP"]])), 

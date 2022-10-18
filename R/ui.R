@@ -728,11 +728,11 @@ AzimuthBridgeUI <- tagList(
               checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
               plotOutput(outputId = 'plot.qc'),
               tableOutput(outputId = 'table.qc'),
-              width = 3
+              width = 4
             ), 
             box( #added
               plotOutput(outputId = 'dist.qc'), 
-              width = 3
+              width = 2
             )
           ),
           fluidRow(
