@@ -2816,7 +2816,6 @@ AzimuthServer <- function(input, output, session) {
 #'
 #' @keywords internal
 #'
-
 AzimuthBridgeServer <- function(input, output, session) {
   hide(id = "legend")
   disable(id = "metacolor.ref")
