@@ -36,10 +36,6 @@ NULL
 #' @importFrom stats na.omit quantile setNames median
 #' @importFrom utils write.table packageVersion
 #' @importFrom plotly plotlyOutput renderPlotly toWebGL ggplotly plot_ly
-#' @importFrom Signac CollapseToLongestTranscript GetTranscripts GetGRangesFromEnsDb RunTFIDF 
-#' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
-#' @importFrom IRanges findOverlaps
-#' @importFrom data.table as.data.table
 #'
 #' @keywords internal
 #'
