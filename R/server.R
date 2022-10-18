@@ -4287,8 +4287,6 @@ AzimuthBridgeServer <- function(input, output, session) {
       print("making dist plots")
       dist <- OverlapDistPlot(query_assay = isolate(app.env$chromatin_assay_1),
                               multiome = refs$bridge)
-      print("DIST")
-      print(type(dist))
     }
   })
   
