@@ -2985,7 +2985,7 @@ AzimuthBridgeServer <- function(input, output, session) {
     disable(id = "file")
     ToggleDemos(action = "disable", demos = demos)
     setProgress(value = 0.2)
-    refs <- LoadReference(path = getOption(x = "Azimuth.app.reference", 
+    refs <- LoadBridgeReference(path = getOption(x = "Azimuth.app.reference", 
                                            default = stop(safeError(error = "No reference provided"))))
     setProgress(value = 1)
     enable(id = "file")
