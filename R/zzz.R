@@ -416,7 +416,12 @@ RenderDiffExp <- function(
   logfc.thresh = 0L
 ) {
   # cols.keep <- c('logFC', 'auc', 'padj', 'pct_in', 'pct_out')
+  print("Rendering differential expression")
   cols.keep <- c('auc', 'padj', 'pct_in', 'pct_out')
+  if (is.null(diff.exp)){
+    print("Differential Expression is empty ")
+  }
+  print(diff.exp)
   groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
   diff.exp <- lapply(
     X = groups.use,
@@ -427,6 +432,7 @@ RenderDiffExp <- function(
       return(head(x = group.de, n = n))
     }
   )
+  # the things might be characters so they cant be ordered? 
   diff.exp <- do.call(what = 'rbind', diff.exp)
   rownames(x = diff.exp) <- make.unique(names = diff.exp$feature)
   diff.exp <- signif(

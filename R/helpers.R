@@ -541,6 +541,147 @@ LoadReference <- function(path, seconds = 10L) {
   ))
 }
 
+#' Load the bridge, reference, and reference extension RDS files
+#'
+#' Read in a reference \code{\link[Seurat]{Seurat}} object, the multiomic bridge, and the precomputed extended reference. This
+#' function can read either from URLs or a file path. In order to read properly,
+#' there must be the following files:
+#' \itemize{
+#'  \item \dQuote{ref.Rds} for the downsampled reference \code{Seurat}
+#'  object (for mapping)
+#'  \item \dQuote{bridge.Rds} for the multiomic bridge \code{Seurat} object 
+#'  \item \dQuote{ext.Rds} for the extended reference \code{Seurat} object 
+#' }
+#'
+#' @param path Path or URL to the three RDS files
+#' @param seconds Timeout to check for URLs in seconds
+#'
+#' @return A list with four entries:
+#' \describe{
+#'  \item{\code{map}}{
+#'   The downsampled reference \code{\link[Seurat]{Seurat}}
+#'   object (for mapping)
+#'  }
+#'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
+#'  \item{\code{nridhe}}{
+#'   The multiomic bridge \code{\link[Seurat]{Seurat}}
+#'   object 
+#'  }
+#'  \item{\code{ext}}{
+#'   The extended reference \code{\link[Seurat]{Seurat}}
+#'   object
+#'  }
+#' }
+#'
+#' @importFrom SeuratObject Idents<-
+#' @importFrom Seurat LoadAnnoyIndex
+#' @importFrom httr build_url parse_url status_code GET timeout
+#' @importFrom utils download.file
+#' @importFrom Matrix sparseMatrix
+#'
+#' @export
+#' @examples
+#' \dontrun{
+#' # Load from a URL
+#' ref <- LoadBridgeReference("https://seurat.nygenome.org/references/pbmc")
+#' # Load from a directory
+#' ref2 <- LoadBridgeReference("/var/www/html")
+#' }
+#'
+
+LoadBridgeReference<- function(path, seconds = 10L) {
+  ref.names <- list(
+    bridge = 'bridge.Rds',
+    map = 'ref.Rds',
+    ext = 'ext.Rds'
+  )
+  if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
+    path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
+  }
+  uri <- httr::build_url(url = httr::parse_url(url = path))
+  if (grepl(pattern = '^://', x = uri) | grepl(pattern = '^[a-zA-Z]{1}://', x = uri)) {
+    if (!dir.exists(paths = path)) {
+      stop("Cannot find directory ", path, call. = FALSE)
+    }
+    bridgeref <- file.path(path, ref.names$bridge)
+    mapref <- file.path(path, ref.names$map)
+    extref <- file.path(path, ref.names$ext)
+    exists <- file.exists(c(bridgeref, mapref, extref))
+    if (!all(exists)) {
+      stop(
+        "Missing the following files from the directory provided: ",
+        Oxford(unlist(x = ref.names)[!exists], join = 'and')
+      )
+    }
+  } else {
+    ref.uris <- paste(uri, ref.names, sep = '/')
+    names(x = ref.uris) <- names(x = ref.names)
+    online <- vapply(
+      X = ref.uris,
+      FUN = Online,
+      FUN.VALUE = logical(length = 1L),
+      USE.NAMES = FALSE
+    )
+    if (!all(online)) {
+      stop(
+        "Cannot find the following files at the site given: ",
+        Oxford(unlist(x = ref.names)[!online], join = 'and')
+      )
+    }
+    #mapref <- url(description = ref.uris[['map']])
+    #annref <- tempfile()
+    #download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
+    #on.exit(expr = {
+    #  close(con = mapref)
+    #  unlink(x = annref)
+  }
+  # Load the map reference
+  bridge <- readRDS(file = bridgeref)
+  map <- readRDS(file = mapref)
+  ext <- readRDS(file = extref)
+  
+  # handle new parameters in uwot models beginning in v0.1.13
+  if (!"num_precomputed_nns" %in% names(Misc(map[["refUMAP"]])$model)) {
+    Misc(map[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+  }
+  
+  # Load the annoy index into the Neighbor object in the neighbors slot
+  #map[["refdr.annoy.neighbors"]] <- LoadAnnoyIndex(
+  # object = map[["refdr.annoy.neighbors"]],
+  #file = annref
+  #)
+  # Validate that reference contains required dims
+  print(ncol(x = map[["refDR"]]))
+  print(getOption(x = "Azimuth.map.ndims"))
+  if (ncol(x = map[["refDR"]]) < 50) { # getOption(x = "Azimuth.map.ndims"))
+    stop("Provided reference doesn't contain at least ",
+         getOption(x = "Azimuth.map.ndims"), " dimensions. Please either
+         regenerate reference with requested dimensionality or adjust ",
+         "the Azimuth.map.ndims option.")
+  }
+  # Create plotref
+  ad <- Tool(object = map, slot = "AzimuthReference")
+  plotref.dr <- GetPlotRef(object = ad)
+  cm <- sparseMatrix(
+    i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
+    dimnames = list("placeholder", Cells(x = plotref.dr))
+  )
+  plot <- CreateSeuratObject(
+    counts = cm
+  )
+  plot[["refUMAP"]] <- plotref.dr
+  plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
+  gc(verbose = FALSE)
+  return(list(
+    map = map,
+    plot = plot,
+    bridge = bridge,
+    ext = ext
+  ))
+}
+
+
+
 #' Transform an NN index
 #'
 #' @param object Seurat object
@@ -673,4 +814,128 @@ WelcomePlot <- function(...) {
     plot.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5')
   )
   return(welcomeplot.theme)
+}
+
+
+
+############### Overlap Functionality ###############
+# QC For Overlap between multiomic bridge and atac query 
+#
+# @param query_assay 
+# @param multiome_atac 
+#
+# @return No return value
+#
+
+bridge_qc <- function(query_assay, mutliome_atac){
+  o_hits <- GetOverlaps(query_assay, obj.multi[["ATAC"]])
+  
+  atac_peaks <- OverlapQC(o_hits, query_assay, obj.multi)
+  # Calculate the percent of overlap for each overlapping peak 
+  # Right now this function is only working on peaks that are definitely overlapping. To generalize it you'd have to add a part that first checks if the ranges are within each other to confirm if theyre overlapping, if not, it should return 0  
+  
+  #### Density Plot
+  d <- density(atac_peaks$perc_overlap) 
+  plot(d, xlab='Percentage of Overlap', main = 'Distribution of Overlap Percentages')
+  
+  #Calculating the percent of query that is covered by the overlapping portions 
+  # Sum of all query widths
+
+  o_total <- OverlapTotal(atac_peaks)
+  # print this 
+}
+
+OverlapDistPlot <- function(query_assay, multiome){
+  o_hits <- GetOverlaps(query_assay, multiome[["ATAC"]])
+  atac_peaks <- OverlapQC(o_hits, query_assay, multiome)
+  d <- density(atac_peaks$perc_overlap)
+  plot(d, xlab='Percentage of Overlap', main = 'Distribution of Overlap Percentages')
+}
+
+# Calculate Overlap percentage for dataframe of overlap info per peak 
+#
+# @param atac_peaks dataframe with coordinates for each peak and overlap 
+#
+# @return Percentage of Overlap 
+#
+PercOverlap <- function(atac_peaks){
+  # if no overlap  
+  len_overlap <- atac_peaks$o_end - atac_peaks$o_start
+  len_q <- atac_peaks$end - atac_peaks$start
+  perc <- (len_overlap/len_q)
+  return(perc)
+}
+
+# Calculate Create dataframe with info for each peaks's overlap in multiome 
+#
+# @param o_hits Iranges object of overlapping hits 
+# @param atac
+# @param multi
+#
+# @return Percentage of Overlap 
+#
+OverlapQC <- function(o_hits, atac, multi) {
+  atac_inds <- queryHits(o_hits)
+  multi_inds <- subjectHits(o_hits)
+  atac_peaks <- as.data.table(GetAssayData(atac, slot = "ranges")[atac_inds,])
+  multi_peaks <- as.data.table(GetAssayData(multi, assay = "ATAC", slot = "ranges")[multi_inds,])
+  atac_peaks$o_start <- mapply(max, atac_peaks$start, multi_peaks$start)
+  atac_peaks$o_end <- mapply(min, atac_peaks$end, multi_peaks$end)
+  atac_peaks$perc_overlap <- PercOverlap(atac_peaks)
+  atac_peaks
+}
+
+OverlapTotal <- function(atac_peaks){ # from overlap qc 
+  q_width <- sum(atac_peaks$width) # but there will be repeats in this 
+  o_width <- sum(atac_peaks$o_end - atac_peaks$o_start)
+  amount_covered <- (o_width/q_width) * 100
+  return(amount_covered)
+}
+
+# Requantify atac peaks to either multiomic peaks or to genes 
+#
+# @param o_hits Iranges object of overlapping hits 
+# @param atac
+# @param subject
+# @param verbose
+#
+# @return Percentage of Overlap 
+#
+RequantifyPeaks <- function(
+    o_hits, 
+    atac, 
+    subject,
+    verbose = TRUE){
+  # Query peaks that have overlap w/ multiome peaks
+  atac_inds <- queryHits(o_hits)
+  if (inherits(x = atac, what = "ChromatinAssay")){
+    atac_final <- atac[atac_inds, ]
+    new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)]) 
+    if (verbose){
+      message("Requantifying query peaks to match multiome")
+    }
+  } else if (inherits(x = atac, what = "Seurat")){ 
+    print("this is transcritps")
+    atac_data <- GetAssayData(atac, assay = "ATAC", slot = "counts")
+    atac_final <- atac_data[atac_inds, ]
+    new_names <- GRangesToString(subject[subjectHits(o_hits)])
+    if (verbose){
+      message("Requantifying query peaks to genes")
+    }
+  } else{
+    stop("Incorrect object type ")
+  }
+  # Reassign query row names
+  rownames(atac_final) <- new_names
+  # Merge duplicates
+  atac_final <- rowsum(atac_final, row.names(atac_final), reorder=FALSE)  
+  atac_final <- Matrix(atac_final, sparse = TRUE) 
+  ##### code from signac 
+  if (inherits(x = subject, what = "GRanges")){
+    gene.key <- subject$gene_name
+    names(x = gene.key) <- GRangesToString(grange = subject)
+    rownames(x = atac_final) <- as.vector(x = gene.key[rownames(x = atac_final)])
+    atac_final <- atac_final[rownames(x = atac_final) != "", ]
+  }
+  return(atac_final)
 }

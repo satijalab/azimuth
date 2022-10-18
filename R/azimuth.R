@@ -258,7 +258,7 @@ RunAzimuth.character <- function(
 #'   AzimuthApp(system.file("resources", "config.json", package = "Azimuth"))
 #' }
 #'
-AzimuthApp <- function(config = NULL, ...) {
+AzimuthApp <- function(config = NULL, type = "standard", ...) {
   useShinyjs()
   # If multiple items have the same name in the named list, with_options sets
   # the option to the last entry with that name in the list. Therefore, putting
@@ -300,12 +300,18 @@ AzimuthApp <- function(config = NULL, ...) {
     new = opts,
     code = getOption(x = 'Azimuth.app.max_cells')
   )
-  opts$future.globals.maxSize <- maxcells * 320000
   # Launch the app
-  with_options(
-    new = opts,
-    code = runApp(appDir = shinyApp(ui = AzimuthUI, server = AzimuthServer))
-  )
+  if (type == "standard"){
+    with_options(
+      new = opts,
+      code = runApp(appDir = shinyApp(ui = AzimuthUI, server = AzimuthServer))
+    )
+  } else{
+    with_options(
+      new = opts,
+      code = runApp(appDir = shinyApp(ui = AzimuthBridgeUI, server = AzimuthBridgeServer))
+    )
+  }
   return(invisible(x = NULL))
 }
 
@@ -722,36 +728,62 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #
 # @param query Query object
 # @param ds.amount Amount to downsample query
+# @param type Standard or Bridge
 # @return Returns
 #
 #' @importFrom SeuratObject Cells Idents Indices as.Neighbor
 #' @importFrom Seurat RunPCA FindNeighbors FindClusters MinMax
+#' @importFrom Signac RunSVD
 #
 #' @keywords internal
 #
 #
-ClusterPreservationScore <- function(query, ds.amount) {
-  query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
-  if (ncol(x = query) > ds.amount) {
-    query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
-  }
+ClusterPreservationScore <- function(query, ds.amount, type = "standard") {
   dims <- min(50, getOption(x = "Azimuth.map.ndims"))
-  query <- RunPCA(object = query, npcs = dims, verbose = FALSE)
-  query <- FindNeighbors(
-    object = query,
-    reduction = 'pca',
-    dims = 1:dims,
-    graph.name = paste0("pca_", c("nn", "snn"))
-  )
-  query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_nn"]])
-  query <- FindClusters(object = query, resolution = 0.6, graph.name = 'pca_snn')
-  query <- FindNeighbors(
-    object = query,
-    reduction = 'integrated_dr',
-    dims = 1:dims,
-    return.neighbor = TRUE,
-    graph.name ="integrated_neighbors_nn"
-  )
+  if(type == "standard"){
+    query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
+    if (ncol(x = query) > ds.amount) {
+      query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
+    }
+    query <- RunPCA(object = query, npcs = dims, verbose = FALSE)
+    query <- FindNeighbors(
+      object = query,
+      reduction = 'pca',
+      dims = 1:dims,
+      graph.name = paste0("pca_", c("nn", "snn"))
+    )
+    query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_nn"]])
+    query <- FindClusters(object = query, resolution = 0.6, graph.name = 'pca_snn')
+    query <- FindNeighbors(
+      object = query,
+      reduction = 'integrated_dr',
+      dims = 1:dims,
+      return.neighbor = TRUE,
+      graph.name ="integrated_neighbors_nn"
+    )
+  } else if(type == "bridge") {
+    query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "ref.Bridge.reduc")
+    if (ncol(x = query) > ds.amount) {
+      query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
+    }
+    query <- RunSVD(object = query, verbose = FALSE)
+    query <- FindNeighbors(
+      object = query,
+      reduction = 'lsi',
+      dims = 1:dims,
+      graph.name = paste0("lsi_", c("nn", "snn"))
+      )
+    query[["orig_neighbors"]] <- as.Neighbor(x = query[["lsi_nn"]])
+    query <- FindClusters(object = query, resolution = 0.6, graph.name = 'lsi_snn')
+    query <- FindNeighbors(
+      object = query,
+      reduction = 'ref.Bridge.reduc',
+      dims = 1:dims,
+      return.neighbor = TRUE,
+      graph.name ="integrated_neighbors_nn")
+    } else{
+      print("Incorrect type: Must be either 'standard' or 'bridge'")
+    }
   ids <- Idents(object = query)
   integrated.neighbor.indices <- Indices(object = query[["integrated_neighbors_nn"]])
   proj_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
