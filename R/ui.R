@@ -730,10 +730,12 @@ AzimuthBridgeUI <- tagList(
               tableOutput(outputId = 'table.qc'),
               width = 4
             ), 
-            box( #added
-              plotOutput(outputId = 'dist.qc'), 
+            column(width = 3, #added
+              box(
+                title = "Overlap QC", status = "primary", solidHeader = TRUE,
+                plotOutput(outputId = 'dist.qc')
+              ), 
               valueBoxOutput(outputId = 'valuebox.overlap'),
-              width = 3
               div(
                 id = 'overlap_popup',
                 valueBoxOutput(outputId = "valuebox_overlap", width = 3),
