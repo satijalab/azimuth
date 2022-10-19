@@ -719,7 +719,7 @@ AzimuthBridgeUI <- tagList(
                 title = p(
                   'Overlap QC',
                   bsButton(
-                    inputId = 'q3',
+                    inputId = 'q4',
                     label = '',
                     icon = icon(name = 'question'),
                     style = 'info',
@@ -727,7 +727,7 @@ AzimuthBridgeUI <- tagList(
                   )
                 ),
                 bsPopover(
-                  id = 'q3',
+                  id = 'q4',
                   title = 'Overlap QC',
                   content = paste(
                     'Overlap QC Explanation'
