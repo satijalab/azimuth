@@ -736,7 +736,7 @@ AzimuthBridgeUI <- tagList(
                     placement = 'right',
                     trigger = 'focus',
                     options = list(container = 'body')
-                  )
+                  ),
                   plotOutput(outputId = 'dist.qc'),
                   width = 4
               ), 
