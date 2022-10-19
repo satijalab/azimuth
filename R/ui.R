@@ -726,7 +726,7 @@ AzimuthBridgeUI <- tagList(
                       style = 'info',
                       size = 'extra-small'
                     )
-                  )
+                  ),
                   bsPopover(
                     id = 'q2',
                     title = 'Overlap QC',
