@@ -662,21 +662,6 @@ AzimuthBridgeUI <- tagList(
                   width = '90%'
                 )
               ),
-              # div( # delete
-              #   id = 'pctmt',
-              #   numericInput(
-              #     inputId = 'minmt',
-              #     label = NULL,
-              #     value = 0,
-              #     width = '90%'
-              #   ),
-              #   numericInput(
-              #     'maxmt',
-              #     label = NULL,
-              #     value = 0,
-              #     width = '90%'
-              #   )
-              # ),
               textOutput(outputId = 'text.cellsremain'),
               div(
                 id = 'xferopts',
@@ -730,25 +715,46 @@ AzimuthBridgeUI <- tagList(
               tableOutput(outputId = 'table.qc'),
               width = 4
             ), 
-            box(
-                title = "Overlap QC",
-                plotOutput(outputId = 'dist.qc'),
-                width = 4
-            ), 
+            verticalLayout(
+              box(
+                  title = p(
+                    'Overlap QC',
+                    bsButton(
+                      inputId = 'q2',
+                      label = '',
+                      icon = icon(name = 'question'),
+                      style = 'info',
+                      size = 'extra-small'
+                    )
+                  )
+                  bsPopover(
+                    id = 'q2',
+                    title = 'Overlap QC',
+                    content = paste(
+                      'Overlap QC Explanation'
+                    ),
+                    placement = 'right',
+                    trigger = 'focus',
+                    options = list(container = 'body')
+                  )
+                  plotOutput(outputId = 'dist.qc'),
+                  width = 4
+              ), 
+              valueBoxOutput(outputId = 'valuebox.overlap', width = 3),
+              div(
+                id = 'overlap_popup',
+                valueBoxOutput(outputId = "valuebox_overlap", width = 3),
+                bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
+              ),
+            ),
           ),
           fluidRow(
             valueBoxOutput(outputId = 'valuebox.upload', width = 3),
-            valueBoxOutput(outputId = 'valuebox.overlap', width = 3),
             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
             div(
               id = 'panchors_popup',
               valueBoxOutput(outputId = "valuebox_panchors", width = 3),
               bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
-            ),
-            div(
-              id = 'overlap_popup',
-              valueBoxOutput(outputId = "valuebox_overlap", width = 3),
-              bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
             ),
             div(
               id = 'mappingqcstat_popup',

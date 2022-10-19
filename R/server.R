@@ -4774,7 +4774,7 @@ AzimuthBridgeServer <- function(input, output, session) {
     if (!is.null(x = isolate(app.env$object))) {
       qc <- paste0(c("nCount_", "nFeature_"), app.env$default.assay)
       tbl <- apply(X = isolate(app.env$object)[[qc]], MARGIN = 2, 
-                   FUN = quantile)
+                   FUN = quantile, probs = c(0.0, 0.5, 1.0))
       tbl <- as.data.frame(x = tbl)
       colnames(x = tbl) <- c("nUMI per cell", "Genes detected per cell")
       if (mt.key %in% colnames(x = isolate(app.env$object)[[]])) {
