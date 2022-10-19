@@ -730,26 +730,24 @@ AzimuthBridgeUI <- tagList(
               tableOutput(outputId = 'table.qc'),
               width = 4
             ), 
-            column(width = 3, #added
-              box(
+            box(
                 title = "Overlap QC", status = "primary", solidHeader = TRUE,
                 plotOutput(outputId = 'dist.qc')
-              ), 
-              valueBoxOutput(outputId = 'valuebox.overlap'),
-              div(
-                id = 'overlap_popup',
-                valueBoxOutput(outputId = "valuebox_overlap", width = 3),
-                bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
-              )
-            )
+            ), 
           ),
           fluidRow(
             valueBoxOutput(outputId = 'valuebox.upload', width = 3),
+            valueBoxOutput(outputId = 'valuebox.overlap', width = 3),
             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
             div(
               id = 'panchors_popup',
               valueBoxOutput(outputId = "valuebox_panchors", width = 3),
               bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
+            ),
+            div(
+              id = 'overlap_popup',
+              valueBoxOutput(outputId = "valuebox_overlap", width = 3),
+              bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
             ),
             div(
               id = 'mappingqcstat_popup',
