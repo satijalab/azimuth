@@ -694,7 +694,7 @@ AzimuthBridgeUI <- tagList(
                 inputId = 'map',
                 label = 'Map cells to reference'
               )),
-              width = 2
+              width = 3
             ),
             bsPopover(
               id = 'q2',
@@ -719,7 +719,7 @@ AzimuthBridgeUI <- tagList(
                 title = p(
                   'Overlap QC',
                   bsButton(
-                    inputId = 'q2',
+                    inputId = 'q3',
                     label = '',
                     icon = icon(name = 'question'),
                     style = 'info',
@@ -727,7 +727,7 @@ AzimuthBridgeUI <- tagList(
                   )
                 ),
                 bsPopover(
-                  id = 'q2',
+                  id = 'q3',
                   title = 'Overlap QC',
                   content = paste(
                     'Overlap QC Explanation'
