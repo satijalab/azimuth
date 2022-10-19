@@ -731,8 +731,9 @@ AzimuthBridgeUI <- tagList(
               width = 4
             ), 
             box(
-                title = "Overlap QC", status = "primary", solidHeader = TRUE,
-                plotOutput(outputId = 'dist.qc')
+                title = "Overlap QC",
+                plotOutput(outputId = 'dist.qc'),
+                width = 4
             ), 
           ),
           fluidRow(
