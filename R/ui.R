@@ -733,12 +733,12 @@ AzimuthBridgeUI <- tagList(
             box( #added
               plotOutput(outputId = 'dist.qc'), 
               valueBoxOutput(outputId = 'valuebox.overlap'),
+              width = 3
               div(
                 id = 'overlap_popup',
                 valueBoxOutput(outputId = "valuebox_overlap", width = 3),
                 bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
               )
-              width = 3
             )
           ),
           fluidRow(
