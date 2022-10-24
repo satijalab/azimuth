@@ -3916,7 +3916,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       head(row.names(app.env$object[["chromvar"]]@data))
       for (i in app.env$metadataxfer[!app.env$singlepred]) {
         print("setting chromvar.diff.expr")
-        Idents(app.env$object) <- paste0("predicted.", i),
+        Idents(app.env$object) <- paste0("predicted.", i)
         app.env$chromvar.assay <- "chromvar"
         app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, # changed all of these to chromvar.assay
                                        i, sep = "_")]] <- FindAllMarkers(object = app.env$object, assay = app.env$chromvar.assay, slot = "data", 
