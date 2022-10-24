@@ -445,6 +445,60 @@ RenderDiffExp <- function(
   return(diff.exp)
 }
 
+
+#' Prepare differential expression motif results for rendering
+#'
+#' @param diff.exp A dataframe with differential expression results from FindAllMArkers
+#' @param groups.use Names of groups to filter \code{diff.exp} to; groups must
+#' be found in \code{diff.exp$group}
+#' @param n Number of feature to filter \code{diff.exp} to per group
+#'
+#' @return \code{diff.exp}, ordered by adjusted p-value, filtered to \code{n}
+#' features per group in \code{group.use}
+#'
+#' @importFrom rlang %||%
+#' @importFrom utils head
+#'
+#' @seealso \code{\link[presto]{wilcoxauc}}
+#'
+#' @keywords internal
+#'
+RenderDiffMotifExp <- function(
+    diff.exp,
+    groups.use = NULL,
+    n = 10L
+    #logfc.thresh = 0L
+) {
+  # cols.keep <- c('logFC', 'auc', 'padj', 'pct_in', 'pct_out')
+  print("Rendering differential motifexpression")
+  cols.keep <- c('avg_diff', 'p_val_adj', 'pct.1', 'pct.2')
+  if (is.null(diff.exp)){
+    print("Differential Expression is empty ")
+  }
+  print(diff.exp)
+  groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
+  diff.exp <- lapply(
+    X = groups.use,
+    FUN = function(group) {
+      group.de <- diff.exp[diff.exp$group == group, , drop = FALSE]
+      #group.de <- group.de[group.de$logFC > logfc.thresh, , drop = FALSE]
+      group.de <- group.de[order(group.de$p_val_adj, -group.de$avg_diff), , drop = FALSE]
+      return(head(x = group.de, n = n))
+    }
+  )
+  # the things might be characters so they cant be ordered? 
+  diff.exp <- do.call(what = 'rbind', diff.exp)
+  rownames(x = diff.exp) <- make.unique(names = diff.exp$feature)
+  diff.exp <- signif(
+    x = diff.exp[, cols.keep, drop = FALSE],
+    digits = getOption(
+      x = "Azimuth.de.digits",
+      default = default.options$Azimuth.de.digits
+    )
+  )
+  return(diff.exp)
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Load Hooks
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

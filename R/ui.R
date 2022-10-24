@@ -828,6 +828,97 @@ AzimuthBridgeUI <- tagList(
             height = 'auto'
           )
         ),
+        # Motif tab
+        tabItem(
+          tags$head(tags$style(HTML(".selectize-dropdown .optgroup-header { font-weight: bold; font-size: 13px; color: black; background: #f6f6f6}"))),
+          tabName = 'tab_motif',
+          box(
+            title = 'Motif Plots',
+            div(
+              id = 'motifinput',
+              class = 'thirds',
+              selectizeInput(
+                inputId = 'motif',
+                label = 'Motif',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'continput',
+              class = 'thirds',
+              selectizeInput(
+                inputId = 'metadata.cont',
+                label = 'Prediction Scores and Metadata',
+                choices = ''
+              )
+            ),
+            plotOutput(outputId = 'motifdim'),
+            selectizeInput(
+              inputId = 'metagroup',
+              label = 'Metadata to group by',
+              choices = '',
+              width = '25%'
+            ),
+            checkboxInput(inputId = 'check.featpoints', label = 'Hide points'),
+            plotOutput(outputId = 'motifvln'),
+            width = 12
+          ),
+          box(
+            title = p(
+              'Predicted cell type cluster motifs',
+              bsButton(
+                inputId = 'q4',
+                label = '',
+                icon = icon(name = 'question'),
+                style = 'info',
+                size = 'extra-small'
+              )
+            ),
+            bsPopover(
+              id = 'q4',
+              title = 'Motif Analysis Table',
+              content = paste(
+                'Only available for clusters with at least 15 cells.',
+                paste(
+                  # 'logFC: log fold-change between cells in the cluster specified and other cells',
+                  'auc: area under ROC',
+                  'padj: Benjamini-Hochberg adjusted p value',
+                  'pct_in: percent of cells in the cluster with nonzero feature value',
+                  'pct_out: percent of cells out of the cluster with nonzero feature value',
+                  sep = '; '
+                )
+              ),
+              placement = 'right',
+              trigger = 'focus',
+              options = list(container = 'body')
+            ),
+            div(
+              id = 'markerclustersgroupinput',
+              class = 'halves',
+              selectizeInput(
+                inputId = 'markerclustersgroup',
+                label = 'Metadata group',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'markerclustersgroupinput',
+              class = 'halves',
+              selectizeInput(
+                inputId = 'markerclusters',
+                label = 'Predicted cell type',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'motiftable',
+              class = 'halves',
+              h3('Motifs'),
+              DTOutput(outputId = 'motifs')
+            ),
+            width = 12
+          )
+        ),
         # Feature tab
         tabItem(
           tags$head(tags$style(HTML(".selectize-dropdown .optgroup-header { font-weight: bold; font-size: 13px; color: black; background: #f6f6f6}"))),

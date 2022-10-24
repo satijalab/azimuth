@@ -3890,7 +3890,45 @@ AzimuthBridgeServer <- function(input, output, session) {
       app.env$messages <- c(app.env$messages, paste(ncol(x = app.env$object),
                                                     "cells mapped"))
       react.env$biomarkers <- TRUE
+      react.env$chromvar <- TRUE
       react.env$transform <- FALSE
+    }
+  })
+  observeEvent(eventExpr = react.env$chromvar, handlerExpr = {
+    if (isTRUE(x = react.env$chromvar)) {
+      react.env$progress$set(value = 0.98, message = "Running Motif Analysis")
+      DefaultAssay(app.env$object) <- app.env$default.assay
+      pfm <- getMatrixSet(
+        x = JASPAR2020,
+        opts = list(species = 9606, all_versions = FALSE)
+      )
+      print("adding motifs")
+      app.env$object <- AddMotifs(
+        object = app.env$object,
+        genome = BSgenome.Hsapiens.UCSC.hg38,
+        pfm = pfm
+      )
+      print("calculating chromvar")
+      app.env$object <- RunChromVAR(
+        object = app.env$object,
+        genome = BSgenome.Hsapiens.UCSC.hg38
+      )
+      head(row.names(app.env$object[["chromvar"]]@data))
+      for (i in app.env$metadataxfer[!app.env$singlepred]) {
+        print("setting diff.expr")
+        print(i)
+        Idents(app.env$object) <- i
+        app.env$chromvar.assay <- "chromvar"
+        app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, # changed all of these to chromvar.assay
+                                       i, sep = "_")]] <- FindAllMarkers(object = app.env$object, assay = app.env$chromvar.assay,
+                                                                         group.by = paste0("predicted.", i), slot = "data", 
+                                                                         only.pos = T, mean.fcn = rowMeans, fc.name = "avg_diff")
+      }
+      print(app.env$chromvar.diff.expr)
+      print("about to close progress")
+      react.env$progress$close()
+      react.env$chromvar <- FALSE
+      react.env$chromvar.features <- TRUE
     }
   })
   observeEvent(eventExpr = react.env$biomarkers, handlerExpr = {
@@ -3933,7 +3971,8 @@ AzimuthBridgeServer <- function(input, output, session) {
       print("rendering menu")
       output$menu2 <- renderMenu(expr = {
         sidebarMenu(menuItem(text = "Cell Plots", tabName = "tab_cell", 
-                             icon = icon("chart-area")), menuItem(text = "Feature Plots", 
+                             icon = icon("chart-area")), menuItem(text = "Motif Plots", tabName = "tab_motif", 
+                                                                  icon = icon("chart-area")), menuItem(text = "Motif Plots", 
                                                                   tabName = "tab_feature", icon = icon("chart-area")), 
                     menuItem(text = "Download Results", tabName = "tab_download", 
                              icon = icon("file-download")))
@@ -4031,6 +4070,33 @@ AzimuthBridgeServer <- function(input, output, session) {
       react.env$metadata <- FALSE
     }
   })
+  observeEvent(eventExpr = react.env$chromvar.features, handlerExpr = {
+    if (isTRUE(x = react.env$chromvar.features)) {
+      print("doing features")
+      DefaultAssay(app.env$object) <- app.env$chromvar.assay
+      # app.env$default.feature <- ifelse(test = getOption(x = "Azimuth.app.default_gene") %in% 
+      #                                     rownames(x = app.env$object), yes = getOption(x = "Azimuth.app.default_gene"), 
+      #                                   no = VariableFeatures(object = app.env$object)[1])
+      app.env$default.chromvar.feature <- ifelse(test = "MA0627.2" %in% 
+                                                   rownames(x = app.env$object), yes = "MA0627.2", 
+                                                 no = row.names(object = app.env$object[["data"]])[1])
+      print(app.env$default.chromvar.feature)
+      app.env$chromvar.features <- unique(x = c(FilterFeatures(features = VariableFeatures(object = app.env$object)[1:selectize.opts$maxOptions]), 
+                                                FilterFeatures(features = rownames(x = app.env$object))))
+      print(length(app.env$chromvar.features))
+      updateSelectizeInput(session = session, inputId = "chromvar.feature", 
+                           label = "Feature", choices = app.env$chromvar.features, 
+                           selected = app.env$default.chromvar.feature, server = TRUE, 
+                           options = selectize.opts)
+      if (isTRUE(x = do.adt)) {
+        app.env$adt.features <- sort(x = rownames(x = app.env$object[[adt.key]]))
+        updateSelectizeInput(session = session, inputId = "adtfeature", 
+                             choices = app.env$adt.features, selected = "", 
+                             server = TRUE, options = selectize.opts)
+      }
+      react.env$chromvar.features <- FALSE
+    }
+  })
   observeEvent(eventExpr = react.env$features, handlerExpr = {
     if (isTRUE(x = react.env$features)) {
       print("doing features")
@@ -4112,6 +4178,30 @@ AzimuthBridgeServer <- function(input, output, session) {
       }
     }
   })
+  observeEvent(eventExpr = input$chromvar.feature, handlerExpr = {
+    if (nchar(x = input$chromvar.feature)) {
+      print("doing input$chromvar.feature")
+      head(input$feature)
+      DefaultAssay(app.env$object) <- app.env$chromvar.assay
+      app.env$chromvar.feature <- ifelse(test = input$chromvar.feature %in% 
+                                           rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$chromvar.assay]]), 
+                                                                                      input$chromvar.feature), no = input$chromvar.feature)
+      print("got app.env$chrombar.feature")
+      print(app.env$chromvar.feature)
+      print("MARKER CLUSTERS GROUP INPUT: ")
+      print(input$markerclustersgroup)
+      print("running render diff motif exp")
+      table.check <- input$chromvar.feature %in% rownames(x = RenderDiffMotifExp(diff.exp = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, 
+                                                                                                                           input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters, 
+                                                                                 n = Inf))
+      print(table.check)
+      tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, 
+                                                   !table.check)]
+      for (tab in tables.clear) {
+        selectRows(proxy = tab, selected = NULL)
+      }
+    }
+  })
   observeEvent(eventExpr = input$adtfeature, handlerExpr = {
     if (nchar(x = input$adtfeature)) {
       app.env$feature <- paste0(Key(object = app.env$object[[adt.key]]), 
@@ -4175,6 +4265,17 @@ AzimuthBridgeServer <- function(input, output, session) {
                                         choices = app.env$features, selected = rownames(x = RenderDiffExp(diff.exp = app.env$diff.expr[[paste(app.env$gene.assay, 
                                                                                                                                               input$markerclustersgroup, sep = "_")]], 
                                                                                                           groups.use = input$markerclusters, n = Inf))[input$biomarkers_rows_selected], 
+                                        server = TRUE, options = selectize.opts)
+                 }
+               })
+  observeEvent(eventExpr = input$motif_rows_selected, 
+               handlerExpr = {
+                 if (length(x = input$motif_rows_selected)) {
+                   print("doing motif row selected")
+                   updateSelectizeInput(session = session, inputId = "motif", 
+                                        choices = app.env$chromvar.features, selected = rownames(x = RenderDiffMotifExp(diff.exp = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, 
+                                                                                                                                                                  input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters, 
+                                                                                                                        n = Inf))[input$motif_rows_selected], 
                                         server = TRUE, options = selectize.opts)
                  }
                })
@@ -4616,6 +4717,53 @@ AzimuthBridgeServer <- function(input, output, session) {
                                       y = hover$coords_css$y), p(HTML(text = hovertext)))
     }
   })
+  output$motifvln <- renderPlot(expr = {
+    if (!is.null(x = app.env$object)) {
+      avail <- c(paste0(Key(object = app.env$object[[app.env$chromvar.assay]]), 
+                        rownames(x = app.env$object)), colnames(x = app.env$object[[]]))
+      prediction.names <- unlist(x = lapply(X = app.env$metadataxfer, 
+                                            FUN = function(x) {
+                                              assay <- paste0("prediction.score.", x)
+                                              pred <- rep(x = x, times = nrow(x = app.env$object[[assay]]))
+                                              names(x = pred) <- paste0(Key(object = app.env$object[[assay]]), 
+                                                                        rownames(x = app.env$object[[assay]]))
+                                              return(pred)
+                                            }))
+      max.pred.names <- paste0("predicted.", app.env$metadataxfer, 
+                               ".score")
+      avail <- c(avail, names(x = prediction.names))
+      if (app.env$chromvar.feature %in% avail) {
+        if (app.env$chromvar.feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
+          ggplot() + annotate("text", x = 4, y = 25, 
+                              size = 8, label = "Mapping score still computing ... ") + 
+            theme_void()
+        }
+        else {
+          title <- ifelse(test = grepl(pattern = "^chromvar_", 
+                                       x = app.env$feature), yes = gsub(pattern = "^chromvar_", 
+                                                                        replacement = "", x = app.env$chromvar.feature), no = app.env$chromvar.feature)
+          if (app.env$chromvar.feature %in% names(x = prediction.names)) {
+            pred <- strsplit(x = app.env$chromvar.feature, split = "_")[[1]][2]
+            group <- prediction.names[app.env$chromvar.feature]
+            title <- paste0("Prediction Score (", group, 
+                            ") ", pred)
+          }
+          if (app.env$chromvar.feature %in% max.pred.names) {
+            pred <- gsub(pattern = "predicted.", replacement = "", 
+                         x = app.env$feature)
+            pred <- gsub(pattern = ".score", replacement = "", 
+                         x = pred)
+            title <- paste0("Max Prediction Score - ", 
+                            pred)
+          }
+          VlnPlot(object = app.env$object, features = app.env$chromvar.feature, 
+                  group.by = input$metagroup, pt.size = ifelse(test = input$check.featpoints, 
+                                                               yes = 0, no = Seurat:::AutoPointSize(data = app.env$object))) + 
+            ggtitle(label = title) + NoLegend()
+        }
+      }
+    }
+  })
   output$evln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       avail <- c(paste0(Key(object = app.env$object[[app.env$gene.assay]]), 
@@ -4663,6 +4811,63 @@ AzimuthBridgeServer <- function(input, output, session) {
                   group.by = input$metagroup, pt.size = ifelse(test = input$check.featpoints, 
                                                                yes = 0, no = Seurat:::AutoPointSize(data = app.env$object))) + 
             ggtitle(label = title) + NoLegend()
+        }
+      }
+    }
+  })
+  output$motifdim <- renderPlot(expr = {
+    if (!is.null(x = app.env$object)) {
+      palettes <- list(c("lightgrey", "blue"), c("lightgrey", 
+                                                 "darkred"))
+      names(x = palettes) <- c(Key(object = app.env$object[[app.env$chromvar.assay]]), 
+                               "md_")
+      prediction.names <- unlist(x = lapply(X = app.env$metadataxfer, 
+                                            FUN = function(x) {
+                                              assay <- paste0("prediction.score.", x)
+                                              pred <- rep(x = x, times = nrow(x = app.env$object[[assay]]))
+                                              names(x = pred) <- paste0(Key(object = app.env$object[[assay]]), 
+                                                                        rownames(x = app.env$object[[assay]]))
+                                              return(pred)
+                                            }))
+      max.pred.names <- paste0("predicted.", app.env$metadataxfer, 
+                               ".score")
+      md <- c(colnames(x = app.env$object[[]]), names(x = prediction.names))
+      feature.key <- if (app.env$chromvar.feature %in% md) {
+        "md_"
+      }
+      else {
+        paste0(unlist(x = strsplit(x = app.env$chromvar.feature, 
+                                   split = "_"))[1], "_")
+      }
+      pal.use <- palettes[[feature.key]]
+      if (!is.null(x = pal.use)) {
+        if (app.env$chromvar.feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
+          ggplot() + annotate("text", x = 4, y = 25, 
+                              size = 8, label = "Mapping score still computing ... ") + 
+            theme_void()
+        }
+        else {
+          title <- ifelse(test = grepl(pattern = "^chromvar_", 
+                                       x = app.env$feature), yes = gsub(pattern = "^chromvar_", 
+                                                                        replacement = "", x = app.env$chromvar.feature), no = app.env$chromvar.feature)
+          if (app.env$chromvar.feature %in% names(x = prediction.names)) {
+            pred <- strsplit(x = app.env$chromvar.feature, split = "_")[[1]][2]
+            group <- prediction.names[app.env$chromvar.feature]
+            title <- paste0("Prediction Score (", group, 
+                            ") ", pred)
+          }
+          if (app.env$chromvar.feature %in% max.pred.names) {
+            pred <- gsub(pattern = "predicted.", replacement = "", 
+                         x = app.env$chromvar.feature)
+            pred <- gsub(pattern = ".score", replacement = "", 
+                         x = pred)
+            title <- paste0("Max Prediction Score - ", 
+                            pred)
+          }
+          suppressWarnings(expr = FeaturePlot(object = app.env$object, 
+                                              features = app.env$chromvar.feature, cols = pal.use, 
+                                              reduction = "umap.proj")) + xlim(app.env$plot.ranges[[1]]) + 
+            ylim(app.env$plot.ranges[[2]]) + ggtitle(label = title)
         }
       }
     }
@@ -4776,7 +4981,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       tbl <- apply(X = isolate(app.env$object)[[qc]], MARGIN = 2, 
                    FUN = quantile, probs = c(0.0, 0.5, 1.0))
       tbl <- as.data.frame(x = tbl)
-      colnames(x = tbl) <- c("nUMI per cell", "Genes detected per cell")
+      colnames(x = tbl) <- c("Fragments per cell", "Peaks detected per cell")
       if (mt.key %in% colnames(x = isolate(app.env$object)[[]])) {
         tbl[, 3] <- quantile(x = isolate(app.env$object)[[mt.key, 
                                                           drop = TRUE]])
@@ -4785,6 +4990,16 @@ AzimuthBridgeServer <- function(input, output, session) {
       t(x = tbl)
     }
   }, rownames = TRUE)
+  output$motifs <- renderDT(expr = {
+    print("DIFF EXPRESSION FOR MOTIFS")
+    print(app.env$chromvar.diff.expr)
+    if (!is.null(x = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, 
+                                                       input$markerclustersgroup, sep = "_")]])) {
+      RenderDiffMotifExp(diff.exp = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, 
+                                                                      input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters, 
+                         n = Inf)
+    }
+  }, selection = "single", options = list(dom = "t"))
   output$biomarkers <- renderDT(expr = {
     print("DIFF EXPRESSION FOR BIOMARKERS")
     print(app.env$diff.expr)
