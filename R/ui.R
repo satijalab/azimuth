@@ -838,7 +838,7 @@ AzimuthBridgeUI <- tagList(
               id = 'motifinput',
               class = 'thirds',
               selectizeInput(
-                inputId = 'motif',
+                inputId = 'chromvar.feature',
                 label = 'Motif',
                 choices = ''
               )

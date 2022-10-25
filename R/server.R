@@ -3122,15 +3122,15 @@ AzimuthBridgeServer <- function(input, output, session) {
             })
           }
           else if (perc_overlap < 80 & perc_overlap > 60) {
-            output$valuebox.upload <- renderValueBox(expr = {
-              valueBox(value = ncellsupload, subtitle = "Overlap Percentage",
+            output$valuebox.overlap<- renderValueBox(expr = {
+              valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                        icon = icon(name = "exclamation-circle"), color = "yellow")
             })
             
           }
           else {
-            output$valuebox.upload <- renderValueBox(expr = {
-              valueBox(value = ncellsupload, subtitle = "Overlap Percentage Too Low",
+            output$valuebox.overlap <- renderValueBox(expr = {
+              valueBox(value = perc_overlap, subtitle = "Overlap Percentage Too Low",
                        icon = icon(name = "exclamation-circle"), color = "red")
             })
           }
@@ -4077,7 +4077,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       #                                   no = VariableFeatures(object = app.env$object)[1])
       app.env$default.chromvar.feature <- ifelse(test = "MA0030.1" %in% 
                                                    rownames(x = app.env$object), yes = "MA0030.1", 
-                                                 no = row.names(object = app.env$object[["data"]])[1])
+                                                 no = row.names(x = app.env$object[["data"]])[1])
       print(app.env$default.chromvar.feature)
       app.env$chromvar.features <- unique(x = rownames(x = app.env$object)) # c(FilterFeatures(features =
       print(head(app.env$chromvar.features))
@@ -4088,6 +4088,8 @@ AzimuthBridgeServer <- function(input, output, session) {
                            options = selectize.opts)
       print("INPUT CHROMVAR FEATURE:")
       print(input$chromvar.feature)
+      input.chromvar.feature <- "MA0030.1"
+      print(input.chromvar.feature)
       if (isTRUE(x = do.adt)) {
         app.env$adt.features <- sort(x = rownames(x = app.env$object[[adt.key]]))
         updateSelectizeInput(session = session, inputId = "adtfeature", 
@@ -4107,6 +4109,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       print(app.env$default.feature)
       app.env$features <- unique(x = c(FilterFeatures(features = VariableFeatures(object = app.env$object)[1:selectize.opts$maxOptions]), 
                                        FilterFeatures(features = rownames(x = app.env$object))))
+      print(head(app.env$features))
       updateSelectizeInput(session = session, inputId = "feature", 
                            label = "Feature", choices = app.env$features, 
                            selected = app.env$default.feature, server = TRUE, 
