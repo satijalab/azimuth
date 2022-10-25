@@ -421,7 +421,6 @@ RenderDiffExp <- function(
   if (is.null(diff.exp)){
     print("Differential Expression is empty ")
   }
-  print(diff.exp)
   groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
   diff.exp <- lapply(
     X = groups.use,
@@ -488,7 +487,7 @@ RenderDiffMotifExp <- function(
   )
   # the things might be characters so they cant be ordered? 
   diff.exp <- do.call(what = 'rbind', diff.exp)
-  rownames(x = diff.exp) <- make.unique(names = diff.exp$feature)
+  rownames(x = diff.exp) <- make.unique(names = diff.exp$gene)
   diff.exp <- signif(
     x = diff.exp[, cols.keep, drop = FALSE],
     digits = getOption(

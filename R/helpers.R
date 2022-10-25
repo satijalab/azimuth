@@ -653,7 +653,7 @@ LoadBridgeReference<- function(path, seconds = 10L) {
   # Validate that reference contains required dims
   print(ncol(x = map[["refDR"]]))
   print(getOption(x = "Azimuth.map.ndims"))
-  if (ncol(x = map[["refDR"]]) < 50) { # getOption(x = "Azimuth.map.ndims"))
+  if (ncol(x = map[["refDR"]]) < getOption(x = "Azimuth.map.ndims")) {
     stop("Provided reference doesn't contain at least ",
          getOption(x = "Azimuth.map.ndims"), " dimensions. Please either
          regenerate reference with requested dimensionality or adjust ",
@@ -929,7 +929,7 @@ RequantifyPeaks <- function(
   rownames(atac_final) <- new_names
   # Merge duplicates
   atac_final <- rowsum(atac_final, row.names(atac_final), reorder=FALSE)  
-  atac_final <- Matrix(atac_final, sparse = TRUE) 
+  atac_final <- Matrix::Matrix(atac_final, sparse = TRUE) 
   ##### code from signac 
   if (inherits(x = subject, what = "GRanges")){
     gene.key <- subject$gene_name
