@@ -844,17 +844,17 @@ AzimuthBridgeUI <- tagList(
               )
             ),
             div(
-              id = 'continput',
+              id = 'continput.motif',
               class = 'thirds',
               selectizeInput(
-                inputId = 'metadata.cont',
+                inputId = 'metadata.cont.motif',
                 label = 'Prediction Scores and Metadata',
                 choices = ''
               )
             ),
             plotOutput(outputId = 'motifdim'),
             selectizeInput(
-              inputId = 'metagroup',
+              inputId = 'metagroup.motif',
               label = 'Metadata to group by',
               choices = '',
               width = '25%'
@@ -893,19 +893,19 @@ AzimuthBridgeUI <- tagList(
               options = list(container = 'body')
             ),
             div(
-              id = 'markerclustersgroupinput',
+              id = 'markerclustersgroupinput.motif',
               class = 'halves',
               selectizeInput(
-                inputId = 'markerclustersgroup',
+                inputId = 'markerclustersgroup.motif',
                 label = 'Metadata group',
                 choices = ''
               )
             ),
             div(
-              id = 'markerclustersgroupinput',
+              id = 'markerclustersgroupinput.motif',
               class = 'halves',
               selectizeInput(
-                inputId = 'markerclusters',
+                inputId = 'markerclusters.motif',
                 label = 'Predicted cell type',
                 choices = ''
               )

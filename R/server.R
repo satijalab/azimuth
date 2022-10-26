@@ -1445,6 +1445,14 @@ AzimuthServer <- function(input, output, session) {
         )
         updateSelectizeInput(
           session = session,
+          inputId = 'metadata.cont.motif',
+          choices = app.env$metadata.cont,
+          selected = '',
+          server = TRUE,
+          options = selectize.opts
+        )
+        updateSelectizeInput(
+          session = session,
           inputId = 'metacolor.ref',
           choices = c(grep(pattern = '^predicted.', x = app.env$metadataxfer, value = TRUE), # re-ordering not working...
                       grep(pattern = '^predicted.', x = app.env$metadataxfer, value = TRUE, invert = TRUE)),
@@ -3995,7 +4003,7 @@ AzimuthBridgeServer <- function(input, output, session) {
                                                            max.levels = 50))
       app.env$metadata.discrete <- metadata.discrete
       print(app.env$metadata.discrete)
-      for (id in c("metarow", "metacol", "metagroup")) {
+      for (id in c("metarow", "metacol", "metagroup", "metagroup.motif")) {
         if (id == "metarow") {
           show.metadata <- "query"
         }
@@ -4053,6 +4061,9 @@ AzimuthBridgeServer <- function(input, output, session) {
       app.env$metadata.cont <- metadata.cont
       print("updating selective size input again")
       updateSelectizeInput(session = session, inputId = "metadata.cont", 
+                           choices = app.env$metadata.cont, selected = "", 
+                           server = TRUE, options = selectize.opts)
+      updateSelectizeInput(session = session, inputId = "metadata.cont.motif", 
                            choices = app.env$metadata.cont, selected = "", 
                            server = TRUE, options = selectize.opts)
       updateSelectizeInput(session = session, inputId = "metacolor.ref", 
@@ -4114,6 +4125,8 @@ AzimuthBridgeServer <- function(input, output, session) {
                            label = "Feature", choices = app.env$features, 
                            selected = app.env$default.feature, server = TRUE, 
                            options = selectize.opts)
+      print("INPUT$FEATURE")
+      print(input$feature)
       if (isTRUE(x = do.adt)) {
         app.env$adt.features <- sort(x = rownames(x = app.env$object[[adt.key]]))
         updateSelectizeInput(session = session, inputId = "adtfeature", 
@@ -4143,6 +4156,10 @@ AzimuthBridgeServer <- function(input, output, session) {
                            choices = app.env$metadataxfer[!app.env$singlepred], 
                            selected = app.env$default.metadata, server = TRUE, 
                            options = selectize.opts)
+      updateSelectizeInput(session = session, inputId = "markerclustersgroup.motif", 
+                           choices = app.env$metadataxfer[!app.env$singlepred], 
+                           selected = app.env$default.metadata, server = TRUE, 
+                           options = selectize.opts)
       react.env$markers <- FALSE
       react.env$get.feature <- TRUE
       react.env$get.chromvar.feature <- TRUE
@@ -4167,10 +4184,10 @@ AzimuthBridgeServer <- function(input, output, session) {
         print("got app.env$chrombar.feature")
         print(app.env$chromvar.feature)
         print("MARKER CLUSTERS GROUP INPUT: ")
-        print(input$markerclustersgroup)
+        print(input$markerclustersgroup.motif)
         print("running render diff motif exp")
         table.check <- input$chromvar.feature %in% rownames(x = RenderDiffMotifExp(diff.exp = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, 
-                                                                                                                                input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters, 
+                                                                                                                                input$markerclustersgroup.motif, sep = "_")]], groups.use = input$markerclusters, 
                                                                                    n = Inf))
         print(table.check)
         tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, 
@@ -4256,6 +4273,23 @@ AzimuthBridgeServer <- function(input, output, session) {
       }
     }
   })
+  observeEvent(eventExpr = input$metadata.cont.motif, handlerExpr = {
+    if (nchar(x = input$metadata.cont.motif)) {
+      if (input$metadata.cont.motif == "mapping.score") {
+        if (resolved(x = app.env$mapping.score)) {
+          app.env$object$mapping.score <- value(app.env$mapping.score)
+        }
+      }
+      print('doing continued metadata')
+      app.env$chromvar.feature <- input$metadata.cont.motif
+      updateSelectizeInput(session = session, inputId = "chromvar.feature", 
+                           choices = app.env$chromvar.features, 
+                           selected = "", server = TRUE, options = selectize.opts)
+      for (tab in list(rna.proxy, adt.proxy)) {
+        selectRows(proxy = tab, selected = NULL)
+      }
+    }
+  })
   observeEvent(eventExpr = input$markerclustersgroup, handlerExpr = {
     if (nchar(x = input$markerclustersgroup)) {
       print("doing markerclusters group")
@@ -4267,6 +4301,21 @@ AzimuthBridgeServer <- function(input, output, session) {
       allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(object = allowed.clusters))))
       app.env$allowedclusters <- allowed.clusters
       updateSelectizeInput(session = session, inputId = "markerclusters", 
+                           choices = app.env$allowedclusters, selected = app.env$allowedclusters[1], 
+                           server = TRUE, options = selectize.opts)
+    }
+  })
+  observeEvent(eventExpr = input$markerclustersgroup.motif, handlerExpr = {
+    if (nchar(x = input$markerclustersgroup.motif)) {
+      print("doing markerclusters group")
+      allowed.clusters <- names(x = which(x = table(app.env$object[[paste0("predicted.", 
+                                                                           input$markerclustersgroup.motif)]]) > getOption(x = "Azimuth.de.mincells")))
+      allowed.clusters <- factor(x = allowed.clusters, 
+                                 levels = unique(x = app.env$object[[paste0("predicted.", 
+                                                                            input$markerclustersgroup.motif), drop = TRUE]]))
+      allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(object = allowed.clusters))))
+      app.env$allowedclusters <- allowed.clusters
+      updateSelectizeInput(session = session, inputId = "markerclusters.motif", 
                            choices = app.env$allowedclusters, selected = app.env$allowedclusters[1], 
                            server = TRUE, options = selectize.opts)
     }
@@ -4290,7 +4339,7 @@ AzimuthBridgeServer <- function(input, output, session) {
                    print("doing motif row selected")
                    updateSelectizeInput(session = session, inputId = "motif", 
                                         choices = app.env$chromvar.features, selected = rownames(x = RenderDiffMotifExp(diff.exp = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, 
-                                                                                                                                                                  input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters, 
+                                                                                                                                                                  input$markerclustersgroup.motif, sep = "_")]], groups.use = input$markerclusters.motif, 
                                                                                                                         n = Inf))[input$motif_rows_selected], 
                                         server = TRUE, options = selectize.opts)
                  }
@@ -4786,7 +4835,7 @@ AzimuthBridgeServer <- function(input, output, session) {
           print("MOTIF FOR VLN PLOT")
           print(app.env$chromvar.feature)
           VlnPlot(object = app.env$object, features = app.env$chromvar.feature, 
-                  group.by = input$metagroup, pt.size = ifelse(test = input$check.featpoints, 
+                  group.by = input$metagroup.motif, pt.size = ifelse(test = input$check.featpoints, 
                                                                yes = 0, no = Seurat:::AutoPointSize(data = app.env$object))) + 
             ggtitle(label = title) + NoLegend()
         }
@@ -4842,6 +4891,8 @@ AzimuthBridgeServer <- function(input, output, session) {
           }
           print("FEATURE FOR VLN PLOT")
           print(app.env$feature)
+          print("GROUP BY")
+          print(input$metagroup)
           VlnPlot(object = app.env$object, features = app.env$feature, 
                   group.by = input$metagroup, pt.size = ifelse(test = input$check.featpoints, 
                                                                yes = 0, no = Seurat:::AutoPointSize(data = app.env$object))) + 
@@ -4879,6 +4930,8 @@ AzimuthBridgeServer <- function(input, output, session) {
       print("FEATURE KEY:")
       print(head(feature.key))
       pal.use <- palettes[[feature.key]]
+      print("PAL.USE:")
+      print(head(pal.use))
       if (!is.null(x = pal.use)) {
         if (app.env$chromvar.feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
           ggplot() + annotate("text", x = 4, y = 25, 
@@ -5031,11 +5084,11 @@ AzimuthBridgeServer <- function(input, output, session) {
   }, rownames = TRUE)
   output$motifs <- renderDT(expr = {
     print("DIFF EXPRESSION FOR MOTIFS")
-    print(app.env$chromvar.diff.expr)
+    print(head(app.env$chromvar.diff.expr))
     if (!is.null(x = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, 
-                                                       input$markerclustersgroup, sep = "_")]])) {
+                                                       input$markerclustersgroup.motif, sep = "_")]])) {
       RenderDiffMotifExp(diff.exp = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, 
-                                                                      input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters, 
+                                                                      input$markerclustersgroup.motif, sep = "_")]], groups.use = input$markerclusters.motif, 
                          n = Inf)
     }
   }, selection = "single", options = list(dom = "t"))
