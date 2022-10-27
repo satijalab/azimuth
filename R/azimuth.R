@@ -259,7 +259,7 @@ RunAzimuth.Bridge <- function(
     annotation.levels <- annotation.levels[!grepl(pattern = "^ori", x = annotation.levels)]
   }
   if (file.exists(query)) {
-    query_counts <- LoadFileInput(filename = query) 
+    query_counts <- LoadFileInput(path = query) 
   } else {
     stop("Can't find path to query")
   }
