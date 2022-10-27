@@ -447,9 +447,10 @@ RenderDiffExp <- function(
 
 #' Prepare differential expression motif results for rendering
 #'
-#' @param diff.exp A dataframe with differential expression results from FindAllMArkers
+#' @param diff.exp A dataframe with differential expression results from 
+#' \code{\link[Seurat:FindAllMarkers]{Seurat::FindAllMarkers}}
 #' @param groups.use Names of groups to filter \code{diff.exp} to; groups must
-#' be found in \code{diff.exp$group}
+#' be found in \code{diff.exp$cluster}
 #' @param n Number of feature to filter \code{diff.exp} to per group
 #'
 #' @return \code{diff.exp}, ordered by adjusted p-value, filtered to \code{n}
@@ -458,7 +459,7 @@ RenderDiffExp <- function(
 #' @importFrom rlang %||%
 #' @importFrom utils head
 #'
-#' @seealso \code{\link[presto]{wilcoxauc}}
+#' @seealso \code{\link[Seurat]{FindAllMarkers}}
 #'
 #' @keywords internal
 #'
@@ -474,15 +475,15 @@ RenderDiffMotifExp <- function(
   if (is.null(diff.exp)){
     print("Differential Expression is empty ")
   }
-  print(diff.exp)
-  groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
+  print(head(diff.exp))
+  groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$cluster))
   diff.exp <- lapply(
     X = groups.use,
-    FUN = function(group) {
-      group.de <- diff.exp[diff.exp$group == group, , drop = FALSE]
-      #group.de <- group.de[group.de$logFC > logfc.thresh, , drop = FALSE]
-      group.de <- group.de[order(group.de$p_val_adj, -group.de$avg_diff), , drop = FALSE]
-      return(head(x = group.de, n = n))
+    FUN = function(cluster) {
+      cluster.de <- diff.exp[diff.exp$cluster == cluster, , drop = FALSE]
+      #cluster.de <- cluster.de[cluster.de$logFC > logfc.thresh, , drop = FALSE]
+      cluster.de <- cluster.de[order(cluster.de$p_val_adj, -cluster.de$avg_diff), , drop = FALSE]
+      return(head(x = cluster.de, n = n))
     }
   )
   # the things might be characters so they cant be ordered? 
@@ -495,6 +496,8 @@ RenderDiffMotifExp <- function(
       default = default.options$Azimuth.de.digits
     )
   )
+  print("FINALIZED DIFF EXP")
+  print(head(diff.exp))
   return(diff.exp)
 }
 

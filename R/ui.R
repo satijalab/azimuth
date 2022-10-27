@@ -867,7 +867,7 @@ AzimuthBridgeUI <- tagList(
             title = p(
               'Predicted cell type cluster motifs',
               bsButton(
-                inputId = 'q4',
+                inputId = 'q6',
                 label = '',
                 icon = icon(name = 'question'),
                 style = 'info',
@@ -875,13 +875,12 @@ AzimuthBridgeUI <- tagList(
               )
             ),
             bsPopover(
-              id = 'q4',
+              id = 'q6',
               title = 'Motif Analysis Table',
               content = paste(
                 'Only available for clusters with at least 15 cells.',
                 paste(
-                  # 'logFC: log fold-change between cells in the cluster specified and other cells',
-                  'auc: area under ROC',
+                  # 'avg_diff: log fold-change between cells in the cluster specified and other cells',
                   'padj: Benjamini-Hochberg adjusted p value',
                   'pct_in: percent of cells in the cluster with nonzero feature value',
                   'pct_out: percent of cells out of the cluster with nonzero feature value',

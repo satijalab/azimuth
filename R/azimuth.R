@@ -206,6 +206,137 @@ RunAzimuth.Seurat <- function(
 
 
 #' @inheritParams RunAzimuth
+#' @param reference Name of reference to map to or a path to a directory containing ref.Rds bridge.Rds and ext.Rds
+#' @param annotation.levels list of annotation levels to map. If not specified, all will be mapped.
+#' @param umap.name name of umap reduction in the returned object
+#' @param do.adt transfer ADT assay
+#' @param assay query assay name
+#'
+#' @return Seurat object with reference reductions and annotations
+#'
+#' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
+#' @importFrom Signac CollapseToLongestTranscript GetTranscripts GetGRangesFromEnsDb RunTFIDF # issue is i think the transcript ones are internal functions so would this work
+#' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
+#' @importFrom IRanges findOverlaps
+#' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
+#' @importFrom data.table as.data.table
+#' @export
+#' @method RunAzimuth Bridge
+#' @rdname RunAzimuth.Bridge
+#'
+RunAzimuth.Bridge <- function(
+    query,
+    reference,
+    annotation.levels = NULL,
+    umap.name = "ref.umap",
+    do.adt = FALSE,
+    verbose = TRUE,
+    assay = "RNA",
+    k.weight = 50,
+    n.trees = 20,
+    mapping.score.k = 100,
+    dims.atac = 2:50, 
+    dims.rna = 1:50
+) {
+  if (dir.exists(reference)) { 
+    reference_all <- LoadBridgeReference(reference)
+    reference <- reference_all$map
+    multiome <- reference_all$bridge
+    obj.rna.ext <- reference_all$ext
+  } else {
+    stop("Can't find path to reference")
+  }
+  #reference.version <- ReferenceVersion(reference)
+  azimuth.version <- as.character(packageVersion(pkg = "Azimuth"))
+  seurat.version <- as.character(packageVersion(pkg = "Seurat"))
+  meta.data <- names(slot(reference, "meta.data"))
+  
+  # is annotation levels are not specify, gather all levels of annotation
+  if (is.null(annotation.levels)) {
+    annotation.levels <- names(slot(object = reference, name = "meta.data"))
+    annotation.levels <- annotation.levels[!grepl(pattern = "^nCount", x = annotation.levels)]
+    annotation.levels <- annotation.levels[!grepl(pattern = "^nFeature", x = annotation.levels)]
+    annotation.levels <- annotation.levels[!grepl(pattern = "^ori", x = annotation.levels)]
+  }
+  if (file.exists(query)) {
+    query_counts <- LoadFileInput(filename = query) 
+  } else {
+    stop("Can't find path to query")
+  }
+  annotation <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86) # this could also be saved as an object if we wanna save 30 s 
+  seqlevelsStyle(annotation) <- 'UCSC'
+  print("got annotations")
+  query_assay <- CreateChromatinAssay(
+    counts = query_counts[["RNA"]]@counts,
+    sep = c(":", "-"),
+    annotation = annotation
+  )
+  print("made chromatin assay")
+  print(query_assay)
+  o_hits <- findOverlaps(query_assay, multiome[["ATAC"]])
+  print("found overlaps")
+  query_requantified  <- RequantifyPeaks(o_hits, query_assay, multiome)
+  print("requantified peaks")
+  # Create assay with requantified ATAC data
+  ATAC_assay <- CreateChromatinAssay(
+    counts = query_requantified,
+    sep = c(":", "-"),
+    annotation = annotation
+  )
+  
+  # Create Seurat Object
+  obj.atac <- CreateSeuratObject(counts = ATAC_assay, assay = 'ATAC')
+  obj.atac[['peak.orig']] <- query_assay
+  obj.atac <- subset(obj.atac, subset = nCount_ATAC < 7e4 & nCount_ATAC > 2000)
+  
+  # normalize query
+  obj.atac <- RunTFIDF(obj.atac)
+  
+  # Find anchors between query and reference # deleted find transfer anchors 
+  bridge.anchor <- FindBridgeTransferAnchors(extended.reference = obj.rna.ext,
+                                             query = obj.atac,
+                                             reduction = "lsiproject",
+                                             dims = dims.atac)
+  # Transferred labels are in metadata columns named "predicted.*"
+  # The maximum prediction score is in a metadata column named "predicted.*.score"
+  # The prediction scores for each class are in an assay named "prediction.score.*"
+  # The imputed assay is named "impADT" if computed
+  refdata <- lapply(X = annotation.levels, function(x) {
+    reference[[x, drop = TRUE]]
+  })
+  names(x = refdata) <- annotation.levels
+  
+  #if (isTRUE(do.adt)) {
+  #  refdata[["impADT"]] <- GetAssayData(
+  #    object = reference[["ADT"]],
+  #    slot = "data"
+  #  )
+  #}
+  
+  obj.atac <- MapQuery(anchorset = bridge.anchor,  # deleted transfer data 
+                       reference = reference, 
+                       query = obj.atac, 
+                       refdata = refdata,
+                       reduction.model = "refUMAP")
+  # Get Gene Activities 
+  transcripts <- GetTranscripts(obj.atac)
+  o_hits <- findOverlaps(obj.atac[["ATAC"]], transcripts)
+  atac_final <- RequantifyPeaks(o_hits, obj.atac, transcripts)
+  #dd feature matrix to Chromatin Assay 
+  obj.atac[['RNA']] <- CreateAssayObject(counts = atac_final)
+  
+  #Normalize the feature data
+  obj.atac <- NormalizeData(
+    object = obj.atac,
+    assay = 'RNA',
+    normalization.method = 'LogNormalize',
+    scale.factor = median(obj.atac$nCount_RNA)
+  )
+  return(obj.atac)
+}
+
+
+#' @inheritParams RunAzimuth
 #' @export
 #' @method RunAzimuth character
 #' @rdname RunAzimuth

@@ -2818,6 +2818,8 @@ AzimuthServer <- function(input, output, session) {
 #' @importFrom utils write.table packageVersion
 #' @importFrom plotly plotlyOutput renderPlotly toWebGL ggplotly plot_ly
 #' @importFrom Signac CollapseToLongestTranscript GetTranscripts GetGRangesFromEnsDb RunTFIDF 
+#' RunChromVar AddMotifs
+#' @importFrom TFBSTools getMatrixSet
 #' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
 #' @importFrom IRanges findOverlaps
 #' @importFrom data.table as.data.table
@@ -2890,6 +2892,7 @@ AzimuthBridgeServer <- function(input, output, session) {
     disable(id = "map")
     hide(selector = ".rowhide")
   }
+  motif.proxy <- dataTableProxy(outputId = "motifs")
   rna.proxy <- dataTableProxy(outputId = "biomarkers")
   adt.proxy <- dataTableProxy(outputId = "adtbio")
   logging <- all(vapply(X = paste0("Azimuth.app.google", c("sheet", 
@@ -4097,10 +4100,7 @@ AzimuthBridgeServer <- function(input, output, session) {
                            label = "Motif", choices = app.env$chromvar.features, 
                            selected = app.env$default.chromvar.feature, server = TRUE, 
                            options = selectize.opts)
-      print("INPUT CHROMVAR FEATURE:")
-      print(input$chromvar.feature)
-      input.chromvar.feature <- "MA0030.1"
-      print(input.chromvar.feature)
+
       if (isTRUE(x = do.adt)) {
         app.env$adt.features <- sort(x = rownames(x = app.env$object[[adt.key]]))
         updateSelectizeInput(session = session, inputId = "adtfeature", 
@@ -4108,6 +4108,17 @@ AzimuthBridgeServer <- function(input, output, session) {
                              server = TRUE, options = selectize.opts)
       }
       react.env$chromvar.features <- FALSE
+    }
+  })
+  observeEvent(eventExpr = input$chromvar.feature, handlerExpr = {
+    if (nchar(x = input$chromvar.feature)) {
+      print(paste0("CHROMVAR FEATURE IN NEW BLOCK: ", input$chromvar.feature))
+      DefaultAssay(app.env$object) <- app.env$chromvar.assay
+      app.env$chromvar.feature <- ifelse(test = input$chromvar.feature %in%
+                                           rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$chromvar.assay]]),
+                                                                                      input$chromvar.feature), no = input$chromvar.feature)
+      print("got app.env$chromvar.feature")
+      print(app.env$chromvar.feature)
     }
   })
   observeEvent(eventExpr = react.env$features, handlerExpr = {
@@ -4125,8 +4136,7 @@ AzimuthBridgeServer <- function(input, output, session) {
                            label = "Feature", choices = app.env$features, 
                            selected = app.env$default.feature, server = TRUE, 
                            options = selectize.opts)
-      print("INPUT$FEATURE")
-      print(input$feature)
+ 
       if (isTRUE(x = do.adt)) {
         app.env$adt.features <- sort(x = rownames(x = app.env$object[[adt.key]]))
         updateSelectizeInput(session = session, inputId = "adtfeature", 
@@ -4135,6 +4145,16 @@ AzimuthBridgeServer <- function(input, output, session) {
       }
       react.env$markers <- TRUE
       react.env$features <- FALSE
+    }
+  })
+  observeEvent(eventExpr = input$feature, handlerExpr = {
+    if (nchar(x = input$feature)) {
+      print(paste0("FEATURE IN NEW BLOCK ", input$feature))
+      app.env$feature <- ifelse(test = input$feature %in%
+                                  rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$gene.assay]]),
+                                                                             input$feature), no = input$feature)
+      print("got app.env$feature")
+      print(app.env$feature)
     }
   })
   observeEvent(eventExpr = react.env$markers, handlerExpr = {
@@ -4160,9 +4180,9 @@ AzimuthBridgeServer <- function(input, output, session) {
                            choices = app.env$metadataxfer[!app.env$singlepred], 
                            selected = app.env$default.metadata, server = TRUE, 
                            options = selectize.opts)
-      react.env$markers <- FALSE
       react.env$get.feature <- TRUE
       react.env$get.chromvar.feature <- TRUE
+      react.env$markers <- FALSE
       app.env$disable <- FALSE
     }
   })
@@ -4171,49 +4191,110 @@ AzimuthBridgeServer <- function(input, output, session) {
       react.env$no <- FALSE
     }
   })
-  observeEvent(eventExpr = list(react.env$get.chromvar.feature, input$feature), handlerExpr = {
-    if (isTRUE(x = react.env$get.chromvar.feature)) {
-      print("doing get chromvar features")
-      if (nchar(x = input$chromvar.feature)) {
-        print("doing input$chromvar.feature")
-        head(input$chromvar.feature)
-        DefaultAssay(app.env$object) <- app.env$chromvar.assay
-        app.env$chromvar.feature <- ifelse(test = input$chromvar.feature %in% 
-                                             rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$chromvar.assay]]), 
-                                                                                        input$chromvar.feature), no = input$chromvar.feature)
+  # observeEvent(eventExpr = list(react.env$get.chromvar.feature, input$chromvar.feature), handlerExpr = {
+  #   if (isTRUE(x = react.env$get.chromvar.feature)) {
+  #     browser()
+  #     print("doing get chromvar features")
+  #     if (nchar(x = input$chromvar.feature)) {
+  #       print("doing input$chromvar.feature")
+  #       head(input$chromvar.feature)
+  #       DefaultAssay(app.env$object) <- app.env$chromvar.assay
+  #       #app.env$chromvar.feature <- ifelse(test = input$chromvar.feature %in%
+  #                                            #rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$chromvar.assay]]),
+  #                                                                                       #input$chromvar.feature), no = input$chromvar.feature)
+  #       print("got app.env$chrombar.feature")
+  #       print(app.env$chromvar.feature)
+  #       print("MARKER CLUSTERS GROUP INPUT: ")
+  #       print(input$markerclustersgroup.motif)
+  #       print("running render diff motif exp")
+  #       table.check <- input$chromvar.feature %in% rownames(x = RenderDiffMotifExp(diff.exp = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay,
+  #                                                                                                                               input$markerclustersgroup.motif, sep = "_")]], groups.use = input$markerclusters,
+  #                                                                                  n = Inf))
+  #       print(table.check)
+  #       tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE,
+  #                                                    !table.check)]
+  #       for (tab in tables.clear) {
+  #         selectRows(proxy = tab, selected = NULL)
+  #       }
+  #     }
+  #   }
+  #   react.env$get.chromvar.feature <- FALSE
+  # })
+  observeEvent(eventExpr = react.env$get.chromvar.feature, handlerExpr = {
+      if (isTRUE(x = react.env$get.chromvar.feature)) {
+        #browser()
+        req(input$markerclusters)
+        req(input$markerclustersgroup.motif)
+        req(input$chromvar.feature)
+        print("doing react.env$get.chromvar.feature")
         print("got app.env$chrombar.feature")
         print(app.env$chromvar.feature)
-        print("MARKER CLUSTERS GROUP INPUT: ")
-        print(input$markerclustersgroup.motif)
         print("running render diff motif exp")
-        table.check <- input$chromvar.feature %in% rownames(x = RenderDiffMotifExp(diff.exp = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, 
-                                                                                                                                input$markerclustersgroup.motif, sep = "_")]], groups.use = input$markerclusters, 
+        print(paste(app.env$chromvar.assay,input$markerclustersgroup.motif, sep = "_"))
+        table.check <- input$chromvar.feature %in% rownames(x = RenderDiffMotifExp(diff.exp = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay,
+                                                                                                                                input$markerclustersgroup.motif, sep = "_")]], groups.use = input$markerclusters,
                                                                                    n = Inf))
         print(table.check)
-        tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, 
+        tables.clear <- list(adt.proxy, motif.proxy)[c(TRUE,
                                                      !table.check)]
         for (tab in tables.clear) {
           selectRows(proxy = tab, selected = NULL)
         }
       }
-    }
     react.env$get.chromvar.feature <- FALSE
   })
-  observeEvent(eventExpr = list(react.env$get.feature, input$feature), handlerExpr = {
-    if (isTRUE(x = react.env$get.feature)) {
-      if (nchar(x = input$feature)) {
-        print("doing input$feature")
-        head(input$feature)
-        app.env$feature <- ifelse(test = input$feature %in% 
-                                    rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$gene.assay]]), 
-                                                                               input$feature), no = input$feature)
-        print("got app.env$feature")
+  # observeEvent(eventExpr = list(react.env$get.feature, input$feature), handlerExpr = {
+  #   if (isTRUE(x = react.env$get.feature)) {
+  #     browser()
+  #     if (nchar(x = input$feature)) {
+  #       print("doing input$feature")
+  #       head(input$feature)
+  #       app.env$feature <- ifelse(test = input$feature %in%
+  #                                   rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$gene.assay]]),
+  #                                                                              input$feature), no = input$feature)
+  #       print("got app.env$feature")
+  #       print(app.env$feature)
+  #       for (f in c("adtfeature", "metadata.cont")) {
+  #         print("updating selective size input")
+  #         updateSelectizeInput(session = session, inputId = f,
+  #                              choices = list(adtfeature = app.env$adt.features,
+  #                                             metadata.cont = app.env$metadata.cont)[[f]],
+  #                              selected = "", server = TRUE, options = selectize.opts)
+  #       }
+  #       for (f in c("feature", "metadata.cont")) {
+  #         updateSelectizeInput(session = session, inputId = f, 
+  #                              choices = list(feature = app.env$features, 
+  #                                             metadata.cont = app.env$metadata.cont)[[f]], 
+  #                              selected = "", server = TRUE, options = selectize.opts)
+  #       }
+  #       print("doing table check")
+  #       print("MARKER CLUSTERS GROUP")
+  #       print(input$markerclustersgroup)
+  #       print("CHECKING FEATURE IN MARKER CLUSTERS GROUP")
+  #       print(input$feature)
+  #       table.check <- input$feature %in% rownames(x = RenderDiffExp(diff.exp = app.env$diff.expr[[paste(app.env$gene.assay,
+  #                                                                                                        input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters,
+  #                                                                    n = Inf))
+  #       tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE,
+  #                                                    !table.check)]
+  #       for (tab in tables.clear) {
+  #         selectRows(proxy = tab, selected = NULL)
+  #       }
+  #     }
+  #   }
+  #   react.env$get.feature <- FALSE
+  # })
+  observeEvent(eventExpr = react.env$get.feature <- FALSE, handlerExpr = {
+      if (isTRUE(react.env$get.feature)) {
+        print("react.env$get.feature")
         print(app.env$feature)
+        req(input$markerclustersgroup)
+        req(input$feature)
         for (f in c("adtfeature", "metadata.cont")) {
           print("updating selective size input")
-          updateSelectizeInput(session = session, inputId = f, 
-                               choices = list(adtfeature = app.env$adt.features, 
-                                              metadata.cont = app.env$metadata.cont)[[f]], 
+          updateSelectizeInput(session = session, inputId = f,
+                               choices = list(adtfeature = app.env$adt.features,
+                                              metadata.cont = app.env$metadata.cont)[[f]],
                                selected = "", server = TRUE, options = selectize.opts)
         }
         print("doing table check")
@@ -4221,16 +4302,15 @@ AzimuthBridgeServer <- function(input, output, session) {
         print(input$markerclustersgroup)
         print("CHECKING FEATURE IN MARKER CLUSTERS GROUP")
         print(input$feature)
-        table.check <- input$feature %in% rownames(x = RenderDiffExp(diff.exp = app.env$diff.expr[[paste(app.env$gene.assay, 
-                                                                                                         input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters, 
+        table.check <- input$feature %in% rownames(x = RenderDiffExp(diff.exp = app.env$diff.expr[[paste(app.env$gene.assay,
+                                                                                                         input$markerclustersgroup, sep = "_")]], groups.use = input$markerclusters,
                                                                      n = Inf))
-        tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, 
+        tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE,
                                                      !table.check)]
         for (tab in tables.clear) {
           selectRows(proxy = tab, selected = NULL)
         }
       }
-    }
     react.env$get.feature <- FALSE
   })
   observeEvent(eventExpr = input$adtfeature, handlerExpr = {
@@ -4285,7 +4365,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       updateSelectizeInput(session = session, inputId = "chromvar.feature", 
                            choices = app.env$chromvar.features, 
                            selected = "", server = TRUE, options = selectize.opts)
-      for (tab in list(rna.proxy, adt.proxy)) {
+      for (tab in list(rna.proxy, adt.proxy)) { #changed
         selectRows(proxy = tab, selected = NULL)
       }
     }
@@ -4784,6 +4864,7 @@ AzimuthBridgeServer <- function(input, output, session) {
   })
   output$motifvln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
+      print("RENDERING VLN PLOT FOR MOTIF")
       avail <- c(paste0(Key(object = app.env$object[[app.env$chromvar.assay]]), 
                         rownames(x = app.env$object[[app.env$chromvar.assay]])), colnames(x = app.env$object[[]]))
       prediction.names <- unlist(x = lapply(X = app.env$metadataxfer, 
@@ -4845,6 +4926,8 @@ AzimuthBridgeServer <- function(input, output, session) {
   output$evln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
       print("EVLN")
+      DefaultAssay(app.env$object) <- app.env$gene.assay
+      print(head(rownames(x = app.env$object)))
       avail <- c(paste0(Key(object = app.env$object[[app.env$gene.assay]]), 
                         rownames(x = app.env$object)), colnames(x = app.env$object[[]]))
       prediction.names <- unlist(x = lapply(X = app.env$metadataxfer, 
@@ -4903,6 +4986,7 @@ AzimuthBridgeServer <- function(input, output, session) {
   })
   output$motifdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
+      print("MAKING MOTIF DIM PLOT")
       palettes <- list(c("lightgrey", "blue"), c("lightgrey", 
                                                  "darkred"))
       names(x = palettes) <- c(Key(object = app.env$object[[app.env$chromvar.assay]]), 
@@ -4958,6 +5042,7 @@ AzimuthBridgeServer <- function(input, output, session) {
           }
           suppressWarnings(expr = FeaturePlot(object = app.env$object, 
                                               features = app.env$chromvar.feature, cols = pal.use, 
+                                              min.cutoff = 'q10', max.cutoff = 'q90',  
                                               reduction = "umap.proj")) + xlim(app.env$plot.ranges[[1]]) + 
             ylim(app.env$plot.ranges[[2]]) + ggtitle(label = title)
         }
