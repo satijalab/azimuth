@@ -858,10 +858,10 @@ OverlapDistPlot <- function(query_assay, multiome){
 #
 # @return Percentage of Overlap 
 #
-PercOverlap <- function(atac_peaks){
+PercOverlap <- function(overlap_df){
   # if no overlap  
-  len_overlap <- atac_peaks$o_end - atac_peaks$o_start
-  len_q <- atac_peaks$end - atac_peaks$start
+  len_overlap <- overlap_df$o_end - overlap_df$o_start
+  len_q <- overlap_df$end - overlap_df$start
   perc <- (len_overlap/len_q)
   return(perc)
 }
@@ -874,22 +874,33 @@ PercOverlap <- function(atac_peaks){
 #
 # @return Percentage of Overlap 
 #
-OverlapQC <- function(o_hits, atac, multi) {
-  atac_inds <- queryHits(o_hits)
-  multi_inds <- subjectHits(o_hits)
-  atac_peaks <- as.data.table(GetAssayData(atac, slot = "ranges")[atac_inds,])
-  multi_peaks <- as.data.table(GetAssayData(multi, assay = "ATAC", slot = "ranges")[multi_inds,])
-  atac_peaks$o_start <- mapply(max, atac_peaks$start, multi_peaks$start)
-  atac_peaks$o_end <- mapply(min, atac_peaks$end, multi_peaks$end)
-  atac_peaks$perc_overlap <- PercOverlap(atac_peaks)
-  atac_peaks
+OverlapQC <- function(query, subject) {
+  o_hits <- findOverlaps(query, subject)
+  query_inds <- queryHits(o_hits)
+  subject_inds <- subjectHits(o_hits)
+  overlap_df <- as.data.table(GetAssayData(query, slot = "ranges")[query_inds,])
+  subject_peaks <- as.data.table(GetAssayData(subject, assay = "query", slot = "ranges")[subject_inds,])
+  overlap_df$o_start <- mapply(max, overlap_df$start, subject_peaks$start)
+  overlap_df$o_end <- mapply(min, overlap_df$end, subject_peaks$end)
+  overlap_df$perc_overlap <- PercOverlap(overlap_df)
+  overlap_df
 }
 
-OverlapTotal <- function(atac_peaks){ # from overlap qc 
-  q_width <- sum(atac_peaks$width) # but there will be repeats in this 
-  o_width <- sum(atac_peaks$o_end - atac_peaks$o_start)
+OverlapTotal <- function(query, subject){ 
+  overlap_df <- OverlapQC(query, subject)
+  q_width <- sum(overlap_df$width) # but there will be repeats in this 
+  o_width <- sum(overlap_df$o_end - overlap_df$o_start)
   amount_covered <- (o_width/q_width) * 100
   return(amount_covered)
+}
+
+PeakJaccard <- function(query, subject) {
+  overlap_df <- OverlapQC(query, subject)
+  intersection = sum(overlap_df$o_end - overlap_df$o_start) # this is the total overlap 
+  total_query_width = sum(width(query@ranges))
+  total_subject_width = sum(width(subject@ranges))
+  union = total_query_width + total_subject_width - intersection
+  return ((intersection/union) * 100)
 }
 
 # Requantify atac peaks to either multiomic peaks or to genes 
@@ -918,7 +929,7 @@ RequantifyPeaks <- function(
       message("Requantifying query peaks to match multiome")
     }
   } else if (inherits(x = atac, what = "Seurat")){ 
-    o_hits <- suppressWarnings(findOverlaps(atac[[assay]], transcripts))
+    o_hits <- suppressWarnings(findOverlaps(atac[[assay]], subject))
     atac_inds <- queryHits(o_hits)
     DefaultAssay(atac) <- assay
     print(atac)

@@ -3121,9 +3121,9 @@ AzimuthBridgeServer <- function(input, output, session) {
           )
           print(app.env$chromatin_assay_1)
           print(refs$bridge)
-          app.env$o_hits <- findOverlaps(app.env$chromatin_assay_1, refs$bridge[["ATAC"]])
-          qc_table <- OverlapQC(app.env$o_hits, app.env$chromatin_assay_1, refs$bridge)
-          perc_overlap <- round(x = OverlapTotal(qc_table), digits = 4)
+          #app.env$o_hits <- findOverlaps(app.env$chromatin_assay_1, refs$bridge[["ATAC"]])
+          #qc_table <- OverlapQC(app.env$chromatin_assay_1, refs$bridge)
+          perc_overlap <- round(x = OverlapTotal(app.env$chromatin_assay_1, refs$bridge[["ATAC"]]), digits = 4)
           print("PERC OVERLAP")
           print(perc_overlap)
           if (perc_overlap >= 80) {
@@ -3146,8 +3146,6 @@ AzimuthBridgeServer <- function(input, output, session) {
             })
           }
           print("made chromatin assay ")
-          #app.env$chromatin_assay_1$query <- "query"
-          #print("set this query variable")
           query.cell.names <- paste0("query", 1:ncol(x = app.env$chromatin_assay_1))
           print("got query cell names")
           head(query.cell.names)
@@ -3190,7 +3188,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       withProgress(message = "Requantifying Peaks to Match Bridge", expr = {
         setProgress(value = 0.6)
         tryCatch(expr = {
-          app.env$requantified_multiome <- RequantifyPeaks(app.env$o_hits, app.env$chromatin_assay_1, refs$bridge)
+          app.env$requantified_multiome <- RequantifyPeaks(app.env$chromatin_assay_1, refs$bridge)
           app.env$chromatin_assay_2 <- CreateChromatinAssay(
             counts = app.env$requantified_multiome,
             sep = c(":", "-"),
@@ -3741,11 +3739,19 @@ AzimuthBridgeServer <- function(input, output, session) {
                })
   observeEvent(eventExpr = react.env$gene_activity, handlerExpr = {
     if (isTRUE(react.env$gene_activity)) {
+      # Use original peaks 
+      print("GENE ACTIVITY ")
+      DefaultAssay(app.env$object) <- "peak.orig"
+      print(app.env$object)
       app.env$transcripts <- GetTranscripts(app.env$object)
-      o_hits <- findOverlaps(app.env$object[["ATAC"]], app.env$transcripts)
-      temp <- RequantifyPeaks(o_hits, app.env$object, app.env$transcripts)
-      #dd feature matrix to Chromatin Assay 
+      temp <- RequantifyPeaks(app.env$object, app.env$transcripts)
+      #add feature matrix to Chromatin Assay 
       app.env$object[['RNA']] <- CreateAssayObject(counts = temp)
+      
+      #o_hits <- findOverlaps(app.env$object[["ATAC"]], app.env$transcripts)
+      #temp <- RequantifyPeaks(o_hits, app.env$object, app.env$transcripts)
+      #dd feature matrix to Chromatin Assay 
+      #app.env$object[['RNA']] <- CreateAssayObject(counts = temp)
       
       #Normalize the feature data
       app.env$object <- NormalizeData(
@@ -3910,7 +3916,12 @@ AzimuthBridgeServer <- function(input, output, session) {
   observeEvent(eventExpr = react.env$chromvar, handlerExpr = {
     if (isTRUE(x = react.env$chromvar)) {
       react.env$progress$set(value = 0.98, message = "Running Motif Analysis")
-      DefaultAssay(app.env$object) <- app.env$default.assay
+      DefaultAssay(app.env$object) <- "peak.orig"
+      # Remove peaks on scaffolds 
+      main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+      keep.peaks <- which(as.character(seqnames(granges(app.env$object))) %in% main.chroms)
+      app.env$object[["peak.orig"]] <- subset(app.env$object[["peak.orig"]], features = rownames(app.env$object[["peak.orig"]])[keep.peaks])
+      
       pfm <- getMatrixSet(
         x = JASPAR2020,
         opts = list(species = 9606, all_versions = FALSE)
@@ -3922,10 +3933,18 @@ AzimuthBridgeServer <- function(input, output, session) {
         pfm = pfm
       )
       print("calculating chromvar")
+      startTime <- Sys.time()
       app.env$object <- RunChromVAR(
         object = app.env$object,
         genome = BSgenome.Hsapiens.UCSC.hg38
       )
+      endTime <- Sys.time()
+      print("TOTAL TIME TO RUN CHROMVAR")
+      print(endTime - startTime)
+      # Rename motifs from ids
+      motif_name <- ConvertMotifID(app.env$object[["peak.orig"]]@motifs, id = rownames(app.env$object[["chromvar"]]@data))
+      rownames(app.env$object[["chromvar"]]@data) <- motif_name
+      
       head(row.names(app.env$object[["chromvar"]]@data))
       for (i in app.env$metadataxfer[!app.env$singlepred]) {
         print("setting chromvar.diff.expr")
@@ -4089,9 +4108,9 @@ AzimuthBridgeServer <- function(input, output, session) {
       # app.env$default.feature <- ifelse(test = getOption(x = "Azimuth.app.default_gene") %in% 
       #                                     rownames(x = app.env$object), yes = getOption(x = "Azimuth.app.default_gene"), 
       #                                   no = VariableFeatures(object = app.env$object)[1])
-      app.env$default.chromvar.feature <- ifelse(test = "MA0030.1" %in% 
-                                                   rownames(x = app.env$object), yes = "MA0030.1", 
-                                                 no = row.names(x = app.env$object[["data"]])[1])
+      app.env$default.chromvar.feature <- ifelse(test = "POU2F3" %in% 
+                                                   rownames(x = app.env$object), yes = "POU2F3", 
+                                                 no = row.names(x = app.env$object[[app.env$chromvar.assay]]@data)[1])
       print(app.env$default.chromvar.feature)
       app.env$chromvar.features <- unique(x = rownames(x = app.env$object)) # c(FilterFeatures(features =
       print(head(app.env$chromvar.features))
