@@ -894,29 +894,35 @@ OverlapTotal <- function(atac_peaks){ # from overlap qc
 
 # Requantify atac peaks to either multiomic peaks or to genes 
 #
-# @param o_hits Iranges object of overlapping hits 
-# @param atac
-# @param subject
+# @param o_hits Iranges object of overlapping hits (Should use same assay as assay for requantification)
+# @param ATAC chromatin assay or Seurat Object
+# @param subject ATAC assay from Bridge or Transcripts dataframe 
+# @param assay assay to use in requantifying peaks to genes (original peaks "peak.orig" or requantified peaks "ATAC")
 # @param verbose
 #
 # @return Percentage of Overlap 
 #
 RequantifyPeaks <- function(
-    o_hits, 
+    #o_hits, 
     atac, 
     subject,
+    assay = "peak.orig",
     verbose = TRUE){
   # Query peaks that have overlap w/ multiome peaks
-  atac_inds <- queryHits(o_hits)
   if (inherits(x = atac, what = "ChromatinAssay")){
+    o_hits <- findOverlaps(atac, subject[["ATAC"]])
+    atac_inds <- queryHits(o_hits)
     atac_final <- atac[atac_inds, ]
     new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)]) 
     if (verbose){
       message("Requantifying query peaks to match multiome")
     }
   } else if (inherits(x = atac, what = "Seurat")){ 
-    print("this is transcritps")
-    atac_data <- GetAssayData(atac, assay = "ATAC", slot = "counts")
+    o_hits <- suppressWarnings(findOverlaps(atac[[assay]], transcripts))
+    atac_inds <- queryHits(o_hits)
+    DefaultAssay(atac) <- assay
+    print(atac)
+    atac_data <- GetAssayData(atac, assay = assay, slot = "counts")
     atac_final <- atac_data[atac_inds, ]
     new_names <- GRangesToString(subject[subjectHits(o_hits)])
     if (verbose){

@@ -215,11 +215,13 @@ RunAzimuth.Seurat <- function(
 #' @return Seurat object with reference reductions and annotations
 #'
 #' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
-#' @importFrom Signac CollapseToLongestTranscript GetTranscripts GetGRangesFromEnsDb RunTFIDF # issue is i think the transcript ones are internal functions so would this work
+#' @importFrom Signac CollapseToLongestTranscript GetTranscripts GetGRangesFromEnsDb RunTFIDF RunChromVAR # issue is i think the transcript ones are internal functions so would this work
 #' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
 #' @importFrom IRanges findOverlaps
 #' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
 #' @importFrom data.table as.data.table
+#' @importFrom JASPAR2020 JASPAR2020
+#' @importFrom TFBSTools getMatrixSet
 #' @export
 #' @method RunAzimuth Bridge
 #' @rdname RunAzimuth.Bridge
@@ -273,9 +275,9 @@ RunAzimuth.Bridge <- function(
   )
   print("made chromatin assay")
   print(query_assay)
-  o_hits <- findOverlaps(query_assay, multiome[["ATAC"]])
+  #o_hits <- findOverlaps(query_assay, multiome[["ATAC"]])
   print("found overlaps")
-  query_requantified  <- RequantifyPeaks(o_hits, query_assay, multiome)
+  query_requantified  <- RequantifyPeaks(query_assay, multiome)
   print("requantified peaks")
   # Create assay with requantified ATAC data
   ATAC_assay <- CreateChromatinAssay(
@@ -287,7 +289,7 @@ RunAzimuth.Bridge <- function(
   # Create Seurat Object
   obj.atac <- CreateSeuratObject(counts = ATAC_assay, assay = 'ATAC')
   obj.atac[['peak.orig']] <- query_assay
-  obj.atac <- subset(obj.atac, subset = nCount_ATAC < 7e4 & nCount_ATAC > 2000)
+  #obj.atac <- subset(obj.atac, subset = nCount_ATAC < 7e4 & nCount_ATAC > 2000) we don't want to subset here 
   
   # normalize query
   obj.atac <- RunTFIDF(obj.atac)
@@ -319,10 +321,12 @@ RunAzimuth.Bridge <- function(
                        refdata = refdata,
                        reduction.model = "refUMAP")
   # Get Gene Activities 
+  DefaultAssay(obj.atac) <- "peak.orig"
+  print(obj.atac)
   transcripts <- GetTranscripts(obj.atac)
-  o_hits <- findOverlaps(obj.atac[["ATAC"]], transcripts)
-  atac_final <- RequantifyPeaks(o_hits, obj.atac, transcripts)
-  #dd feature matrix to Chromatin Assay 
+  #o_hits <- findOverlaps(obj.atac[["peak.orig"]], transcripts)
+  atac_final <- RequantifyPeaks(obj.atac, transcripts)
+  #add feature matrix to Chromatin Assay 
   obj.atac[['RNA']] <- CreateAssayObject(counts = atac_final)
   
   #Normalize the feature data
@@ -332,6 +336,28 @@ RunAzimuth.Bridge <- function(
     normalization.method = 'LogNormalize',
     scale.factor = median(obj.atac$nCount_RNA)
   )
+  # Motif analysis
+  # Remove peaks on scaffolds 
+  main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+  keep.peaks <- which(as.character(seqnames(granges(obj.atac))) %in% main.chroms)
+  obj.atac[["peak.orig"]] <- subset(obj.atac[["peak.orig"]], features = rownames(obj.atac[["peak.orig"]])[keep.peaks])
+  
+  pfm <- getMatrixSet(
+    x = JASPAR2020,
+    opts = list(species = 9606, all_versions = FALSE)
+  )
+  obj.atac <- AddMotifs(
+    object = obj.atac,
+    genome = BSgenome.Hsapiens.UCSC.hg38,
+    pfm = pfm
+  )
+  obj.atac <- RunChromVAR(
+    object = obj.atac,
+    genome = BSgenome.Hsapiens.UCSC.hg38
+  )
+  # Rename motifs from ids
+  motif_name <- ConvertMotifID(obj.atac[["peak.orig"]]@motifs, id = rownames(obj.atac[["chromvar"]]@data))
+  rownames(obj.atac[["chromvar"]]@data) <- motif_name
   return(obj.atac)
 }
 
