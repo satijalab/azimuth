@@ -3933,6 +3933,8 @@ AzimuthBridgeServer <- function(input, output, session) {
         pfm = pfm
       )
       print("calculating chromvar")
+      library(BiocParallel)
+      register(SerialParam())
       startTime <- Sys.time()
       app.env$object <- RunChromVAR(
         object = app.env$object,
@@ -4551,7 +4553,7 @@ AzimuthBridgeServer <- function(input, output, session) {
     if (!is.null(x = isolate(expr = app.env$chromatin_assay_1)) & isTRUE(x = react.env$dist.qc)) {
       print("making dist plots")
       dist <- OverlapDistPlot(query_assay = isolate(app.env$chromatin_assay_1),
-                              multiome = refs$bridge)
+                              multiome = refs$bridge[["ATAC"]])
     }
   })
   

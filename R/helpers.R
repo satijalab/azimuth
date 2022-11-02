@@ -846,8 +846,7 @@ bridge_qc <- function(query_assay, mutliome_atac){
 }
 
 OverlapDistPlot <- function(query_assay, multiome){
-  o_hits <- findOverlaps(query_assay, multiome[["ATAC"]])
-  atac_peaks <- OverlapQC(o_hits, query_assay, multiome)
+  atac_peaks <- OverlapQC(query_assay, multiome)
   d <- density(atac_peaks$perc_overlap)
   plot(d, xlab='Percentage of Overlap', main = 'Distribution of Overlap Percentages')
 }
@@ -869,8 +868,8 @@ PercOverlap <- function(overlap_df){
 # Calculate Create dataframe with info for each peaks's overlap in multiome 
 #
 # @param o_hits Iranges object of overlapping hits 
-# @param atac
-# @param multi
+# @param query 
+# @param subject multi[["ATAC"]] for example
 #
 # @return Percentage of Overlap 
 #
