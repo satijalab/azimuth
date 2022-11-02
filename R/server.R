@@ -3927,14 +3927,18 @@ AzimuthBridgeServer <- function(input, output, session) {
         opts = list(species = 9606, all_versions = FALSE)
       )
       print("adding motifs")
+      startTime <- Sys.time()
       app.env$object <- AddMotifs(
         object = app.env$object,
         genome = BSgenome.Hsapiens.UCSC.hg38,
         pfm = pfm
       )
+      endTime <- Sys.time()
+      print("TOTAL TIME TO ADD MOTIFS")
+      print(endTime - startTime)
       print("calculating chromvar")
-      library(BiocParallel)
-      register(SerialParam())
+      # library(BiocParallel)
+      # register(SerialParam())
       startTime <- Sys.time()
       app.env$object <- RunChromVAR(
         object = app.env$object,
