@@ -471,7 +471,7 @@ RenderDiffMotifExp <- function(
 ) {
   # cols.keep <- c('logFC', 'auc', 'padj', 'pct_in', 'pct_out')
   print("Rendering differential motifexpression")
-  cols.keep <- c('avg_diff', 'p_val_adj', 'pct.1', 'pct.2')
+  cols.keep <- c('motif_id', 'avg_diff', 'p_val_adj', 'pct.1', 'pct.2')
   if (is.null(diff.exp)){
     print("Differential Expression is empty ")
   }

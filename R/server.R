@@ -3743,7 +3743,11 @@ AzimuthBridgeServer <- function(input, output, session) {
       print("GENE ACTIVITY ")
       DefaultAssay(app.env$object) <- "peak.orig"
       print(app.env$object)
+      startTime <- Sys.time()
       app.env$transcripts <- GetTranscripts(app.env$object)
+      endTime <- Sys.time()
+      print("TOTAL TIME TO GET TRANSCRIPTS")
+      print(endTime - startTime)
       temp <- RequantifyPeaks(app.env$object, app.env$transcripts)
       #add feature matrix to Chromatin Assay 
       app.env$object[['RNA']] <- CreateAssayObject(counts = temp)
@@ -3938,7 +3942,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       print(endTime - startTime)
       print("calculating chromvar")
       # library(BiocParallel)
-      # register(SerialParam())
+      # register(MulticoreParam(1))
       startTime <- Sys.time()
       app.env$object <- RunChromVAR(
         object = app.env$object,
@@ -3959,6 +3963,8 @@ AzimuthBridgeServer <- function(input, output, session) {
         app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, # changed all of these to chromvar.assay
                                        i, sep = "_")]] <- FindAllMarkers(object = app.env$object, assay = app.env$chromvar.assay, slot = "data", 
                                                                          only.pos = T, mean.fcn = rowMeans, fc.name = "avg_diff")
+        motif_ids <- ConvertMotifID(app.env$object[[chromvar.assay]]@motifs, id = app.env$chromvar.diff.expr$gene)
+        app.env$chromvar.diff.expr$motif_id <- motif_ids
       }
       print(head(app.env$chromvar.diff.expr))
       print("about to close progress")
@@ -3986,10 +3992,10 @@ AzimuthBridgeServer <- function(input, output, session) {
       }
       print("DIFF EXPRESSION")
       print(head(app.env$diff.expr))
-      print("calculating mapping time ")
-      mapping.time <- difftime(time1 = Sys.time(), time2 = react.env$start, 
-                               units = "secs")
-      time.fmt <- FormatDiffTime(dt = mapping.time)
+      # print("calculating mapping time ")
+      # mapping.time <- difftime(time1 = Sys.time(), time2 = react.env$start, 
+      #                          units = "secs")
+      # time.fmt <- FormatDiffTime(dt = mapping.time)
       app.env$messages <- c(app.env$messages, time.fmt)
       if (!is.null(x = googlesheet)) {
         try(expr = sheet_append(ss = googlesheet, data = data.frame("MAPPINGTIME", 
@@ -4102,6 +4108,10 @@ AzimuthBridgeServer <- function(input, output, session) {
                            options = selectize.opts[-which(x = names(x = selectize.opts) == 
                                                              "maxItems")])
       print("going onto features")
+      print("calculating mapping time ")
+      mapping.time <- difftime(time1 = Sys.time(), time2 = react.env$start,
+                               units = "secs")
+      time.fmt <- FormatDiffTime(dt = mapping.time)
       react.env$features <- TRUE
       react.env$chromvar.features <- TRUE
       react.env$metadata <- FALSE
@@ -4176,7 +4186,7 @@ AzimuthBridgeServer <- function(input, output, session) {
     if (nchar(x = input$feature)) {
       print(paste0("FEATURE IN NEW BLOCK ", input$feature))
       app.env$feature <- ifelse(test = input$feature %in%
-                                  rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$gene.assay]]),
+                                  rownames(x = app.env$object[[app.env$gene.assay]]), yes = paste0(Key(object = app.env$object[[app.env$gene.assay]]),
                                                                              input$feature), no = input$feature)
       print("got app.env$feature")
       print(app.env$feature)
