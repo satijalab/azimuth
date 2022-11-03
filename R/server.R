@@ -3744,7 +3744,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       DefaultAssay(app.env$object) <- "peak.orig"
       print(app.env$object)
       startTime <- Sys.time()
-      app.env$transcripts <- GetTranscripts(app.env$object)
+      app.env$transcripts <- Signac:::GetTranscripts(app.env$object)
       endTime <- Sys.time()
       print("TOTAL TIME TO GET TRANSCRIPTS")
       print(endTime - startTime)
@@ -3941,8 +3941,8 @@ AzimuthBridgeServer <- function(input, output, session) {
       print("TOTAL TIME TO ADD MOTIFS")
       print(endTime - startTime)
       print("calculating chromvar")
-      # library(BiocParallel)
-      # register(MulticoreParam(1))
+      library(BiocParallel)
+      register(MulticoreParam(4))
       startTime <- Sys.time()
       app.env$object <- RunChromVAR(
         object = app.env$object,
@@ -3963,7 +3963,7 @@ AzimuthBridgeServer <- function(input, output, session) {
         app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, # changed all of these to chromvar.assay
                                        i, sep = "_")]] <- FindAllMarkers(object = app.env$object, assay = app.env$chromvar.assay, slot = "data", 
                                                                          only.pos = T, mean.fcn = rowMeans, fc.name = "avg_diff")
-        motif_ids <- ConvertMotifID(app.env$object[[chromvar.assay]]@motifs, id = app.env$chromvar.diff.expr$gene)
+        motif_ids <- ConvertMotifID(app.env$object[["peak.orig"]]@motifs, id = app.env$chromvar.diff.expr$gene)
         app.env$chromvar.diff.expr$motif_id <- motif_ids
       }
       print(head(app.env$chromvar.diff.expr))
