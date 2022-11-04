@@ -743,6 +743,7 @@ AzimuthBridgeUI <- tagList(
           fluidRow(
             valueBoxOutput(outputId = 'valuebox.upload', width = 3),
             valueBoxOutput(outputId = 'valuebox.overlap', width = 3),
+            valueBoxOutput(outputId = 'valuebox.jaccard', width = 3),
             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
             div(
               id = 'panchors_popup',

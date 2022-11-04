@@ -593,7 +593,8 @@ LoadBridgeReference<- function(path, seconds = 10L) {
   ref.names <- list(
     bridge = 'bridge.Rds',
     map = 'ref.Rds',
-    ext = 'ext.Rds'
+    ext = 'ext.Rds',
+    annotation = 'annotation.Rds'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -606,7 +607,8 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     bridgeref <- file.path(path, ref.names$bridge)
     mapref <- file.path(path, ref.names$map)
     extref <- file.path(path, ref.names$ext)
-    exists <- file.exists(c(bridgeref, mapref, extref))
+    annotationref <- file.path(path, ref.names$annotation)
+    exists <- file.exists(c(bridgeref, mapref, extref, annotationref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -639,6 +641,7 @@ LoadBridgeReference<- function(path, seconds = 10L) {
   bridge <- readRDS(file = bridgeref)
   map <- readRDS(file = mapref)
   ext <- readRDS(file = extref)
+  annotation <- readRDS(file = annotationref)
   
   # handle new parameters in uwot models beginning in v0.1.13
   if (!"num_precomputed_nns" %in% names(Misc(map[["refUMAP"]])$model)) {
@@ -676,7 +679,8 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     map = map,
     plot = plot,
     bridge = bridge,
-    ext = ext
+    ext = ext,
+    annotation = annotation
   ))
 }
 
@@ -956,3 +960,95 @@ RequantifyPeaks <- function(
   return(atac_final)
 }
 
+#' Get transcripts modified from Signac::GeneActivity
+#'
+#' @param object A Seurat object
+#' @param assay Name of assay to use. If NULL, use the default assay
+#' @param features Genes to include. If NULL, use all protein-coding genes in
+#' the annotations stored in the object
+#' @param extend.upstream Number of bases to extend upstream of the TSS
+#' @param extend.downstream Number of bases to extend downstream of the TTS
+#' @param biotypes Gene biotypes to include. If NULL, use all biotypes in the
+#' gene annotation.
+#' @param max.width Maximum allowed gene width for a gene to be quantified.
+#' Setting this parameter can avoid quantifying extremely long transcripts that
+#' can add a relatively long amount of time. If NULL, do not filter genes based
+#' on width.
+#' @param process_n Number of regions to load into memory at a time, per thread.
+#' Processing more regions at once can be faster but uses more memory.
+#' @param gene.id Record gene IDs in output matrix rather than gene name.
+#' @param verbose
+#'
+#' @importFrom SeuratObject DefaultAssay
+#' 
+#' @return Transcripts 
+#'
+GetTranscripts <- function( 
+  object,
+  assay = NULL,
+  features = NULL,
+  extend.upstream = 2000,
+  extend.downstream = 0,
+  biotypes = "protein_coding",
+  max.width = 500000,
+  process_n = 2000,
+  gene.id = FALSE,
+  verbose = TRUE
+) {
+  if (!is.null(x = features)) {
+    if (length(x = features) == 0) {
+      stop("Empty list of features provided")
+    }
+  }
+  # collapse to longest protein coding transcript
+  assay <- Signac:::SetIfNull(x = assay, y = DefaultAssay(object = object))
+  if (!inherits(x = object[[assay]], what = "ChromatinAssay")) {
+    stop("The requested assay is not a ChromatinAssay.")
+  }
+  annotation <- Annotation(object = object[[assay]])
+  # replace NA names with gene IDD
+  annotation$gene_name <- ifelse(
+    test = is.na(x = annotation$gene_name) | (annotation$gene_name == ""),
+    yes = annotation$gene_id,
+    no = annotation$gene_name
+  )
+  if (length(x = annotation) == 0) {
+    stop("No gene annotations present in object")
+  }
+  if (verbose) {
+    message("Extracting gene coordinates")
+  }
+  transcripts <- Signac:::CollapseToLongestTranscript(ranges = annotation)
+  if (gene.id) {
+    transcripts$gene_name <- transcripts$gene_id
+  }
+  if (!is.null(x = biotypes)) {
+    transcripts <- transcripts[transcripts$gene_biotype %in% biotypes]
+    if (length(x = transcripts) == 0) {
+      stop("No genes remaining after filtering for requested biotypes")
+    }
+  }
+  
+  # filter genes if provided
+  if (!is.null(x = features)) {
+    transcripts <- transcripts[transcripts$gene_name %in% features]
+    if (length(x = transcripts) == 0) {
+      stop("None of the requested genes were found in the gene annotation")
+    }
+  }
+  if (!is.null(x = max.width)) {
+    transcript.keep <- which(x = width(x = transcripts) < max.width)
+    transcripts <- transcripts[transcript.keep]
+    if (length(x = transcripts) == 0) {
+      stop("No genes remaining after filtering for max.width")
+    }
+  }
+  
+  # extend to include promoters
+  transcripts <- Extend(
+    x = transcripts,
+    upstream = extend.upstream,
+    downstream = extend.downstream
+  )
+  
+}

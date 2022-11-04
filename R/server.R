@@ -3071,7 +3071,7 @@ AzimuthBridgeServer <- function(input, output, session) {
           }
           app.env$counts$query <- "query"
           react.env$path <- NULL
-          react.env$annotations <- TRUE
+          react.env$chromatin_assay_1 <- TRUE
         }, error = function(e) {
           app.env$messages <- e$message
           showNotification(e$message, duration = 10, 
@@ -3084,36 +3084,37 @@ AzimuthBridgeServer <- function(input, output, session) {
       })
     }
   })
-  observeEvent(eventExpr = react.env$annotations, handlerExpr = {
-    if (isTRUE(x = react.env$annotations)){
-      withProgress(message = "Loading Annotations", expr = {
-        setProgress(value = 0.1)
-        tryCatch(expr = {
-          app.env$annotations <- suppressWarnings(GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)) # this could also be saved as an object if we wanna save 30 s 
-          print("getting seq level styles")
-          seqlevelsStyle(app.env$annotations) <- 'UCSC'
-          print("got seq level styles")
-          react.env$annotations <- NULL
-          react.env$chromatin_assay_1 <- TRUE
-        }, error = function(e) {
-          app.env$messages <- e$message
-          showNotification(e$message, duration = 10, 
-                           type = "error", closeButton = TRUE, id = "no-progress-notification")
-          app.env$annotations <- NULL
-          gc(verbose = FALSE)
-          react.env$annotations <- NULL
-        }
-        )
-        setProgress(value = 0.15)
-      })
-    }
-  })
+  # observeEvent(eventExpr = react.env$annotations, handlerExpr = { # LOADING THIS IN NOW 
+  #   if (isTRUE(x = react.env$annotations)){
+  #     withProgress(message = "Loading Annotations", expr = {
+  #       setProgress(value = 0.1)
+  #       tryCatch(expr = {
+  #         app.env$annotations <- suppressWarnings(GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86)) # this could also be saved as an object if we wanna save 30 s 
+  #         print("getting seq level styles")
+  #         seqlevelsStyle(app.env$annotations) <- 'UCSC'
+  #         print("got seq level styles")
+  #         react.env$annotations <- NULL
+  #         react.env$chromatin_assay_1 <- TRUE
+  #       }, error = function(e) {
+  #         app.env$messages <- e$message
+  #         showNotification(e$message, duration = 10, 
+  #                          type = "error", closeButton = TRUE, id = "no-progress-notification")
+  #         app.env$annotations <- NULL
+  #         gc(verbose = FALSE)
+  #         react.env$annotations <- NULL
+  #       }
+  #       )
+  #       setProgress(value = 0.15)
+  #     })
+  #   }
+  # })
   observeEvent(eventExpr = react.env$chromatin_assay_1, handlerExpr = {
     if (isTRUE(x = react.env$chromatin_assay_1)) {
       withProgress(message = "Making Chromatin Assay", expr = {
         setProgress(value = 0.2)
         tryCatch(expr = {
           print("about to make chromatin assay")
+          app.env$annotations <- refs$annotation
           app.env$chromatin_assay_1 <- CreateChromatinAssay(
             counts = app.env$counts[["RNA"]]@counts, # this should probably be clearer 
             sep = c(":", "-"),
@@ -3142,6 +3143,28 @@ AzimuthBridgeServer <- function(input, output, session) {
           else {
             output$valuebox.overlap <- renderValueBox(expr = {
               valueBox(value = perc_overlap, subtitle = "Overlap Percentage Too Low",
+                       icon = icon(name = "exclamation-circle"), color = "red")
+            })
+          }
+          jaccard <- round(x = PeakJaccard(app.env$chromatin_assay_1, refs$bridge[["ATAC"]]), digits = 4)
+          print("JACCARD SIMILARITY")
+          print(jaccard)
+          if (jaccard >= 50) {
+            output$valuebox.jaccard <- renderValueBox(expr = {
+              valueBox(value = jaccard, subtitle = "Jaccard Similarity",
+                       icon = icon(name = "check"), color = "green")
+            })
+          }
+          else if (perc_overlap < 50 & perc_overlap > 20) {
+            output$valuebox.jaccard<- renderValueBox(expr = {
+              valueBox(value = jaccard, subtitle = "Jaccard Similarity",
+                       icon = icon(name = "exclamation-circle"), color = "yellow")
+            })
+            
+          }
+          else {
+            output$valuebox.jaccard <- renderValueBox(expr = {
+              valueBox(value = jaccard, subtitle = "Jaccard Similarity is Low",
                        icon = icon(name = "exclamation-circle"), color = "red")
             })
           }
@@ -3744,7 +3767,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       DefaultAssay(app.env$object) <- "peak.orig"
       print(app.env$object)
       startTime <- Sys.time()
-      app.env$transcripts <- Signac:::GetTranscripts(app.env$object)
+      app.env$transcripts <- GetTranscripts(app.env$object)
       endTime <- Sys.time()
       print("TOTAL TIME TO GET TRANSCRIPTS")
       print(endTime - startTime)
@@ -3942,7 +3965,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       print(endTime - startTime)
       print("calculating chromvar")
       library(BiocParallel)
-      register(MulticoreParam(4))
+      register(MulticoreParam(3))
       startTime <- Sys.time()
       app.env$object <- RunChromVAR(
         object = app.env$object,
@@ -3963,8 +3986,11 @@ AzimuthBridgeServer <- function(input, output, session) {
         app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, # changed all of these to chromvar.assay
                                        i, sep = "_")]] <- FindAllMarkers(object = app.env$object, assay = app.env$chromvar.assay, slot = "data", 
                                                                          only.pos = T, mean.fcn = rowMeans, fc.name = "avg_diff")
-        motif_ids <- ConvertMotifID(app.env$object[["peak.orig"]]@motifs, id = app.env$chromvar.diff.expr$gene)
+        motif_ids <- ConvertMotifID(app.env$object[["peak.orig"]]@motifs, name = app.env$chromvar.diff.expr$gene)
+        print("MOTIF IDS")
+        print(head(motif_ids))
         app.env$chromvar.diff.expr$motif_id <- motif_ids
+        
       }
       print(head(app.env$chromvar.diff.expr))
       print("about to close progress")
@@ -3996,7 +4022,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       # mapping.time <- difftime(time1 = Sys.time(), time2 = react.env$start, 
       #                          units = "secs")
       # time.fmt <- FormatDiffTime(dt = mapping.time)
-      app.env$messages <- c(app.env$messages, time.fmt)
+      #app.env$messages <- c(app.env$messages, time.fmt)
       if (!is.null(x = googlesheet)) {
         try(expr = sheet_append(ss = googlesheet, data = data.frame("MAPPINGTIME", 
                                                                     app_session_id, as.numeric(x = mapping.time))))
@@ -4112,6 +4138,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       mapping.time <- difftime(time1 = Sys.time(), time2 = react.env$start,
                                units = "secs")
       time.fmt <- FormatDiffTime(dt = mapping.time)
+      app.env$messages <- c(app.env$messages, time.fmt)
       react.env$features <- TRUE
       react.env$chromvar.features <- TRUE
       react.env$metadata <- FALSE
