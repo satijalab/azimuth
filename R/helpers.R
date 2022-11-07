@@ -831,24 +831,6 @@ WelcomePlot <- function(...) {
 # @return No return value
 #
 
-bridge_qc <- function(query_assay, mutliome_atac){
-  o_hits <- GetOverlaps(query_assay, obj.multi[["ATAC"]])
-  
-  atac_peaks <- OverlapQC(o_hits, query_assay, obj.multi)
-  # Calculate the percent of overlap for each overlapping peak 
-  # Right now this function is only working on peaks that are definitely overlapping. To generalize it you'd have to add a part that first checks if the ranges are within each other to confirm if theyre overlapping, if not, it should return 0  
-  
-  #### Density Plot
-  d <- density(atac_peaks$perc_overlap) 
-  plot(d, xlab='Percentage of Overlap', main = 'Distribution of Overlap Percentages')
-  
-  #Calculating the percent of query that is covered by the overlapping portions 
-  # Sum of all query widths
-
-  o_total <- OverlapTotal(atac_peaks)
-  # print this 
-}
-
 OverlapDistPlot <- function(query_assay, multiome){
   atac_peaks <- OverlapQC(query = query_assay, subject = multiome)
   d <- density(atac_peaks$perc_overlap)

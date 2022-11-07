@@ -471,7 +471,7 @@ RenderDiffMotifExp <- function(
 ) {
   # cols.keep <- c('logFC', 'auc', 'padj', 'pct_in', 'pct_out')
   print("Rendering differential motifexpression")
-  cols.keep <- c('motif_id', 'avg_diff', 'p_val_adj', 'pct.1', 'pct.2')
+  cols.keep <- c('avg_diff', 'p_val_adj', 'pct.1', 'pct.2')
   if (is.null(diff.exp)){
     print("Differential Expression is empty ")
   }
@@ -489,16 +489,17 @@ RenderDiffMotifExp <- function(
   # the things might be characters so they cant be ordered? 
   diff.exp <- do.call(what = 'rbind', diff.exp)
   rownames(x = diff.exp) <- make.unique(names = diff.exp$gene)
-  diff.exp <- signif(
+  diff.exp.num <- signif(
     x = diff.exp[, cols.keep, drop = FALSE],
     digits = getOption(
       x = "Azimuth.de.digits",
       default = default.options$Azimuth.de.digits
     )
   )
+  diff.exp.num$motif_id <- diff.exp$motif_id
   print("FINALIZED DIFF EXP")
   print(head(diff.exp))
-  return(diff.exp)
+  return(diff.exp.num)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

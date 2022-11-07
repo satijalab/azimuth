@@ -3080,7 +3080,7 @@ AzimuthBridgeServer <- function(input, output, session) {
           gc(verbose = FALSE)
           react.env$path <- NULL
         })
-        setProgress(value = 1)
+        setProgress(value = 0.2)
       })
     }
   })
@@ -3978,7 +3978,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       motif_name <- ConvertMotifID(app.env$object[["peak.orig"]]@motifs, id = rownames(app.env$object[["chromvar"]]@data))
       rownames(app.env$object[["chromvar"]]@data) <- motif_name
       
-      head(row.names(app.env$object[["chromvar"]]@data))
+      print(head(row.names(app.env$object[["chromvar"]]@data)))
       for (i in app.env$metadataxfer[!app.env$singlepred]) {
         print("setting chromvar.diff.expr")
         Idents(app.env$object) <- paste0("predicted.", i)
@@ -3986,10 +3986,13 @@ AzimuthBridgeServer <- function(input, output, session) {
         app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, # changed all of these to chromvar.assay
                                        i, sep = "_")]] <- FindAllMarkers(object = app.env$object, assay = app.env$chromvar.assay, slot = "data", 
                                                                          only.pos = T, mean.fcn = rowMeans, fc.name = "avg_diff")
-        motif_ids <- ConvertMotifID(app.env$object[["peak.orig"]]@motifs, name = app.env$chromvar.diff.expr$gene)
+        motif_ids <- ConvertMotifID(app.env$object[["peak.orig"]]@motifs, name = app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, i, sep = "_")]]$gene)
+        
         print("MOTIF IDS")
         print(head(motif_ids))
-        app.env$chromvar.diff.expr$motif_id <- motif_ids
+        app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, i, sep = "_")]]$motif_id <- motif_ids
+        print("column names of differential expression")
+        print(colnames(app.env$chromvar.diff.expr[[paste(app.env$chromvar.assay, i, sep = "_")]]))
         
       }
       print(head(app.env$chromvar.diff.expr))
@@ -4139,23 +4142,24 @@ AzimuthBridgeServer <- function(input, output, session) {
                                units = "secs")
       time.fmt <- FormatDiffTime(dt = mapping.time)
       app.env$messages <- c(app.env$messages, time.fmt)
-      react.env$features <- TRUE
       react.env$chromvar.features <- TRUE
+      react.env$features <- TRUE
       react.env$metadata <- FALSE
     }
   })
   observeEvent(eventExpr = react.env$chromvar.features, handlerExpr = {
     if (isTRUE(x = react.env$chromvar.features)) {
       print("doing chromvar features")
-      DefaultAssay(app.env$object) <- app.env$chromvar.assay
-      # app.env$default.feature <- ifelse(test = getOption(x = "Azimuth.app.default_gene") %in% 
-      #                                     rownames(x = app.env$object), yes = getOption(x = "Azimuth.app.default_gene"), 
-      #                                   no = VariableFeatures(object = app.env$object)[1])
+      print("printing")
+      #DefaultAssay(app.env$object) <- app.env$chromvar.assay
+      print("APP ENV CHROMVAR FEATURE DEFAULT")
+      print(head(rownames(app.env$object)))
+      print(head(row.names(app.env$object[["chromvar"]]@data)))
       app.env$default.chromvar.feature <- ifelse(test = "POU2F3" %in% 
-                                                   rownames(x = app.env$object), yes = "POU2F3", 
-                                                 no = row.names(x = app.env$object[[app.env$chromvar.assay]]@data)[1])
+                                                   row.names(x = app.env$object[["chromvar"]]@data), yes = "POU2F3", 
+                                                 no = row.names(x = app.env$object[["chromvar"]]@data)[1])
       print(app.env$default.chromvar.feature)
-      app.env$chromvar.features <- unique(x = rownames(x = app.env$object)) # c(FilterFeatures(features =
+      app.env$chromvar.features <- unique(x = row.names(x = app.env$object[["chromvar"]]@data)) # c(FilterFeatures(features =
       print(head(app.env$chromvar.features))
       print(app.env$default.chromvar.feature %in% app.env$chromvar.features)
       updateSelectizeInput(session = session, inputId = "chromvar.feature", 
@@ -4170,17 +4174,7 @@ AzimuthBridgeServer <- function(input, output, session) {
                              server = TRUE, options = selectize.opts)
       }
       react.env$chromvar.features <- FALSE
-    }
-  })
-  observeEvent(eventExpr = input$chromvar.feature, handlerExpr = {
-    if (nchar(x = input$chromvar.feature)) {
-      print(paste0("CHROMVAR FEATURE IN NEW BLOCK: ", input$chromvar.feature))
-      DefaultAssay(app.env$object) <- app.env$chromvar.assay
-      app.env$chromvar.feature <- ifelse(test = input$chromvar.feature %in%
-                                           rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$chromvar.assay]]),
-                                                                                      input$chromvar.feature), no = input$chromvar.feature)
-      print("got app.env$chromvar.feature")
-      print(app.env$chromvar.feature)
+      print("finished chromvar features")
     }
   })
   observeEvent(eventExpr = react.env$features, handlerExpr = {
@@ -4207,6 +4201,17 @@ AzimuthBridgeServer <- function(input, output, session) {
       }
       react.env$markers <- TRUE
       react.env$features <- FALSE
+    }
+  })
+  observeEvent(eventExpr = input$chromvar.feature, handlerExpr = {
+    if (nchar(x = input$chromvar.feature)) {
+      print(paste0("CHROMVAR FEATURE IN NEW BLOCK: ", input$chromvar.feature))
+      DefaultAssay(app.env$object) <- app.env$chromvar.assay
+      app.env$chromvar.feature <- ifelse(test = input$chromvar.feature %in%
+                                           rownames(x = app.env$object), yes = paste0(Key(object = app.env$object[[app.env$chromvar.assay]]),
+                                                                                      input$chromvar.feature), no = input$chromvar.feature)
+      print("got app.env$chromvar.feature")
+      print(app.env$chromvar.feature)
     }
   })
   observeEvent(eventExpr = input$feature, handlerExpr = {
