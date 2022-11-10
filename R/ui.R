@@ -124,8 +124,7 @@ AzimuthUI <- tagList(
         tabItem(
           tabName = 'tab_preproc',
           fluidRow(
-            column(4, 
-              box(
+            box(
                 title = p(
                   'QC Filters',
                   bsButton(
@@ -227,16 +226,13 @@ AzimuthUI <- tagList(
                 placement = 'right',
                 trigger = 'focus',
                 options = list(container = 'body')
-              ),
             ),
-            column(8,
-              box(
-                checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
-                plotOutput(outputId = 'plot.qc'),
-                tableOutput(outputId = 'table.qc'),
-                width = 8
-              ),
-            )
+            box(
+              checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
+              plotOutput(outputId = 'plot.qc'),
+              tableOutput(outputId = 'table.qc'),
+              width = 8
+            ),
           ),
           fluidRow(
             box(
@@ -424,19 +420,19 @@ AzimuthUI <- tagList(
               options = list(container = 'body')
             ),
             div(
-              id = 'markerclustersgroupinput',
+              id = 'markerclustersgroupinput.motif',
               class = 'halves',
               selectizeInput(
-                inputId = 'markerclustersgroup',
+                inputId = 'markerclustersgroup.motif',
                 label = 'Metadata group',
                 choices = ''
               )
             ),
             div(
-              id = 'markerclustersgroupinput',
+              id = 'markerclustersgroupinput.motif',
               class = 'halves',
               selectizeInput(
-                inputId = 'markerclusters',
+                inputId = 'markerclusters.motif',
                 label = 'Predicted cell type',
                 choices = ''
               )

@@ -2286,14 +2286,14 @@ AzimuthServer <- function(input, output, session) {
           options = selectize.opts
         )
         
-        # updateSelectizeInput(
-        #   session = session,
-        #   inputId = 'markerclustersgroup.motif',
-        #   choices = app.env$metadataxfer[!app.env$singlepred],
-        #   selected = app.env$default.metadata,
-        #   server = TRUE,
-        #   options = selectize.opts
-        # )
+        updateSelectizeInput(
+          session = session,
+          inputId = 'markerclustersgroup.motif',
+          choices = app.env$metadataxfer[!app.env$singlepred],
+          selected = app.env$default.metadata,
+          server = TRUE,
+          options = selectize.opts
+        )
         
         react.env$markers <- FALSE
         app.env$disable <- FALSE
@@ -2368,7 +2368,7 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = input$motif.feature,
     handlerExpr = {
       if (nchar(x = input$motif.feature)) {
-        if (nchar(x = input$markerclustersgroup)) {
+        if (nchar(x = input$markerclustersgroup.motif)) {
           print(paste0("motif FEATURE IN NEW BLOCK: ", input$motif.feature))
           app.env$motif.feature <- ifelse(
             test = input$motif.feature %in% rownames(x = app.env$object),
@@ -2379,8 +2379,8 @@ AzimuthServer <- function(input, output, session) {
             no = input$motif.feature
           )
           table.check <- input$motif.feature %in% rownames(x = RenderDiffMotifExp(
-            diff.exp = app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep = "_")]],
-            groups.use = input$markerclusters,
+            diff.exp = app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup.motif, sep = "_")]],
+            groups.use = input$markerclusters.motif,
             n = Inf
           ))
           print("DID TABLE CHECK FOR GET MOTIF FEATURE")
@@ -2629,8 +2629,8 @@ AzimuthServer <- function(input, output, session) {
           inputId = 'motif',
           choices = app.env$motif.features,
           selected = rownames(x = RenderDiffMotifExp(
-            diff.exp = app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep = "_")]],
-            groups.use = input$markerclusters,
+            diff.exp = app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup.motif, sep = "_")]],
+            groups.use = input$markerclusters.motif,
             n = Inf
           ))[input$motif_rows_selected],
           server = TRUE,
@@ -3871,6 +3871,7 @@ AzimuthServer <- function(input, output, session) {
     )
   )))
 }
+
 
 
 

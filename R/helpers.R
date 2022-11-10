@@ -861,8 +861,8 @@ PercOverlap <- function(overlap_df){
 #
 OverlapQC <- function(query, subject) {
   o_hits <- findOverlaps(query, subject)
-  query_inds <- IRanges:::queryHits(o_hits)
-  subject_inds <- IRanges:::subjectHits(o_hits)
+  query_inds <- queryHits(o_hits)
+  subject_inds <- subjectHits(o_hits)
   overlap_df <- as.data.table(GetAssayData(query, slot = "ranges")[query_inds,])
   subject_peaks <- as.data.table(GetAssayData(subject, assay = "query", slot = "ranges")[subject_inds,])
   overlap_df$o_start <- mapply(max, overlap_df$start, subject_peaks$start)
