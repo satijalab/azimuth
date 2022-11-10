@@ -3878,6 +3878,7 @@ AzimuthServer <- function(input, output, session) {
 
 
 
+
 #' Server function for the mapping app for bridge integration 
 #'
 #' @param input,output,session Required Shiny app server parameters
