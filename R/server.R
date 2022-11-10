@@ -3623,6 +3623,7 @@ AzimuthServer <- function(input, output, session) {
       print(input$markerclustersgroup)
       print(paste(app.env$default.assay, input$markerclustersgroup, sep ="_"))
       print(head(app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep ="_")]]))
+      print(input$markerclusters)
       if (!is.null(x = app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep ="_")]])) {
         RenderDiffMotifExp(
           diff.exp =  app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep ="_")]],
@@ -3870,6 +3871,7 @@ AzimuthServer <- function(input, output, session) {
     )
   )))
 }
+
 
 
 
@@ -5062,7 +5064,7 @@ AzimuthBridgeServer <- function(input, output, session) {
       react.env$progress$set(value = 0.98, message = "Running Motif Analysis")
       DefaultAssay(app.env$object) <- "peak.orig"
       # Remove peaks on scaffolds 
-      main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+      main.chroms <- GenomeInfoDb:::standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
       keep.peaks <- which(as.character(seqnames(granges(app.env$object))) %in% main.chroms)
       app.env$object[["peak.orig"]] <- subset(app.env$object[["peak.orig"]], features = rownames(app.env$object[["peak.orig"]])[keep.peaks])
       

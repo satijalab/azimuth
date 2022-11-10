@@ -476,11 +476,11 @@ RenderDiffMotifExp <- function(
     print("Differential Expression is empty ")
   }
   print(head(diff.exp))
-  groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$cluster))
+  groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
   diff.exp <- lapply(
     X = groups.use,
     FUN = function(cluster) {
-      cluster.de <- diff.exp[diff.exp$cluster == cluster, , drop = FALSE]
+      cluster.de <- diff.exp[diff.exp$group == group, , drop = FALSE]
       #cluster.de <- cluster.de[cluster.de$logFC > logfc.thresh, , drop = FALSE]
       cluster.de <- cluster.de[order(cluster.de$pvalue, -cluster.de$fold.enrichment), , drop = FALSE]
       return(head(x = cluster.de, n = n))

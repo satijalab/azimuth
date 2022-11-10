@@ -228,33 +228,6 @@ AzimuthUI <- tagList(
                 trigger = 'focus',
                 options = list(container = 'body')
               ),
-              box(
-                title = p(
-                  'Overlap QC',
-                  bsButton(
-                    inputId = 'q4',
-                    label = '',
-                    icon = icon(name = 'question'),
-                    style = 'info',
-                    size = 'extra-small'
-                  )
-                ),
-                bsPopover(
-                  id = 'q4',
-                  title = 'Overlap QC',
-                  content = paste(
-                    'The distribution of overlap percentages for each peak. A strongly left-skewed ',
-                    'distribution means that most of the peaks have ~100% overlap to the corresponding multiome peak', 
-                    'and thus the requantified peaks will (maintain) the data from the original peaks. Also, note the ', 
-                    'total overlap percentage for a summary of this information.'
-                  ),
-                  placement = 'right',
-                  trigger = 'focus',
-                  options = list(container = 'body')
-                ),
-                plotOutput(outputId = 'dist.qc'),
-                width = 4
-              )
             ),
             column(8,
               box(
@@ -263,6 +236,37 @@ AzimuthUI <- tagList(
                 tableOutput(outputId = 'table.qc'),
                 width = 8
               ),
+            )
+          ),
+          fluidRow(
+            box(
+              title = p(
+                'Overlap QC',
+                bsButton(
+                  inputId = 'q4',
+                  label = '',
+                  icon = icon(name = 'question'),
+                  style = 'info',
+                  size = 'extra-small'
+                )
+              ),
+              bsPopover(
+                id = 'q4',
+                title = 'Overlap QC',
+                content = paste(
+                  'The distribution of overlap percentages for each peak. A strongly left-skewed ',
+                  'distribution means that most of the peaks have ~100% overlap to the corresponding multiome peak', 
+                  'and thus the requantified peaks will (maintain) the data from the original peaks. Also, note the ', 
+                  'total overlap percentage for a summary of this information.'
+                ),
+                placement = 'right',
+                trigger = 'focus',
+                options = list(container = 'body')
+              ),
+              plotOutput(outputId = 'dist.qc'),
+              width = 4
+            ),
+            column(8, 
               fluidRow(
                 valueBoxOutput(outputId = 'valuebox.upload', width = 3),
                 valueBoxOutput(outputId = 'valuebox.overlap', width = 3),
@@ -272,23 +276,23 @@ AzimuthUI <- tagList(
                   valueBoxOutput(outputId = "valuebox_overlap", width = 3),
                   bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover')
                 )
+              ),
+              fluidRow(
+                valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
+                div(
+                  id = 'panchors_popup',
+                  valueBoxOutput(outputId = "valuebox_panchors", width = 3),
+                  bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
+                ),
+                div(
+                  id = 'mappingqcstat_popup',
+                  valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
+                  bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
+                ),
+                valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
               )
             )
-          ),
-          fluidRow(
-            valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
-            div(
-              id = 'panchors_popup',
-              valueBoxOutput(outputId = "valuebox_panchors", width = 3),
-              bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
-            ),
-            div(
-              id = 'mappingqcstat_popup',
-              valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
-              bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
-            ),
-            valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
-          ),
+          )
         ),
         tabItem(
           tabName = 'tab_cell',
