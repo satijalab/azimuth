@@ -290,6 +290,7 @@ AzimuthUI <- tagList(
                       bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
                     ),
                     valueBoxOutput(outputId = 'valuebox.mapped', width = 3)
+                  )
                 )
               )
             )
