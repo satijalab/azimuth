@@ -124,69 +124,115 @@ AzimuthUI <- tagList(
         tabItem(
           tabName = 'tab_preproc',
           fluidRow(
-            box(
-              title = p(
-                'QC Filters',
-                bsButton(
-                  inputId = 'q2',
-                  label = '',
-                  icon = icon(name = 'question'),
-                  style = 'info',
-                  size = 'extra-small'
-                )
-              ),
-              div(
-                id = 'ncount',
-                numericInput(
-                  inputId = 'num.ncountmin',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                ),
-                numericInput(
-                  inputId = 'num.ncountmax',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                )
-              ),
-              div(
-                id = 'nfeature',
-                numericInput(
-                  inputId = 'num.nfeaturemin',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                ),
-                numericInput(
-                  inputId = 'num.nfeaturemax',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                )
-              ),
-              div(
-                id = 'pctmt',
-                numericInput(
-                  inputId = 'minmt',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                ),
-                numericInput(
-                  'maxmt',
-                  label = NULL,
-                  value = 0,
-                  width = '90%'
-                )
-              ),
-              textOutput(outputId = 'text.cellsremain'),
-              div(
-                id = 'xferopts',
-                h4(
-                  'Transfer Options',
+            column(4, 
+              box(
+                title = p(
+                  'QC Filters',
                   bsButton(
-                    inputId = 'xferinput',
+                    inputId = 'q2',
+                    label = '',
+                    icon = icon(name = 'question'),
+                    style = 'info',
+                    size = 'extra-small'
+                  )
+                ),
+                div(
+                  id = 'ncount',
+                  numericInput(
+                    inputId = 'num.ncountmin',
+                    label = NULL,
+                    value = 0,
+                    width = '90%'
+                  ),
+                  numericInput(
+                    inputId = 'num.ncountmax',
+                    label = NULL,
+                    value = 0,
+                    width = '90%'
+                  )
+                ),
+                div(
+                  id = 'nfeature',
+                  numericInput(
+                    inputId = 'num.nfeaturemin',
+                    label = NULL,
+                    value = 0,
+                    width = '90%'
+                  ),
+                  numericInput(
+                    inputId = 'num.nfeaturemax',
+                    label = NULL,
+                    value = 0,
+                    width = '90%'
+                  )
+                ),
+                div(
+                  id = 'pctmt',
+                  numericInput(
+                    inputId = 'minmt',
+                    label = NULL,
+                    value = 0,
+                    width = '90%'
+                  ),
+                  numericInput(
+                    'maxmt',
+                    label = NULL,
+                    value = 0,
+                    width = '90%'
+                  )
+                ),
+                textOutput(outputId = 'text.cellsremain'),
+                div(
+                  id = 'xferopts',
+                  h4(
+                    'Transfer Options',
+                    bsButton(
+                      inputId = 'xferinput',
+                      label = '',
+                      icon = icon(name = 'question'),
+                      style = 'info',
+                      size = 'extra-small'
+                    )
+                  ),
+                  bsPopover(
+                    id = 'xferinput',
+                    title = 'Transfer Options',
+                    content = 'Select the meta.data fields to transfer from the reference',
+                    placement = 'right',
+                    trigger = 'focus',
+                    options = list(container = 'body')
+                  ),
+                  selectizeInput(
+                    inputId = 'metadataxfer',
+                    label = 'Reference Metadata to Transfer',
+                    choices = '',
+                    multiple = TRUE
+                  )
+                ),
+                disabled(actionButton(
+                  inputId = 'map',
+                  label = 'Map cells to reference'
+                )),
+                width = 4
+              ),
+              bsPopover(
+                id = 'q2',
+                title = 'QC Filters',
+                content = paste(
+                  'Select a minimum and maximum value for nCount (number of molecules)',
+                  'nFeature (number of genes expressed)',
+                  'and mitochondrial percentage (if applicable)',
+                  sep = ', '
+                ),
+                placement = 'right',
+                trigger = 'focus',
+                options = list(container = 'body')
+              ),
+              box(
+                title = p(
+                  'Overlap QC',
+                  bsButton(
+                    inputId = 'q4',
                     label = '',
                     icon = icon(name = 'question'),
                     style = 'info',
@@ -194,87 +240,47 @@ AzimuthUI <- tagList(
                   )
                 ),
                 bsPopover(
-                  id = 'xferinput',
-                  title = 'Transfer Options',
-                  content = 'Select the meta.data fields to transfer from the reference',
+                  id = 'q4',
+                  title = 'Overlap QC',
+                  content = paste(
+                    'The distribution of overlap percentages for each peak. A strongly left-skewed ',
+                    'distribution means that most of the peaks have ~100% overlap to the corresponding multiome peak', 
+                    'and thus the requantified peaks will (maintain) the data from the original peaks. Also, note the ', 
+                    'total overlap percentage for a summary of this information.'
+                  ),
                   placement = 'right',
                   trigger = 'focus',
                   options = list(container = 'body')
                 ),
-                selectizeInput(
-                  inputId = 'metadataxfer',
-                  label = 'Reference Metadata to Transfer',
-                  choices = '',
-                  multiple = TRUE
+                plotOutput(outputId = 'dist.qc'),
+                width = 4
+              )
+            ),
+            column(8,
+              box(
+                checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
+                plotOutput(outputId = 'plot.qc'),
+                tableOutput(outputId = 'table.qc'),
+                width = 8
+              ),
+              fluidRow(
+                valueBoxOutput(outputId = 'valuebox.upload', width = 3),
+                valueBoxOutput(outputId = 'valuebox.overlap', width = 3),
+                valueBoxOutput(outputId = 'valuebox.jaccard', width = 3),
+                div(
+                  id = 'overlap_popup',
+                  valueBoxOutput(outputId = "valuebox_overlap", width = 3),
+                  bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover')
                 )
-              ),
-              disabled(actionButton(
-                inputId = 'map',
-                label = 'Map cells to reference'
-              )),
-              width = 4
-            ),
-            bsPopover(
-              id = 'q2',
-              title = 'QC Filters',
-              content = paste(
-                'Select a minimum and maximum value for nCount (number of molecules)',
-                'nFeature (number of genes expressed)',
-                'and mitochondrial percentage (if applicable)',
-                sep = ', '
-              ),
-              placement = 'right',
-              trigger = 'focus',
-              options = list(container = 'body')
-            ),
-            box(
-              checkboxGroupInput(inputId = "check.qc", label = NULL, choiceNames = c("Log-scale Y-axis", "Hide points"), choiceValues = c("qcscale", "qcpoints"), inline = TRUE),
-              plotOutput(outputId = 'plot.qc'),
-              tableOutput(outputId = 'table.qc'),
-              width = 8
-            ),
-            box(
-              title = p(
-                'Overlap QC',
-                bsButton(
-                  inputId = 'q4',
-                  label = '',
-                  icon = icon(name = 'question'),
-                  style = 'info',
-                  size = 'extra-small'
-                )
-              ),
-              bsPopover(
-                id = 'q4',
-                title = 'Overlap QC',
-                content = paste(
-                  'The distribution of overlap percentages for each peak. A strongly left-skewed ',
-                  'distribution means that most of the peaks have ~100% overlap to the corresponding multiome peak', 
-                  'and thus the requantified peaks will (maintain) the data from the original peaks. Also, note the ', 
-                  'total overlap percentage for a summary of this information.'
-                ),
-                placement = 'right',
-                trigger = 'focus',
-                options = list(container = 'body')
-              ),
-              plotOutput(outputId = 'dist.qc'),
-              width = 4
-            ), 
+              )
+            )
           ),
           fluidRow(
-            valueBoxOutput(outputId = 'valuebox.upload', width = 3),
-            valueBoxOutput(outputId = 'valuebox.overlap', width = 3),
-            valueBoxOutput(outputId = 'valuebox.jaccard', width = 3),
             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
             div(
               id = 'panchors_popup',
               valueBoxOutput(outputId = "valuebox_panchors", width = 3),
               bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
-            ),
-            div(
-              id = 'overlap_popup',
-              valueBoxOutput(outputId = "valuebox_overlap", width = 3),
-              bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover')
             ),
             div(
               id = 'mappingqcstat_popup',
@@ -414,19 +420,19 @@ AzimuthUI <- tagList(
               options = list(container = 'body')
             ),
             div(
-              id = 'markerclustersgroupinput.motif',
+              id = 'markerclustersgroupinput',
               class = 'halves',
               selectizeInput(
-                inputId = 'markerclustersgroup.motif',
+                inputId = 'markerclustersgroup',
                 label = 'Metadata group',
                 choices = ''
               )
             ),
             div(
-              id = 'markerclustersgroupinput.motif',
+              id = 'markerclustersgroupinput',
               class = 'halves',
               selectizeInput(
-                inputId = 'markerclusters.motif',
+                inputId = 'markerclusters',
                 label = 'Predicted cell type',
                 choices = ''
               )
@@ -1018,7 +1024,7 @@ AzimuthBridgeUI <- tagList(
             ),
             div(
               id = 'markerclustersgroupinput.motif',
-              class = 'halves',
+              class = 'full',
               selectizeInput(
                 inputId = 'markerclustersgroup.motif',
                 label = 'Metadata group',
@@ -1027,7 +1033,7 @@ AzimuthBridgeUI <- tagList(
             ),
             div(
               id = 'markerclustersgroupinput.motif',
-              class = 'halves',
+              class = 'full',
               selectizeInput(
                 inputId = 'markerclusters.motif',
                 label = 'Predicted cell type',
@@ -1036,7 +1042,7 @@ AzimuthBridgeUI <- tagList(
             ),
             div(
               id = 'motiftable',
-              class = 'halves',
+              class = 'full',
               h3('Motifs'),
               DTOutput(outputId = 'motifs')
             ),

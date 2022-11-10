@@ -471,7 +471,7 @@ RenderDiffMotifExp <- function(
 ) {
   # cols.keep <- c('logFC', 'auc', 'padj', 'pct_in', 'pct_out')
   print("Rendering differential motifexpression")
-  cols.keep <- c('avg_diff', 'p_val_adj', 'pct.1', 'pct.2')
+  cols.keep <- c('percent.observed', 'percent.background', 'fold.enrichment', 'pvalue')
   if (is.null(diff.exp)){
     print("Differential Expression is empty ")
   }
@@ -482,13 +482,13 @@ RenderDiffMotifExp <- function(
     FUN = function(cluster) {
       cluster.de <- diff.exp[diff.exp$cluster == cluster, , drop = FALSE]
       #cluster.de <- cluster.de[cluster.de$logFC > logfc.thresh, , drop = FALSE]
-      cluster.de <- cluster.de[order(cluster.de$p_val_adj, -cluster.de$avg_diff), , drop = FALSE]
+      cluster.de <- cluster.de[order(cluster.de$pvalue, -cluster.de$fold.enrichment), , drop = FALSE]
       return(head(x = cluster.de, n = n))
     }
   )
   # the things might be characters so they cant be ordered? 
   diff.exp <- do.call(what = 'rbind', diff.exp)
-  rownames(x = diff.exp) <- make.unique(names = diff.exp$gene)
+  rownames(x = diff.exp) <- make.unique(names = diff.exp$motif.name)
   diff.exp.num <- signif(
     x = diff.exp[, cols.keep, drop = FALSE],
     digits = getOption(
@@ -496,9 +496,9 @@ RenderDiffMotifExp <- function(
       default = default.options$Azimuth.de.digits
     )
   )
-  diff.exp.num$motif_id <- diff.exp$motif_id
+  diff.exp.num$motif_id <- diff.exp$motif
   print("FINALIZED DIFF EXP")
-  print(head(diff.exp))
+  print(head(diff.exp.num))
   return(diff.exp.num)
 }
 
