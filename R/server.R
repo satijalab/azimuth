@@ -3374,67 +3374,67 @@ AzimuthServer <- function(input, output, session) {
     }
   })
   
-  output$motifvln <- renderPlot(expr = {
-    if (!is.null(x = app.env$object)) {
-      print("RENDERING VLN PLOT FOR MOTIF")
-      avail <- c(paste0(Key(object = app.env$object[[app.env$default.assay]]), 
-                        rownames(x = app.env$object[[app.env$default.assay]])), colnames(x = app.env$object[[]]))
-      prediction.names <- unlist(x = lapply(X = app.env$metadataxfer, 
-                                            FUN = function(x) {
-                                              assay <- paste0("prediction.score.", x)
-                                              pred <- rep(x = x, times = nrow(x = app.env$object[[assay]]))
-                                              names(x = pred) <- paste0(Key(object = app.env$object[[assay]]), 
-                                                                        rownames(x = app.env$object[[assay]]))
-                                              return(pred)
-                                            }))
-      print("PREDICTION NAMES")
-      print(head(prediction.names))
-      max.pred.names <- paste0("predicted.", app.env$metadataxfer, 
-                               ".score")
-      avail <- c(avail, names(x = prediction.names))
-      print("AVAIL")
-      print(head(avail))
-      print("second if statement")
-      print(app.env$motif.feature)
-      print(app.env$motif.feature %in% avail)
-      if (app.env$motif.feature %in% avail) {
-        print("went into the second if statement")
-        if (app.env$motif.feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
-          ggplot() + annotate("text", x = 4, y = 25, 
-                              size = 8, label = "Mapping score still computing ... ") + 
-            theme_void()
-        }
-        else {
-          title <- ifelse(test = grepl(pattern = "^motif_", 
-                                       x = app.env$motif.feature), yes = gsub(pattern = "^motif_", 
-                                                                              replacement = "", x = app.env$motif.feature), no = app.env$motif.feature)
-          if (app.env$motif.feature %in% names(x = prediction.names)) {
-            print("went into the third if statement")
-            pred <- strsplit(x = app.env$motif.feature, split = "_")[[1]][2]
-            group <- prediction.names[app.env$motif.feature]
-            title <- paste0("Prediction Score (", group, 
-                            ") ", pred)
-          }
-          if (app.env$motif.feature %in% max.pred.names) {
-            print("went into the fourth print statement")
-            pred <- gsub(pattern = "predicted.", replacement = "", 
-                         x = app.env$motif.feature)
-            pred <- gsub(pattern = ".score", replacement = "", 
-                         x = pred)
-            title <- paste0("Max Prediction Score - ", 
-                            pred)
-          }
-          print("making vln plot")
-          print("MOTIF FOR VLN PLOT")
-          print(app.env$motif.feature)
-          VlnPlot(object = app.env$object, features = app.env$motif.feature, 
-                  group.by = input$metagroup.motif, pt.size = ifelse(test = input$check.featpoints, 
-                                                                     yes = 0, no = Seurat:::AutoPointSize(data = app.env$object))) + 
-            ggtitle(label = title) + NoLegend()
-        }
-      }
-    }
-  })
+  # output$motifvln <- renderPlot(expr = {
+  #   if (!is.null(x = app.env$object)) {
+  #     print("RENDERING VLN PLOT FOR MOTIF")
+  #     avail <- c(paste0(Key(object = app.env$object[[app.env$default.assay]]), 
+  #                       rownames(x = app.env$object[[app.env$default.assay]])), colnames(x = app.env$object[[]]))
+  #     prediction.names <- unlist(x = lapply(X = app.env$metadataxfer, 
+  #                                           FUN = function(x) {
+  #                                             assay <- paste0("prediction.score.", x)
+  #                                             pred <- rep(x = x, times = nrow(x = app.env$object[[assay]]))
+  #                                             names(x = pred) <- paste0(Key(object = app.env$object[[assay]]), 
+  #                                                                       rownames(x = app.env$object[[assay]]))
+  #                                             return(pred)
+  #                                           }))
+  #     print("PREDICTION NAMES")
+  #     print(head(prediction.names))
+  #     max.pred.names <- paste0("predicted.", app.env$metadataxfer, 
+  #                              ".score")
+  #     avail <- c(avail, names(x = prediction.names))
+  #     print("AVAIL")
+  #     print(head(avail))
+  #     print("second if statement")
+  #     print(app.env$motif.feature)
+  #     print(app.env$motif.feature %in% avail)
+  #     if (app.env$motif.feature %in% avail) {
+  #       print("went into the second if statement")
+  #       if (app.env$motif.feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
+  #         ggplot() + annotate("text", x = 4, y = 25, 
+  #                             size = 8, label = "Mapping score still computing ... ") + 
+  #           theme_void()
+  #       }
+  #       else {
+  #         title <- ifelse(test = grepl(pattern = "^motif_", 
+  #                                      x = app.env$motif.feature), yes = gsub(pattern = "^motif_", 
+  #                                                                                replacement = "", x = app.env$motif.feature), no = app.env$motif.feature)
+  #         if (app.env$motif.feature %in% names(x = prediction.names)) {
+  #           print("went into the third if statement")
+  #           pred <- strsplit(x = app.env$motif.feature, split = "_")[[1]][2]
+  #           group <- prediction.names[app.env$motif.feature]
+  #           title <- paste0("Prediction Score (", group, 
+  #                           ") ", pred)
+  #         }
+  #         if (app.env$motif.feature %in% max.pred.names) {
+  #           print("went into the fourth print statement")
+  #           pred <- gsub(pattern = "predicted.", replacement = "", 
+  #                        x = app.env$motif.feature)
+  #           pred <- gsub(pattern = ".score", replacement = "", 
+  #                        x = pred)
+  #           title <- paste0("Max Prediction Score - ", 
+  #                           pred)
+  #         }
+  #         print("making vln plot")
+  #         print("MOTIF FOR VLN PLOT")
+  #         print(app.env$motif.feature)
+  #         VlnPlot(object = app.env$object, features = app.env$motif.feature, 
+  #                 group.by = input$metagroup.motif, pt.size = ifelse(test = input$check.featpoints, 
+  #                                                                    yes = 0, no = Seurat:::AutoPointSize(data = app.env$object))) + 
+  #           ggtitle(label = title) + NoLegend()
+  #       }
+  #     }
+  #   }
+  # })
   
   output$motifdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
@@ -3871,6 +3871,7 @@ AzimuthServer <- function(input, output, session) {
     )
   )))
 }
+
 
 
 
