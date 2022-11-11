@@ -157,6 +157,7 @@ AzimuthServer <- function(input, output, session) {
     addClass(id = 'biotable', class = 'fulls')
   }
   if (!isTRUE(x = do.bridge)) {
+    print("removing ui elements")
     removeTab(inputId = "tab_motif", target = "motifinput")
     for (id in c('dist.qc', 'q4', 'valuebox.overlap', 'valuebox.jaccard', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable')) {
       removeUI(selector = paste0('#', id), immediate = TRUE)
@@ -1915,30 +1916,52 @@ AzimuthServer <- function(input, output, session) {
             silent = TRUE
           )
         }
-        output$menu2 <- renderMenu(expr = {
-          sidebarMenu(
-            menuItem(
-              text = "Cell Plots",
-              tabName = "tab_cell",
-              icon = icon("chart-area")
-            ),
-            menuItem(
-              text = "Feature Plots",
-              tabName = "tab_feature",
-              icon = icon("chart-area")
-            ),
-            menuItem(
-              text = "Motif Plots",
-              tabName = "tab_motif",
-              icon = icon("chart-area")
-            ),
-            menuItem(
-              text = "Download Results",
-              tabName = "tab_download",
-              icon = icon("file-download")
+        if (isTRUE(x = do.bridge)) {
+          output$menu2 <- renderMenu(expr = {
+            sidebarMenu(
+              menuItem(
+                text = "Cell Plots",
+                tabName = "tab_cell",
+                icon = icon("chart-area")
+              ),
+              menuItem(
+                text = "Feature Plots",
+                tabName = "tab_feature",
+                icon = icon("chart-area")
+              ),
+              menuItem(
+                text = "Motif Plots",
+                tabName = "tab_motif",
+                icon = icon("chart-area")
+              ),
+              menuItem(
+                text = "Download Results",
+                tabName = "tab_download",
+                icon = icon("file-download")
+              )
             )
-          )
-        })
+          })
+        } else {
+          output$menu2 <- renderMenu(expr = {
+            sidebarMenu(
+              menuItem(
+                text = "Cell Plots",
+                tabName = "tab_cell",
+                icon = icon("chart-area")
+              ),
+              menuItem(
+                text = "Feature Plots",
+                tabName = "tab_feature",
+                icon = icon("chart-area")
+              ),
+              menuItem(
+                text = "Download Results",
+                tabName = "tab_download",
+                icon = icon("file-download")
+              )
+            )
+          })
+        }
         app.env$object <- RenameCells(object = app.env$object, new.names = app.env$query.names)
         if (!isTRUE(x = do.bridge)) {
           react.env$progress$close()
@@ -2206,6 +2229,9 @@ AzimuthServer <- function(input, output, session) {
           )
         }
         react.env$features <- FALSE
+        if (!isTRUE(x = do.bridge)){
+          react.env$markers <- TRUE
+        }
       }
     }
   )
@@ -2328,14 +2354,25 @@ AzimuthServer <- function(input, output, session) {
       if (nchar(x = input$feature)) {
         if (nchar(x = input$markerclustersgroup)) {
           print(paste0("FEATURE IN NEW BLOCK: ", input$feature))
-          app.env$feature <- ifelse(
-            test = input$feature %in% rownames(x = app.env$object[[app.env$gene.assay]]),
-            yes = paste0(
-              Key(object = app.env$object[[app.env$gene.assay]]),
-              input$feature
-            ),
-            no = input$feature
-          )
+          if (isTRUE(x = do.bridge)) {
+            app.env$feature <- ifelse(
+              test = input$feature %in% rownames(x = app.env$object[[app.env$gene.assay]]),
+              yes = paste0(
+                Key(object = app.env$object[[app.env$gene.assay]]),
+                input$feature
+              ),
+              no = input$feature
+            )
+          } else {
+            app.env$feature <- ifelse(
+              test = input$feature %in% rownames(x = app.env$object[["refAssay"]]),
+              yes = paste0(
+                Key(object = app.env$object[["refAssay"]]),
+                input$feature
+              ),
+              no = input$feature
+            )
+          }
           for (f in c('adtfeature', 'metadata.cont')) {
             updateSelectizeInput(
               session = session,
@@ -2793,7 +2830,35 @@ AzimuthServer <- function(input, output, session) {
       wrap_plots(vlnlist, ncol = length(x = vlnlist))
     }
   })
-  
+  output$overlap_box <- renderUI(
+    box(
+      title = p(
+        'Overlap QC',
+        bsButton(
+          inputId = 'q4',
+          label = '',
+          icon = icon(name = 'question'),
+          style = 'info',
+          size = 'extra-small'
+        )
+      ),
+      bsPopover(
+        id = 'q4',
+        title = 'Overlap QC',
+        content = paste(
+          'The distribution of overlap percentages for each peak. A strongly left-skewed ',
+          'distribution means that most of the peaks have ~100% overlap to the corresponding multiome peak', 
+          'and thus the requantified peaks will (maintain) the data from the original peaks. Also, note the ', 
+          'total overlap percentage for a summary of this information.'
+        ),
+        placement = 'right',
+        trigger = 'focus',
+        options = list(container = 'body')
+      ),
+      plotOutput(outputId = 'dist.qc'),
+      width = 4
+    )
+  )
   output$dist.qc <- renderPlot(expr = {
     if (!is.null(x = isolate(expr = app.env$chromatin_assay_1)) & isTRUE(x = react.env$dist.qc)) {
       print("making dist plots")
@@ -2801,7 +2866,6 @@ AzimuthServer <- function(input, output, session) {
                               multiome = refs$bridge[["ATAC"]])
     }
   })
-  
   output$refdim_intro <- renderPlot(expr = {
     # save plot dataframe to minimize on-hover computation
     app.env$plots.refdim_intro_df <- cbind(
@@ -3225,13 +3289,24 @@ AzimuthServer <- function(input, output, session) {
   })
   output$evln <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
-      avail <- c(
-        paste0(
-          Key(object = app.env$object[[app.env$gene.assay]]),
-          rownames(x = app.env$object[[app.env$gene.assay]])
-        ),
-        colnames(x = app.env$object[[]])
-      )
+      if (isTRUE(x = do.bridge)){
+        avail <- c(
+          paste0(
+            Key(object = app.env$object[[app.env$gene.assay]]),
+            rownames(x = app.env$object[[app.env$gene.assay]])
+          ),
+          colnames(x = app.env$object[[]])
+        )
+      } else {
+        DefaultAssay(app.env$object) <- "refAssay"
+        avail <- c(
+          paste0(
+            Key(object = app.env$object[["refAssay"]]),
+            rownames(x = app.env$object)
+          ),
+          colnames(x = app.env$object[[]])
+        )
+      }
       # prediction assays
       prediction.names <- unlist(x = lapply(
         X = app.env$metadataxfer,
@@ -3307,10 +3382,18 @@ AzimuthServer <- function(input, output, session) {
         c("lightgrey", "blue"),
         c('lightgrey', 'darkred')
       )
-      names(x = palettes) <- c(
-        Key(object = app.env$object[[app.env$gene.assay]]),
-        'md_'
-      )
+      if (isTRUE(x = do.bridge)){
+        names(x = palettes) <- c(
+          Key(object = app.env$object[[app.env$gene.assay]]),
+          'md_'
+        )
+      } else{
+        DefaultAssay(app.env$object) <- "refAssay"
+        names(x = palettes) <- c(
+          Key(object = app.env$object[["refAssay"]]),
+          'md_'
+        )
+      }
       if (do.adt) {
         palettes[[Key(object = app.env$object[[adt.key]])]] <-  c('lightgrey', 'darkgreen')
       }
@@ -3622,12 +3705,12 @@ AzimuthServer <- function(input, output, session) {
       print("INPUT MARKER CLUSTERS: ")
       print(input$markerclustersgroup)
       print(paste(app.env$default.assay, input$markerclustersgroup, sep ="_"))
-      print(head(app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep ="_")]]))
+      print(head(app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup.motif, sep ="_")]]))
       print(input$markerclusters)
-      if (!is.null(x = app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep ="_")]])) {
+      if (!is.null(x = app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup.motif, sep ="_")]])) {
         RenderDiffMotifExp(
-          diff.exp =  app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep ="_")]],
-          groups.use = input$markerclusters,
+          diff.exp =  app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup.motif, sep ="_")]],
+          groups.use = input$markerclusters.motif,
           n = Inf
         )
       }
@@ -3871,6 +3954,7 @@ AzimuthServer <- function(input, output, session) {
     )
   )))
 }
+
 
 
 

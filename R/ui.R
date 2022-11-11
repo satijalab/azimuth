@@ -235,33 +235,7 @@ AzimuthUI <- tagList(
             ),
           ),
           fluidRow(
-            box(
-              title = p(
-                'Overlap QC',
-                bsButton(
-                  inputId = 'q4',
-                  label = '',
-                  icon = icon(name = 'question'),
-                  style = 'info',
-                  size = 'extra-small'
-                )
-              ),
-              bsPopover(
-                id = 'q4',
-                title = 'Overlap QC',
-                content = paste(
-                  'The distribution of overlap percentages for each peak. A strongly left-skewed ',
-                  'distribution means that most of the peaks have ~100% overlap to the corresponding multiome peak', 
-                  'and thus the requantified peaks will (maintain) the data from the original peaks. Also, note the ', 
-                  'total overlap percentage for a summary of this information.'
-                ),
-                placement = 'right',
-                trigger = 'focus',
-                options = list(container = 'body')
-              ),
-              plotOutput(outputId = 'dist.qc'),
-              width = 4
-            ),
+            uiOutput(outputId = "overlap_box")
             column(8, 
                    fluidRow(
                      valueBoxOutput(outputId = 'valuebox.upload', width = 3),
@@ -439,7 +413,7 @@ AzimuthUI <- tagList(
             ),
             div(
               id = 'motiftable',
-              class = 'halves',
+              class = 'full',
               h3('Motifs'),
               DTOutput(outputId = 'motifs')
             ),
