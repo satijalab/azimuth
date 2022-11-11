@@ -235,7 +235,7 @@ AzimuthUI <- tagList(
             ),
           ),
           fluidRow(
-            uiOutput(outputId = "overlap_box")
+            uiOutput(outputId = "overlap_box"),
             column(8, 
                    fluidRow(
                      valueBoxOutput(outputId = 'valuebox.upload', width = 3),
