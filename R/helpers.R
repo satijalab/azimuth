@@ -177,7 +177,7 @@ HoverBoxStyle <- function(x, y) {
 #' @inheritSection LoadH5AD AnnData H5AD File (extension \code{h5ad})
 #' @export
 #'
-LoadFileInput <- function(path) {
+LoadFileInput <- function(path, bridge = FALSE) {
   # TODO: add support for loom files
   on.exit(expr = gc(verbose = FALSE))
   type <- tolower(x = tools::file_ext(x = path))
@@ -195,10 +195,20 @@ LoadFileInput <- function(path) {
       if (inherits(x = object, what = c('Matrix', 'matrix', 'data.frame'))) {
         object <- CreateSeuratObject(counts = as.sparse(x = object), min.cells = 1, min.features = 1)
       } else if (inherits(x = object, what = 'Seurat')) {
-        if (!'RNA' %in% Assays(object = object)) {
-          stop("No RNA assay provided", call. = FALSE)
-        } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
-          stop("No RNA counts matrix present", call. = FALSE)
+        if (isTRUE(x = bridge)){
+          if (!'ATAC' %in% Assays(object = object)) {
+            stop("No ATAC assay provided", call. = FALSE)
+          } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'ATAC'))) {
+            stop("No ATAC counts matrix present", call. = FALSE)
+          }
+          assay <- "ATAC"
+        } else{
+          if (!'RNA' %in% Assays(object = object)) {
+            stop("No RNA assay provided", call. = FALSE)
+          } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
+            stop("No RNA counts matrix present", call. = FALSE)
+          }
+          assay <- "RNA"
         }
         object <- CreateSeuratObject(
           counts = GetAssayData(object = object[["RNA"]], slot = "counts"),

@@ -180,6 +180,7 @@ app.title <- 'Azimuth'
 default.options <- list(
   Azimuth.app.default_adt = "CD3-1",
   Azimuth.app.default_gene = "GNLY",
+  Azimuth.app.default_motif = "POU2F3",
   Azimuth.app.default_metadata = NULL,
   Azimuth.app.demodataset = NULL,
   Azimuth.app.max_cells = 50000,

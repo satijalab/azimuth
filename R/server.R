@@ -158,8 +158,7 @@ AzimuthServer <- function(input, output, session) {
   }
   if (!isTRUE(x = do.bridge)) {
     print("removing ui elements")
-    removeTab(inputId = "tab_motif", target = "motifinput")
-    for (id in c('dist.qc', 'q4', 'valuebox.overlap', 'valuebox.jaccard', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable')) {
+    for (id in c('dist.qc', 'q4', 'valuebox.overlap', 'valuebox.jaccard', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable', 'overlap_box')) {
       removeUI(selector = paste0('#', id), immediate = TRUE)
     }
   }
@@ -618,11 +617,12 @@ AzimuthServer <- function(input, output, session) {
               setProgress(value = 0)
               tryCatch(
                 expr = {
-                  app.env$counts <- LoadFileInput(path = react.env$path)
-                  # app.env$object <- DietSeurat(
-                  #   app.env$object,
-                  #   assays = "RNA"
-                  # )
+                  app.env$counts <- LoadFileInput(path = react.env$path, 
+                                                  bridge = TRUE)
+                  app.env$object <- DietSeurat(
+                    app.env$object,
+                    assays = "RNA"
+                  )
                   # app.env$object <- ConvertGeneNames(
                   #   object = app.env$object,
                   #   reference.names = rownames(x = refs$map),
@@ -2244,8 +2244,9 @@ AzimuthServer <- function(input, output, session) {
         DefaultAssay(app.env$object) <- app.env$default.assay
         print("APP ENV motif FEATURE DEFAULT")
         print(head(row.names(app.env$object[[app.env$default.assay]]@data)))
-        app.env$default.motif.feature <- ifelse(test = "POU2F3" %in% 
-                                                  row.names(x = app.env$object[[app.env$default.assay]]@data), yes = "POU2F3", 
+        app.env$default.motif.feature <- ifelse(test = getOption(x = 'Azimuth.app.default_motif') %in% 
+                                                  row.names(x = app.env$object[[app.env$default.assay]]@data), 
+                                                yes = getOption(x = 'Azimuth.app.default_motif'), 
                                                 no = row.names(x = app.env$object[[app.env$default.assay]]@data)[1])
         print(app.env$default.motif.feature)
         app.env$motif.features <- unique(x = row.names(x = app.env$object[[app.env$default.assay]]@data)) # c(FilterFeatures(features =
@@ -3954,7 +3955,6 @@ AzimuthServer <- function(input, output, session) {
     )
   )))
 }
-
 
 
 
