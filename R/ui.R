@@ -340,7 +340,7 @@ AzimuthUI <- tagList(
               id = 'motifinput',
               class = 'thirds',
               selectizeInput(
-                inputId = 'chromvar.feature',
+                inputId = 'motif.feature',
                 label = 'Motif',
                 choices = ''
               )

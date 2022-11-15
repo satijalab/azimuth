@@ -619,8 +619,9 @@ AzimuthServer <- function(input, output, session) {
                 expr = {
                   app.env$counts <- LoadFileInput(path = react.env$path, 
                                                   bridge = TRUE)
-                  app.env$object <- DietSeurat(
-                    app.env$object,
+                  
+                  app.env$counts <- DietSeurat(
+                    app.env$counts,
                     assays = "RNA"
                   )
                   # app.env$object <- ConvertGeneNames(
@@ -2212,6 +2213,7 @@ AzimuthServer <- function(input, output, session) {
           options = selectize.opts
         )
         print('should have made input feature')
+        print("featire ")
         if (isTRUE(x = do.adt)) {
           # app.env$adt.features <- sort(x = FilterFeatures(features = rownames(
           #   x = app.env$object[[adt.key]]
@@ -3955,6 +3957,7 @@ AzimuthServer <- function(input, output, session) {
     )
   )))
 }
+
 
 
 

@@ -211,7 +211,7 @@ LoadFileInput <- function(path, bridge = FALSE) {
           assay <- "RNA"
         }
         object <- CreateSeuratObject(
-          counts = GetAssayData(object = object[["RNA"]], slot = "counts"),
+          counts = GetAssayData(object = object[[assay]], slot = "counts"),
           min.cells = 1,
           min.features = 1,
           meta.data = object[[]]
@@ -228,20 +228,37 @@ LoadFileInput <- function(path, bridge = FALSE) {
       }
       hfile <- suppressWarnings(expr = SeuratDisk::Connect(filename = path))
       on.exit(expr = hfile$close_all())
-      if (!'RNA' %in% names(x = hfile[['assays']])) {
-        stop("Cannot find the RNA assay in this h5Seurat file", call. = FALSE)
-      } else if (!'counts' %in% names(x = hfile[['assays/RNA']])) {
-        stop("No RNA counts matrix provided", call. = FALSE)
+      if (isTRUE(x = bridge)){
+        if (!'ATAC' %in% names(x = hfile[['assays']])) {
+          stop("Cannot find the ATAC assay in this h5Seurat file", call. = FALSE)
+        } else if (!'counts' %in% names(x = hfile[['assays/ATAC']])) {
+          stop("No ATAC counts matrix provided", call. = FALSE)
+        }
+        object <- as.Seurat(
+          x = hfile,
+          assays = list(ATAC = 'counts'),
+          reductions = FALSE,
+          graphs = FALSE,
+          images = FALSE
+        )
+        assay <- 'ATAC'
+      } else {
+        if (!'RNA' %in% names(x = hfile[['assays']])) {
+          stop("Cannot find the RNA assay in this h5Seurat file", call. = FALSE)
+        } else if (!'counts' %in% names(x = hfile[['assays/RNA']])) {
+          stop("No RNA counts matrix provided", call. = FALSE)
+        }
+        object <- as.Seurat(
+          x = hfile,
+          assays = list(RNA = 'counts'),
+          reductions = FALSE,
+          graphs = FALSE,
+          images = FALSE
+        )
+        assay <- 'RNA'
       }
-      object <- as.Seurat(
-        x = hfile,
-        assays = list('RNA' = 'counts'),
-        reductions = FALSE,
-        graphs = FALSE,
-        images = FALSE
-      )
       object <- CreateSeuratObject(
-        counts = GetAssayData(object = object[["RNA"]], slot = "counts"),
+        counts = GetAssayData(object = object[[assay]], slot = "counts"),
         min.cells = 1,
         min.features = 1,
         meta.data = object[[]]
