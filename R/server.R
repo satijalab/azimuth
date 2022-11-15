@@ -1931,7 +1931,7 @@ AzimuthServer <- function(input, output, session) {
                 icon = icon("chart-area")
               ),
               menuItem(
-                text = "Motif Plots",
+                text = "Motifs",
                 tabName = "tab_motif",
                 icon = icon("chart-area")
               ),
