@@ -334,37 +334,37 @@ AzimuthUI <- tagList(
         tabItem(
           tags$head(tags$style(HTML(".selectize-dropdown .optgroup-header { font-weight: bold; font-size: 13px; color: black; background: #f6f6f6}"))),
           tabName = 'tab_motif',
-          box(
-            title = 'Motif Plots',
-            div(
-              id = 'motifinput',
-              class = 'thirds',
-              selectizeInput(
-                inputId = 'motif.feature',
-                label = 'Motif',
-                choices = ''
-              )
-            ),
-            div(
-              id = 'continput.motif',
-              class = 'thirds',
-              selectizeInput(
-                inputId = 'metadata.cont.motif',
-                label = 'Prediction Scores and Metadata',
-                choices = ''
-              )
-            ),
-            plotOutput(outputId = 'motifdim'),
-            selectizeInput(
-              inputId = 'metagroup.motif',
-              label = 'Metadata to group by',
-              choices = '',
-              width = '25%'
-            ),
-            checkboxInput(inputId = 'check.featpoints', label = 'Hide points'),
-            plotOutput(outputId = 'motifvln'),
-            width = 12
-          ),
+          # box(
+          #   title = 'Motif Plots',
+          #   div(
+          #     id = 'motifinput',
+          #     class = 'thirds',
+          #     selectizeInput(
+          #       inputId = 'motif.feature',
+          #       label = 'Motif',
+          #       choices = ''
+          #     )
+          #   ),
+          #   div(
+          #     id = 'continput.motif',
+          #     class = 'thirds',
+          #     selectizeInput(
+          #       inputId = 'metadata.cont.motif',
+          #       label = 'Prediction Scores and Metadata',
+          #       choices = ''
+          #     )
+          #   ),
+          #   plotOutput(outputId = 'motifdim'),
+          #   selectizeInput(
+          #     inputId = 'metagroup.motif',
+          #     label = 'Metadata to group by',
+          #     choices = '',
+          #     width = '25%'
+          #   ),
+          #   checkboxInput(inputId = 'check.featpoints', label = 'Hide points'),
+          #   plotOutput(outputId = 'motifvln'),
+          #   width = 12
+          # ),
           box(
             title = p(
               'Predicted cell type cluster motifs',
