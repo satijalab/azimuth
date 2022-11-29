@@ -4,7 +4,7 @@
 \alias{AzimuthApp}
 \title{Launch the mapping app}
 \usage{
-AzimuthApp(config = NULL, ...)
+AzimuthApp(config = NULL, type = "standard", ...)
 }
 \arguments{
 \item{config}{Path to JSON-formatted configuration file specifying options;

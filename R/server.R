@@ -13,7 +13,7 @@ NULL
 #' @importFrom DT dataTableProxy renderDT selectRows
 #' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
 #' @importFrom future future plan resolved value
-#' @importFrom GenomeInfoDb seqlevelsStyle StandardChromosomes
+#' @importFrom GenomeInfoDb seqlevelsStyle standardChromosomes
 #' @importFrom GenomicRanges makeGRangesFromDataFrame
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
 #' theme_void xlab layer_scales xlim ylim ggplot aes geom_point theme
@@ -30,8 +30,7 @@ NULL
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' FindBridgeTransferAnchors MapQuery NormalizeData
-#' @importFrom Signac CollapseToLongestTranscript GetTranscripts GetGRangesFromEnsDb RunTFIDF 
-#' Runmotif AddMotifs
+#' @importFrom Signac GetGRangesFromEnsDb RunTFIDF AddMotifs
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput updateCheckboxInput updateTextAreaInput
@@ -4002,8 +4001,8 @@ AzimuthServer <- function(input, output, session) {
 #' @importFrom stats na.omit quantile setNames median
 #' @importFrom utils write.table packageVersion
 #' @importFrom plotly plotlyOutput renderPlotly toWebGL ggplotly plot_ly
-#' @importFrom Signac CollapseToLongestTranscript GetTranscripts GetGRangesFromEnsDb RunTFIDF 
-#' RunChromVar AddMotifs
+#' @importFrom Signac GetGRangesFromEnsDb RunTFIDF 
+#' RunChromVAR AddMotifs
 #' @importFrom TFBSTools getMatrixSet
 #' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
 #' @importFrom IRanges findOverlaps

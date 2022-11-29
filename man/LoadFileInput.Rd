@@ -4,7 +4,7 @@
 \alias{LoadFileInput}
 \title{Load file input into a \code{Seurat} object}
 \usage{
-LoadFileInput(path)
+LoadFileInput(path, bridge = FALSE)
 }
 \arguments{
 \item{path}{Path to input data}
