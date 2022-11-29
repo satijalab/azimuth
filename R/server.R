@@ -8,6 +8,7 @@ NULL
 #'
 #' @return The shiny server logic
 #'
+#' @importFrom BiocGenerics width
 #' @importFrom BSgenome.Hsapiens.UCSC.hg38 BSgenome.Hsapiens.UCSC.hg38
 #' @importFrom data.table as.data.table
 #' @importFrom DT dataTableProxy renderDT selectRows
@@ -26,7 +27,7 @@ NULL
 #' @importFrom SeuratObject AddMetaData Assays Cells DefaultAssay Embeddings
 #' GetAssayData Idents Idents<- Key RenameCells Reductions Tool SetAssayData
 #' VariableFeatures
-#' @importFrom Seurat DimPlot FeaturePlot FindNeighbors FindTransferAnchors
+#' @importFrom Seurat CreateAssayObject DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' FindBridgeTransferAnchors MapQuery NormalizeData
