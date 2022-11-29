@@ -215,7 +215,7 @@ RunAzimuth.Seurat <- function(
 #' @return Seurat object with reference reductions and annotations
 #'
 #' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
-#' @importFrom Signac GetGRangesFromEnsDb RunTFIDF RunChromVAR 
+#' @importFrom Signac CreateChromatinAssay GetGRangesFromEnsDb RunTFIDF RunChromVAR 
 #' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
 #' @importFrom IRanges findOverlaps
 #' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData

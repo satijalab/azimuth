@@ -13,8 +13,8 @@ NULL
 #' @importFrom DT dataTableProxy renderDT selectRows
 #' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
 #' @importFrom future future plan resolved value
-#' @importFrom GenomeInfoDb seqlevelsStyle standardChromosomes
-#' @importFrom GenomicRanges makeGRangesFromDataFrame
+#' @importFrom GenomeInfoDb seqlevelsStyle seqnames standardChromosomes
+#' @importFrom GenomicRanges granges makeGRangesFromDataFrame
 #' @importFrom ggplot2 annotate geom_hline ggtitle scale_colour_hue
 #' theme_void xlab layer_scales xlim ylim ggplot aes geom_point theme
 #' element_blank element_rect labs
@@ -30,7 +30,8 @@ NULL
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' FindBridgeTransferAnchors MapQuery NormalizeData
-#' @importFrom Signac GetGRangesFromEnsDb RunTFIDF AddMotifs
+#' @importFrom Signac AddMotifs Annotation CreateChromatinAssay Extend FindMotifs FindTopFeatures GRangesToString 
+#' GetGRangesFromEnsDb RunChromVAR RunSVD RunTFIDF AddMotifs
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput updateCheckboxInput updateTextAreaInput
@@ -44,9 +45,10 @@ NULL
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile setNames median
 #' @importFrom TFBSTools getMatrixSet
+#' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom utils write.table packageVersion
 #' @importFrom plotly plotlyOutput renderPlotly toWebGL ggplotly plot_ly
-#'
+#' 
 #' @keywords internal
 #'
 AzimuthServer <- function(input, output, session) {
