@@ -4,12 +4,18 @@
 \alias{ValidateAzimuthReference}
 \title{Validate References for Azimuth}
 \usage{
-ValidateAzimuthReference(object, ad.name = "AzimuthReference")
+ValidateAzimuthReference(
+  object,
+  ad.name = "AzimuthReference",
+  refAssay = "SCT"
+)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{ad.name}{Name in the tools slot containing the AzimuthData object.}
+
+\item{refAssay}{Name of assay to use in reference}
 }
 \value{
 No return value
