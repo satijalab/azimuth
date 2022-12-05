@@ -934,6 +934,7 @@ RequantifyPeaks <- function(
   # Query peaks that have overlap w/ multiome peaks
   if (inherits(x = atac, what = "ChromatinAssay")){
     o_hits <- findOverlaps(atac, subject[["ATAC"]])
+    atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
     atac_inds <- queryHits(o_hits)
     atac_final <- atac[atac_inds, ]
     new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)]) 
