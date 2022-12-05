@@ -3347,11 +3347,19 @@ AzimuthServer <- function(input, output, session) {
             annotate("text", x = 4, y = 25, size=8, label = "Mapping score still computing ... ") +
             theme_void()
         } else {
-          title <- ifelse(
+          title <- if (isTRUE(x = do.bridge)){
+            ifelse(
+              test = grepl(pattern = '^RNA_', x = app.env$feature),
+              yes = gsub(pattern = '^RNA_', replacement = '', x = app.env$feature),
+              no = app.env$feature
+            )
+          } else {
+            ifelse(
             test = grepl(pattern = '^refassay_', x = app.env$feature),
             yes = gsub(pattern = '^refassay_', replacement = '', x = app.env$feature),
             no = app.env$feature
           )
+          }
           if (app.env$feature %in% names(x = prediction.names)) {
             pred <- strsplit(x = app.env$feature, split = "_")[[1]][2]
             group <- prediction.names[app.env$feature]
@@ -3432,11 +3440,19 @@ AzimuthServer <- function(input, output, session) {
             annotate("text", x = 4, y = 25, size=8, label = "Mapping score still computing ... ") +
             theme_void()
         } else {
-          title <- ifelse(
-            test = grepl(pattern = '^refassay_', x = app.env$feature),
-            yes = gsub(pattern = '^refassay_', replacement = '', x = app.env$feature),
-            no = app.env$feature
-          )
+          title <- if (isTRUE(x = do.bridge)){
+            ifelse(
+              test = grepl(pattern = '^RNA_', x = app.env$feature),
+              yes = gsub(pattern = '^RNA_', replacement = '', x = app.env$feature),
+              no = app.env$feature
+            )
+          } else {
+            ifelse(
+              test = grepl(pattern = '^refassay_', x = app.env$feature),
+              yes = gsub(pattern = '^refassay_', replacement = '', x = app.env$feature),
+              no = app.env$feature
+            )
+          }
           if (app.env$feature %in% names(x = prediction.names)) {
             pred <- strsplit(x = app.env$feature, split = "_")[[1]][2]
             group <- prediction.names[app.env$feature]
