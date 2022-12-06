@@ -2632,7 +2632,7 @@ AzimuthServer <- function(input, output, session) {
           inputId = 'feature',
           choices = app.env$features,
           selected = rownames(x = RenderDiffExp(
-            diff.exp = app.env$diff.expr[[paste(app.env$default.assay, input$markerclustersgroup, sep = "_")]],
+            diff.exp = app.env$diff.expr[[paste(app.env$gene.assay, input$markerclustersgroup, sep = "_")]],
             groups.use = input$markerclusters,
             n = Inf
           ))[input$biomarkers_rows_selected],
@@ -3349,8 +3349,8 @@ AzimuthServer <- function(input, output, session) {
         } else {
           title <- if (isTRUE(x = do.bridge)){
             ifelse(
-              test = grepl(pattern = '^RNA_', x = app.env$feature),
-              yes = gsub(pattern = '^RNA_', replacement = '', x = app.env$feature),
+              test = grepl(pattern = '^rna_', x = app.env$feature),
+              yes = gsub(pattern = '^rna_', replacement = '', x = app.env$feature),
               no = app.env$feature
             )
           } else {
@@ -3442,8 +3442,8 @@ AzimuthServer <- function(input, output, session) {
         } else {
           title <- if (isTRUE(x = do.bridge)){
             ifelse(
-              test = grepl(pattern = '^RNA_', x = app.env$feature),
-              yes = gsub(pattern = '^RNA_', replacement = '', x = app.env$feature),
+              test = grepl(pattern = '^rna_', x = app.env$feature),
+              yes = gsub(pattern = '^rna_', replacement = '', x = app.env$feature),
               no = app.env$feature
             )
           } else {
