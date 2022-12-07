@@ -3903,8 +3903,8 @@ AzimuthServer <- function(input, output, session) {
         "A high percentage of overlap is expected if the query ATAC data and bridge ATAC data ", 
         "were processed with the same versions of Cell Ranger and means that there will ", 
         "likely be little loss of information by using this overlap renaming process. ", 
-        "The mapping can still be sucessesful if this value has a low percentage, but downstream gene expression", 
-        "calculations may be innacurate as this again uses another overlap process to requantify peaks to genes."
+        "The mapping can still be sucessesful if this value has a low percentage, but downstream motif", 
+        "calculations may be innacurate as this again uses another overlap process to requantify peaks to motifs."
       )
     )
   )))
@@ -4088,6 +4088,7 @@ AzimuthBridgeServer <- function(input, output, session) {
     output$valuebox.preproc <- NULL
     output$valuebox.mapped <- NULL
     output$valuebox_panchors <- NULL
+    output$valuebox.overlap <- NULL
     output$valuebox_mappingqcstat <- NULL
     app.env$emptyref <- NULL
     app.env$merged <- NULL
