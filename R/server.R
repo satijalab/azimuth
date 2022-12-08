@@ -6598,7 +6598,7 @@ AzimuthBridgeServer <- function(input, output, session) {
                                                        })
   output$refdescriptor <- renderText(expr = eval(expr = HTML(getOption(x = "Azimuth.app.refdescriptor"))))
   output$welcomebox <- renderUI(expr = eval(expr = parse(text = getOption(x = "Azimuth.app.welcomebox"))))
-  onclick("panchors_overlap", showModal(modalDialog(title = "Overlap QC", 
+  onclick("overlap_popup", showModal(modalDialog(title = "Overlap QC", 
                                                     div(paste("In order to conduct bridge integration for ATAC data without uploading a large ", 
                                                               "fragment file, we requantify the ATAC query peaks to match the multiomic bridge ", 
                                                               "based on the overlap between each query peak to a bridge peak and rename the query ", 
