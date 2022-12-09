@@ -3926,7 +3926,7 @@ AzimuthServer <- function(input, output, session) {
       paste0(
         "A high jaccard similarity is expected if most of the peaks in the ATAC query are represented in the ", 
         "multiome data. This is expected to be lower than the overlap percentage as the query may contain extraneous ", 
-        "peaks not captured in the mutliome. If this is low, you can still get good mapping if overlap is high." 
+        "peaks not captured in the mutliome. If this is low, you can still get good mapping if overlap is high.",
         "Gene activity scores are calculated with the original peaks, however, motifs are calculated based ", 
         "on the requantified counts, so be sure to check if the motif results make sense if your jaccard similarity is low."
       )
