@@ -970,6 +970,73 @@ RequantifyPeaks <- function(
   return(atac_final)
 }
 
+# Requantify atac peaks to either multiomic peaks or to genes (optimized for a large set of features)
+#
+# @param o_hits Iranges object of overlapping hits (Should use same assay as assay for requantification)
+# @param ATAC chromatin assay or Seurat Object
+# @param subject ATAC assay from Bridge or Transcripts dataframe 
+# @param assay assay to use in requantifying peaks to genes (original peaks "peak.orig" or requantified peaks "ATAC")
+# @param verbose
+#
+# @return Percentage of Overlap 
+#
+RequantifyPeaksLarge <- function(
+    atac, 
+    subject,
+    assay = "peak.orig",
+    verbose = TRUE){
+  # Query peaks that have overlap w/ multiome peaks
+  if (inherits(x = atac, what = "ChromatinAssay")){
+    o_hits <- findOverlaps(atac, subject[["ATAC"]])
+    atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
+    atac_inds <- queryHits(o_hits)
+    atac_subset <- atac[atac_inds, ]
+    new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)]) 
+    if (verbose){
+      message("Requantifying query peaks to match multiome")
+    }
+  } else if (inherits(x = atac, what = "Seurat")){ 
+    o_hits <- suppressWarnings(findOverlaps(atac[[assay]], subject))
+    atac_inds <- queryHits(o_hits)
+    DefaultAssay(atac) <- assay
+    atac_data <- GetAssayData(atac, assay = assay, slot = "counts")
+    atac_subset <- atac_data[atac_inds, ]
+    new_names <- GRangesToString(subject[subjectHits(o_hits)])
+    if (verbose){
+      message("Requantifying query peaks to genes")
+    }
+  } else{
+    stop("Incorrect object type ")
+  }
+  # Reassign query row names
+  row.names(atac_subset) <- new_names
+  # Merge duplicates
+  row.names <- row.names(atac_subset)
+  model.matrix <- sparse.model.matrix(
+    object = ~ 0 + row.names
+  )  
+  colnames(x = model.matrix) <- sapply(
+    X = colnames(x = model.matrix),
+    FUN = function(name) {
+      name <- gsub(pattern = "row.names", replacement = "", x = name)
+      return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))),
+                    collapse = "__"
+      ))
+    }
+  )
+  # Multiply matrixes to combine counts
+  atac_final <- as((t(model.matrix) %*% atac_subset), "dgCMatrix")
+  ##### code from signac 
+  if (inherits(x = subject, what = "GRanges")){
+    gene.key <- subject$gene_name
+    names(x = gene.key) <- GRangesToString(grange = subject)
+    rownames(x = atac_final) <- as.vector(x = gene.key[rownames(x = atac_final)])
+    atac_final <- atac_final[rownames(x = atac_final) != "", ]
+  }
+  return(atac_final)
+}
+
+
 #' Get transcripts modified from Signac::GeneActivity
 #'
 #' @param object A Seurat object
