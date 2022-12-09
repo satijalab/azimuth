@@ -3896,7 +3896,7 @@ AzimuthServer <- function(input, output, session) {
       tags$ul(list(
         tags$li(paste0("0% to 60%: Likely problematic (red)")),
         tags$li(paste0("60% to 80%:  Possibly problematic (yellow)")),
-        tags$li(paste0(getOption("80% to 100%: Likely successful (green)"))
+        tags$li(paste0("80% to 100%: Likely successful (green)"))
       )),
       tags$h4("Caveats"),
       paste0(
