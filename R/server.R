@@ -21,13 +21,14 @@ NULL
 #' element_blank element_rect labs
 #' @importFrom googlesheets4 gs4_auth gs4_get sheet_append
 #' @importFrom IRanges findOverlaps
+#' @importFrom Matrix sparse.model.matrix
 #' @importFrom JASPAR2020 JASPAR2020
 #' @importFrom methods slot slot<- new
 #' @importFrom presto wilcoxauc
 #' @importFrom SeuratObject AddMetaData Assays Cells DefaultAssay Embeddings
 #' GetAssayData Idents Idents<- Key RenameCells Reductions Tool SetAssayData
-#' VariableFeatures
-#' @importFrom Seurat CreateAssayObject DimPlot FeaturePlot FindNeighbors FindTransferAnchors
+#' VariableFeature
+#' @importFrom Seurat CreateAssayObject GetAssayData DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' FindBridgeTransferAnchors MapQuery NormalizeData

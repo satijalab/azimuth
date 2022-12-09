@@ -337,27 +337,67 @@ RunAzimuth.Bridge <- function(
     scale.factor = median(obj.atac$nCount_RNA)
   )
   # Motif analysis
-  # Remove peaks on scaffolds 
-  main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
-  keep.peaks <- which(as.character(seqnames(granges(obj.atac))) %in% main.chroms)
-  obj.atac[["peak.orig"]] <- subset(obj.atac[["peak.orig"]], features = rownames(obj.atac[["peak.orig"]])[keep.peaks])
-  
-  pfm <- getMatrixSet(
-    x = JASPAR2020,
-    opts = list(species = 9606, all_versions = FALSE)
-  )
-  obj.atac <- AddMotifs(
-    object = obj.atac,
-    genome = BSgenome.Hsapiens.UCSC.hg38,
-    pfm = pfm
-  )
-  obj.atac <- RunChromVAR(
-    object = obj.atac,
-    genome = BSgenome.Hsapiens.UCSC.hg38
-  )
-  # Rename motifs from ids
-  motif_name <- ConvertMotifID(obj.atac[["peak.orig"]]@motifs, id = rownames(obj.atac[["chromvar"]]@data))
-  rownames(obj.atac[["chromvar"]]@data) <- motif_name
+# 
+#   # pfm <- getMatrixSet(
+#   #   x = JASPAR2020,
+#   #   opts = list(species = 9606, all_versions = FALSE)
+#   # )
+#   # obj.atac <- AddMotifs(
+#   #   object = obj.atac,
+#   #   genome = BSgenome.Hsapiens.UCSC.hg38,
+#   #   pfm = pfm
+#   # )
+#   # obj.atac <- RunChromVAR(
+#   #   object = obj.atac,
+#   #   genome = BSgenome.Hsapiens.UCSC.hg38
+#   # )
+#   # # Rename motifs from ids
+#   # motif_name <- ConvertMotifID(obj.atac[["peak.orig"]]@motifs, id = rownames(obj.atac[["chromvar"]]@data))
+#   # rownames(obj.atac[["chromvar"]]@data) <- motif_name
+#   # Remove peaks on scaffolds 
+#   DefaultAssay(obj.atac) <- "ATAC"
+#   main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+#   keep.peaks <- which(as.character(seqnames(granges(obj.atac))) %in% main.chroms)
+#   app.env$object[["ATAC"]] <- subset(obj.atac, features = rownames(obj.atac)[keep.peaks])
+#   
+#   pfm <- getMatrixSet(
+#     x = JASPAR2020,
+#     opts = list(species = 9606, all_versions = FALSE)
+#   )
+#   print("adding motifs")
+#   
+#   # FindMotif version 
+#   print("finding motifs")
+#   for (i in annotation_levels) {
+#     paste(motif_expr, i, sep = "_") <- wilcoxauc(X = obj.atac,
+#                                                  group_by = paste0("predicted.", i),
+#                                                  assay = "data", 
+#                                                  seurat_assay = "ATAC")
+#     peaks.list <- split(paste(motif_expr, i, sep = "_"), 
+#                         f = paste(motif_expr, i, sep = "_")$group)
+#     motif.list <- list()
+#     for (num in 1:length(peaks.list)){
+#       print("starting to find motifs")
+#       if (nrow(peaks.list[[num]]) > 0){
+#         peaks.list[[num]] <- peaks.list[[num]][order(peaks.list[[num]]$logFC, decreasing = TRUE), ]
+#         if (nrow(peaks.list[[num]]) > 1000) {
+#           print("over 1000 peaks")
+#           top.da.peak <- peaks.list[[num]][1:1000,]$feature   #[peaks.list[[num]]$logFC > 0.5, ]$feature
+#         } else {
+#           print("smaller set of peaks")
+#           top.da.peak <- peaks.list[[num]][peaks.list[[num]]$pval < 0.05, ]$feature
+#         }
+#         enriched.motifs <- FindMotifs( 
+#           object = refs$bridge[["ATAC"]],
+#           features = top.da.peak)
+#         enriched.motifs$group <- names(peaks.list[num])
+#         motif.list[[num]] <- enriched.motifs
+#         print(head(enriched.motifs))
+#       }  
+#     }
+#     print(head(dplyr::bind_rows(motif.list)))
+#     app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- dplyr::bind_rows(motif.list)
+#     
   return(obj.atac)
 }
 
