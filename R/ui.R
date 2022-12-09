@@ -244,7 +244,11 @@ AzimuthUI <- tagList(
                        valueBoxOutput(outputId = "valuebox.overlap", width = 3),
                        bsTooltip(id = "valuebox.overlap", title = "Click for more info", placement = "top", trigger = 'hover')
                      ),
-                     valueBoxOutput(outputId = 'valuebox.jaccard', width = 3)
+                     div(
+                       id = 'jaccard_popup',
+                       valueBoxOutput(outputId = "valuebox.jaccard", width = 3),
+                       bsTooltip(id = "valuebox.jaccard", title = "Click for more info", placement = "top", trigger = 'hover')
+                     ),
                    ),
                    fluidRow(
                      valueBoxOutput(outputId = 'valuebox.preproc', width = 3),

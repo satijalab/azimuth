@@ -710,7 +710,7 @@ AzimuthServer <- function(input, output, session) {
                          icon = icon(name = "check"), color = "green")
               })
             }
-            else if (perc_overlap < 50 & perc_overlap > 20) {
+            else if (jaccard < 50 & jaccard > 20) {
               output$valuebox.jaccard<- renderValueBox(expr = {
                 valueBox(value = jaccard, subtitle = "Jaccard Similarity",
                          icon = icon(name = "exclamation-circle"), color = "yellow")
@@ -3894,9 +3894,9 @@ AzimuthServer <- function(input, output, session) {
         "peak to the bridge peak with highest overlap. The box color corresponds to the following bins: "
       ),
       tags$ul(list(
-        tags$li(paste0("0% to ", getOption(x = "Azimuth.map.panchorscolors")[1], "%: Likely problematic (red)")),
-        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[1], "% to ", getOption(x = "Azimuth.map.panchorscolors")[2], "%: Possibly problematic (yellow)")),
-        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[2], "% to 100%: Likely successful (green)"))
+        tags$li(paste0("0% to 60%: Likely problematic (red)")),
+        tags$li(paste0("60% to 80%:  Possibly problematic (yellow)")),
+        tags$li(paste0(getOption("80% to 100%: Likely successful (green)"))
       )),
       tags$h4("Caveats"),
       paste0(
@@ -3905,6 +3905,30 @@ AzimuthServer <- function(input, output, session) {
         "likely be little loss of information by using this overlap renaming process. ", 
         "The mapping can still be sucessesful if this value has a low percentage, but downstream motif", 
         "calculations may be innacurate as this again uses another overlap process to requantify peaks to motifs."
+      )
+    )
+  )))
+  onclick('jaccard_popup', showModal(modalDialog(
+    title = "Overlap QC",
+    div(
+      paste(
+        "In order to conduct bridge integration for ATAC data without uploading a large ", 
+        "fragment file, we requantify the ATAC query peaks to match the multiomic bridge ", 
+        "based on the overlap between each query peak to a bridge peak and rename the query ", 
+        "peak to the bridge peak with highest overlap. The box color corresponds to the following bins: "
+      ),
+      tags$ul(list(
+        tags$li(paste0("0% to 20%: Likely problematic (red)")),
+        tags$li(paste0(getOption("20% to 50%:  Possibly problematic (yellow)")),
+        tags$li(paste0(getOption("50% to 100%: Likely successful (green)"))
+      )),
+      tags$h4("Caveats"),
+      paste0(
+        "A high jaccard similarity is expected if most of the peaks in the ATAC query are represented in the ", 
+        "multiome data. This is expected to be lower than the overlap percentage as the query may contain extraneous ", 
+        "peaks not captured in the mutliome. If this is low, you can still get good mapping if overlap is high." 
+        "Gene activity scores are calculated with the original peaks, however, motifs are calculated based ", 
+        "on the requantified counts, so be sure to check if the motif results make sense if your jaccard similarity is low."
       )
     )
   )))
@@ -6613,6 +6637,22 @@ AzimuthBridgeServer <- function(input, output, session) {
                                                                "likely be little loss of information by using this overlap renaming process. ", 
                                                                "The mapping can still be sucessesful if this value has a low percentage, but downstream gene expression", 
                                                                "calculations may be innacurate as this again uses another overlap process to requantify peaks to genes.")))))
+  onclick("overlap_jaccard", showModal(modalDialog(title = "Overlap QC", 
+                                                 div(paste("In order to conduct bridge integration for ATAC data without uploading a large ", 
+                                                           "fragment file, we requantify the ATAC query peaks to match the multiomic bridge ", 
+                                                           "based on the overlap between each query peak to a bridge peak and rename the query ", 
+                                                           "peak to the bridge peak with highest overlap. The box color corresponds to the following bins: "), 
+                                                     tags$ul(list(tags$li(paste0("0% to ", getOption(x = "Azimuth.map.panchorscolors")[1], 
+                                                                                 "%: Likely problematic (red)")), tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[1], 
+                                                                                                                                 "% to ", getOption(x = "Azimuth.map.panchorscolors")[2], 
+                                                                                                                                 "%: Possibly problematic (yellow)")), tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[2], 
+                                                                                                                                                                                      "% to 100%: Likely successful (green)")))), tags$h4("Caveats"), 
+                                                     paste0("A high Jaccard si is expected if the query ATAC data and bridge ATAC data ", 
+                                                            "were processed with the same versions of Cell Ranger and means that there will ", 
+                                                            "likely be little loss of information by using this overlap renaming process. ", 
+                                                            "The mapping can still be sucessesful if this value has a low percentage, but downstream gene expression", 
+                                                            "calculations may be innacurate as this again uses another overlap process to requantify peaks to genes.")))))
+  
   onclick("panchors_popup", showModal(modalDialog(title = "Anchor QC", 
                                                   div(paste("The Azimuth reference-mapping procedure first identifies a set of 'anchors', ", 
                                                             "or pairwise correspondences between cells predicted to be in a similar biological state, ", 
