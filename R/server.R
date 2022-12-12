@@ -175,7 +175,8 @@ AzimuthServer <- function(input, output, session) {
     output$valubox.upload <- NULL
     output$valuebox.preproc <- NULL
     output$valuebox.mapped <- NULL
-    output$valubox.overlap <- NULL
+    output$valuebox.overlap <- NULL
+    output$valuebox.jaccard <- NULL
     output$valuebox_panchors <- NULL
     output$valuebox_mappingqcstat <- NULL
     app.env$emptyref <- NULL
@@ -655,7 +656,7 @@ AzimuthServer <- function(input, output, session) {
                   react.env$path <- NULL
                 }
               )
-              setProgress(value = 1)
+              setProgress(value = 0.3)
             }
           )
         }
@@ -667,7 +668,7 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (isTRUE(x = react.env$chromatin_assay_1)) {
         withProgress(message = "Making Chromatin Assay", expr = {
-          setProgress(value = 0.2)
+          setProgress(value = 0.3)
           tryCatch(expr = {
             print("about to make chromatin assay")
             app.env$annotations <- refs$annotation
@@ -755,7 +756,7 @@ AzimuthServer <- function(input, output, session) {
             gc(verbose = FALSE)
             react.env$chromatin_assay_1 <- NULL
           })
-          setProgress(value = 0.3)
+          setProgress(value = 0.4)
         }
         )
       }
@@ -766,7 +767,7 @@ AzimuthServer <- function(input, output, session) {
       if (isTRUE(x = react.env$requantify_multiome)) {
         withProgress(message = "Requantifying Peaks to Match Bridge", expr = {
           print("DOING REQUANTIFICATION")
-          setProgress(value = 0.6)
+          setProgress(value = 0.5)
           tryCatch(expr = {
             app.env$requantified_multiome <- RequantifyPeaks(app.env$chromatin_assay_1, refs$bridge)
             app.env$chromatin_assay_2 <- CreateChromatinAssay(
