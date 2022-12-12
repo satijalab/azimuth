@@ -1025,7 +1025,7 @@ RequantifyPeaksLarge <- function(
     }
   )
   # Multiply matrixes to combine counts
-  atac_final <- as((t(model.matrix) %*% atac_subset), "dgCMatrix")
+  atac_final <- as((Matrix::t(model.matrix) %*% atac_subset), "dgCMatrix")
   ##### code from signac 
   if (inherits(x = subject, what = "GRanges")){
     gene.key <- subject$gene_name

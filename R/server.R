@@ -27,7 +27,7 @@ NULL
 #' @importFrom presto wilcoxauc
 #' @importFrom SeuratObject AddMetaData Assays Cells DefaultAssay Embeddings
 #' GetAssayData Idents Idents<- Key RenameCells Reductions Tool SetAssayData
-#' VariableFeature
+#' VariableFeatures
 #' @importFrom Seurat CreateAssayObject GetAssayData DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
