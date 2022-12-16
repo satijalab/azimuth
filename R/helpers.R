@@ -937,10 +937,28 @@ RequantifyPeaks <- function(
     atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
     atac_inds <- queryHits(o_hits)
     atac_final <- atac[atac_inds, ]
-    new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)]) 
+    new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)])
     if (verbose){
       message("Requantifying query peaks to match multiome")
     }
+    # Reassign query row names
+    row.names(atac_subset) <- new_names
+    # Merge duplicates
+    row.names <- row.names(atac_subset)
+    model.matrix <- sparse.model.matrix(
+      object = ~ 0 + row.names
+    )  
+    colnames(x = model.matrix) <- sapply(
+      X = colnames(x = model.matrix),
+      FUN = function(name) {
+        name <- gsub(pattern = "row.names", replacement = "", x = name)
+        return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))),
+                      collapse = "__"
+        ))
+      }
+    )
+    # Multiply matrices to combine counts
+    atac_final <- as((Matrix::t(model.matrix) %*% atac_subset), "dgCMatrix")
   } else if (inherits(x = atac, what = "Seurat")){ 
     o_hits <- suppressWarnings(findOverlaps(atac[[assay]], subject))
     atac_inds <- queryHits(o_hits)
@@ -952,14 +970,14 @@ RequantifyPeaks <- function(
     if (verbose){
       message("Requantifying query peaks to genes")
     }
+    # Reassign query row names
+    rownames(atac_final) <- new_names
+    # Merge duplicates
+    atac_final <- rowsum(atac_final, row.names(atac_final), reorder=FALSE)  
+    atac_final <- Matrix::Matrix(atac_final, sparse = TRUE) 
   } else{
     stop("Incorrect object type ")
   }
-  # Reassign query row names
-  rownames(atac_final) <- new_names
-  # Merge duplicates
-  atac_final <- rowsum(atac_final, row.names(atac_final), reorder=FALSE)  
-  atac_final <- Matrix::Matrix(atac_final, sparse = TRUE) 
   ##### code from signac 
   if (inherits(x = subject, what = "GRanges")){
     gene.key <- subject$gene_name
@@ -1024,7 +1042,7 @@ RequantifyPeaksLarge <- function(
       ))
     }
   )
-  # Multiply matrixes to combine counts
+  # Multiply matrices to combine counts
   atac_final <- as((Matrix::t(model.matrix) %*% atac_subset), "dgCMatrix")
   ##### code from signac 
   if (inherits(x = subject, what = "GRanges")){
