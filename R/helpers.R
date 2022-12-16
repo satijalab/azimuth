@@ -936,7 +936,7 @@ RequantifyPeaks <- function(
     o_hits <- findOverlaps(atac, subject[["ATAC"]])
     atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
     atac_inds <- queryHits(o_hits)
-    atac_final <- atac[atac_inds, ]
+    atac_subset <- atac[atac_inds, ]
     new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)])
     if (verbose){
       message("Requantifying query peaks to match multiome")
