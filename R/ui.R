@@ -238,16 +238,20 @@ AzimuthUI <- tagList(
             uiOutput(outputId = "overlap_box"),
             column(8, 
                    fluidRow(
-                     valueBoxOutput(outputId = 'valuebox.upload', width = 3),
+                     div(
+                       id = 'upload_popup',
+                       valueBoxOutput(outputId = 'valuebox.upload', width = 3),
+                       bsTooltip(id = "valuebox.upload", title = "Click for more info", placement = "top", trigger = 'hover'),
+                     ),
                      div(
                        id = 'overlap_popup',
-                       valueBoxOutput(outputId = "valuebox.overlap", width = 3),
-                       bsTooltip(id = "valuebox.overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
+                       valueBoxOutput(outputId = "valuebox_overlap", width = 3),
+                       bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
                      ),
                      div(
                        id = 'jaccard_popup',
-                       valueBoxOutput(outputId = "valuebox.jaccard", width = 3),
-                       bsTooltip(id = "valuebox.jaccard", title = "Click for more info", placement = "top", trigger = 'hover'),
+                       valueBoxOutput(outputId = "valuebox_jaccard", width = 3),
+                       bsTooltip(id = "valuebox_jaccard", title = "Click for more info", placement = "top", trigger = 'hover'),
                      ),
                    ),
                    fluidRow(
@@ -829,8 +833,8 @@ AzimuthUI <- tagList(
 #'           ),
 #'           fluidRow(
 #'             valueBoxOutput(outputId = 'valuebox.upload', width = 3),
-#'             valueBoxOutput(outputId = 'valuebox.overlap', width = 3),
-#'             valueBoxOutput(outputId = 'valuebox.jaccard', width = 3),
+#'             valueBoxOutput(outputId = 'valuebox_overlap', width = 3),
+#'             valueBoxOutput(outputId = 'valuebox_jaccard', width = 3),
 #'             valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
 #'             div(
 #'               id = 'panchors_popup',

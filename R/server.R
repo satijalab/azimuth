@@ -161,7 +161,7 @@ AzimuthServer <- function(input, output, session) {
   }
   if (!isTRUE(x = do.bridge)) {
     print("removing ui elements")
-    for (id in c('dist.qc', 'q4', 'valuebox.overlap', 'valuebox.jaccard', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable', 'overlap_box')) {
+    for (id in c('dist.qc', 'q4', 'valuebox_overlap', 'valuebox_jaccard', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable', 'overlap_box')) {
       removeUI(selector = paste0('#', id), immediate = TRUE)
     }
   }
@@ -175,8 +175,8 @@ AzimuthServer <- function(input, output, session) {
     output$valubox.upload <- NULL
     output$valuebox.preproc <- NULL
     output$valuebox.mapped <- NULL
-    output$valuebox.overlap <- NULL
-    output$valuebox.jaccard <- NULL
+    output$valuebox_overlap <- NULL
+    output$valuebox_jaccard <- NULL
     output$valuebox_panchors <- NULL
     output$valuebox_mappingqcstat <- NULL
     app.env$emptyref <- NULL
@@ -685,19 +685,19 @@ AzimuthServer <- function(input, output, session) {
             print("PERC OVERLAP")
             print(perc_overlap)
             if (perc_overlap >= 80) {
-              output$valuebox.overlap <- renderValueBox(expr = {
+              output$valuebox_overlap <- renderValueBox(expr = {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                          icon = icon(name = "check"), color = "green")
               })
             }
             else if (perc_overlap < 80 & perc_overlap > 60) {
-              output$valuebox.overlap<- renderValueBox(expr = {
+              output$valuebox_overlap<- renderValueBox(expr = {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                          icon = icon(name = "exclamation-circle"), color = "yellow")
               })
             }
             else {
-              output$valuebox.overlap <- renderValueBox(expr = {
+              output$valuebox_overlap <- renderValueBox(expr = {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage Too Low",
                          icon = icon(name = "exclamation-circle"), color = "red")
               })
@@ -706,20 +706,20 @@ AzimuthServer <- function(input, output, session) {
             print("JACCARD SIMILARITY")
             print(jaccard)
             if (jaccard >= 50) {
-              output$valuebox.jaccard <- renderValueBox(expr = {
+              output$valuebox_jaccard <- renderValueBox(expr = {
                 valueBox(value = jaccard, subtitle = "Jaccard Similarity",
                          icon = icon(name = "check"), color = "green")
               })
             }
             else if (jaccard < 50 & jaccard > 20) {
-              output$valuebox.jaccard<- renderValueBox(expr = {
+              output$valuebox_jaccard<- renderValueBox(expr = {
                 valueBox(value = jaccard, subtitle = "Jaccard Similarity",
                          icon = icon(name = "exclamation-circle"), color = "yellow")
               })
               
             }
             else {
-              output$valuebox.jaccard <- renderValueBox(expr = {
+              output$valuebox_jaccard <- renderValueBox(expr = {
                 valueBox(value = jaccard, subtitle = "Jaccard Similarity is Low",
                          icon = icon(name = "exclamation-circle"), color = "red")
               })
@@ -3885,13 +3885,37 @@ AzimuthServer <- function(input, output, session) {
   )
   
   # render popup UI elements
+  onclick('upload_popup', showModal(modalDialog(
+    title = "Upload QC",
+    div(
+      paste(
+        "The Azimuth reference-mapping procedure first identifies a set of 'anchors', ",
+        "or pairwise correspondences between cells predicted to be in a similar biological state, ",
+        "between query and reference datasets. Here we report the percentage of query cells ",
+        "participating in an anchor correspondence. The box color corresponds to the following bins: "
+      ),
+      tags$ul(list(
+        tags$li(paste0("0% to ", getOption(x = "Azimuth.map.panchorscolors")[1], "%: Likely problematic (red)")),
+        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[1], "% to ", getOption(x = "Azimuth.map.panchorscolors")[2], "%: Possibly problematic (yellow)")),
+        tags$li(paste0(getOption(x = "Azimuth.map.panchorscolors")[2], "% to 100%: Likely successful (green)"))
+      )),
+      tags$h4("Caveats"),
+      paste0(
+        "If the query dataset consists of a homogeneous group of cells, or if the ",
+        "query dataset contains cells from multiple batches (which would be corrected ",
+        "by Azimuth), this metric may return a low value even in cases where mapping is ",
+        "successful. Users in these cases should check results carefully. In particular, ",
+        "we encourage users to verify identified differentially expressed marker genes for annotated cell types."
+      )
+    )
+  )))
   onclick('overlap_popup', showModal(modalDialog(
     title = "Overlap QC",
     div(
       paste(
-        "In order to conduct bridge integration for ATAC data without uploading a large ", 
-        "fragment file, we requantify the ATAC query peaks to match the multiomic bridge ", 
-        "based on the overlap between each query peak to a bridge peak and rename the query ", 
+        "In order to conduct bridge integration for ATAC data without uploading a large ",
+        "fragment file, we requantify the ATAC query peaks to match the multiomic bridge ",
+        "based on the overlap between each query peak to a bridge peak and rename the query ",
         "peak to the bridge peak with highest overlap. The box color corresponds to the following bins: "
       ),
       tags$ul(list(
@@ -3901,10 +3925,10 @@ AzimuthServer <- function(input, output, session) {
       )),
       tags$h4("Caveats"),
       paste0(
-        "A high percentage of overlap is expected if the query ATAC data and bridge ATAC data ", 
-        "were processed with the same versions of Cell Ranger and means that there will ", 
-        "likely be little loss of information by using this overlap renaming process. ", 
-        "The mapping can still be sucessesful if this value has a low percentage, but downstream motif", 
+        "A high percentage of overlap is expected if the query ATAC data and bridge ATAC data ",
+        "were processed with the same versions of Cell Ranger and means that there will ",
+        "likely be little loss of information by using this overlap renaming process. ",
+        "The mapping can still be sucessesful if this value has a low percentage, but downstream motif",
         "calculations may be innacurate as this again uses another overlap process to requantify peaks to motifs."
       )
     )
@@ -4113,7 +4137,7 @@ AzimuthBridgeServer <- function(input, output, session) {
     output$valuebox.preproc <- NULL
     output$valuebox.mapped <- NULL
     output$valuebox_panchors <- NULL
-    output$valuebox.overlap <- NULL
+    output$valuebox_overlap <- NULL
     output$valuebox_mappingqcstat <- NULL
     app.env$emptyref <- NULL
     app.env$merged <- NULL
@@ -4357,20 +4381,20 @@ AzimuthBridgeServer <- function(input, output, session) {
           print("PERC OVERLAP")
           print(perc_overlap)
           if (perc_overlap >= 80) {
-            output$valuebox.overlap <- renderValueBox(expr = {
+            output$valuebox_overlap <- renderValueBox(expr = {
               valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                        icon = icon(name = "check"), color = "green")
             })
           }
           else if (perc_overlap < 80 & perc_overlap > 60) {
-            output$valuebox.overlap<- renderValueBox(expr = {
+            output$valuebox_overlap<- renderValueBox(expr = {
               valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                        icon = icon(name = "exclamation-circle"), color = "yellow")
             })
             
           }
           else {
-            output$valuebox.overlap <- renderValueBox(expr = {
+            output$valuebox_overlap <- renderValueBox(expr = {
               valueBox(value = perc_overlap, subtitle = "Overlap Percentage Too Low",
                        icon = icon(name = "exclamation-circle"), color = "red")
             })
@@ -4379,20 +4403,20 @@ AzimuthBridgeServer <- function(input, output, session) {
           print("JACCARD SIMILARITY")
           print(jaccard)
           if (jaccard >= 50) {
-            output$valuebox.jaccard <- renderValueBox(expr = {
+            output$valuebox_jaccard <- renderValueBox(expr = {
               valueBox(value = jaccard, subtitle = "Jaccard Similarity",
                        icon = icon(name = "check"), color = "green")
             })
           }
           else if (perc_overlap < 50 & perc_overlap > 20) {
-            output$valuebox.jaccard<- renderValueBox(expr = {
+            output$valuebox_jaccard<- renderValueBox(expr = {
               valueBox(value = jaccard, subtitle = "Jaccard Similarity",
                        icon = icon(name = "exclamation-circle"), color = "yellow")
             })
             
           }
           else {
-            output$valuebox.jaccard <- renderValueBox(expr = {
+            output$valuebox_jaccard <- renderValueBox(expr = {
               valueBox(value = jaccard, subtitle = "Jaccard Similarity is Low",
                        icon = icon(name = "exclamation-circle"), color = "red")
             })
