@@ -242,12 +242,12 @@ AzimuthUI <- tagList(
                      div(
                        id = 'overlap_popup',
                        valueBoxOutput(outputId = "valuebox.overlap", width = 3),
-                       bsTooltip(id = "valuebox.overlap", title = "Click for more info", placement = "top", trigger = 'hover')
+                       bsTooltip(id = "valuebox.overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
                      ),
                      div(
                        id = 'jaccard_popup',
                        valueBoxOutput(outputId = "valuebox.jaccard", width = 3),
-                       bsTooltip(id = "valuebox.jaccard", title = "Click for more info", placement = "top", trigger = 'hover')
+                       bsTooltip(id = "valuebox.jaccard", title = "Click for more info", placement = "top", trigger = 'hover'),
                      ),
                    ),
                    fluidRow(

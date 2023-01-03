@@ -687,7 +687,7 @@ AzimuthServer <- function(input, output, session) {
             if (perc_overlap >= 80) {
               output$valuebox.overlap <- renderValueBox(expr = {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
-                         icon = icon(name = "check"), color = "green")
+                         icon = icon(name = "check"), color = "green"),
               })
             }
             else if (perc_overlap < 80 & perc_overlap > 60) {
@@ -695,7 +695,6 @@ AzimuthServer <- function(input, output, session) {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                          icon = icon(name = "exclamation-circle"), color = "yellow")
               })
-              
             }
             else {
               output$valuebox.overlap <- renderValueBox(expr = {
@@ -3911,7 +3910,7 @@ AzimuthServer <- function(input, output, session) {
     )
   )))
   onclick('jaccard_popup', showModal(modalDialog(
-    title = "Overlap QC",
+    title = "Blank QC",
     div(
       paste(
         "In order to conduct bridge integration for ATAC data without uploading a large ", 
