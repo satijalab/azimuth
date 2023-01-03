@@ -687,7 +687,7 @@ AzimuthServer <- function(input, output, session) {
             if (perc_overlap >= 80) {
               output$valuebox.overlap <- renderValueBox(expr = {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
-                         icon = icon(name = "check"), color = "green"),
+                         icon = icon(name = "check"), color = "green")
               })
             }
             else if (perc_overlap < 80 & perc_overlap > 60) {
