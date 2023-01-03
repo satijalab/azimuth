@@ -238,11 +238,7 @@ AzimuthUI <- tagList(
             uiOutput(outputId = "overlap_box"),
             column(8, 
                    fluidRow(
-                     div(
-                       id = 'upload_popup',
-                       valueBoxOutput(outputId = 'valuebox.upload', width = 3),
-                       bsTooltip(id = "valuebox.upload", title = "Click for more info", placement = "top", trigger = 'hover'),
-                     ),
+                     valueBoxOutput(outputId = 'valuebox.upload', width = 3),
                      div(
                        id = 'overlap_popup',
                        valueBoxOutput(outputId = "valuebox_overlap", width = 3),
