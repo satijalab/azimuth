@@ -161,12 +161,7 @@ AzimuthServer <- function(input, output, session) {
   }
   if (!isTRUE(x = do.bridge)) {
     print("removing ui elements")
-    for (id in c('dist.qc', 'q4', 'valuebox.overlap', 'valuebox.jaccard', 'valuebox.preproc.under', 'valuebox.mapped.under', 
-                 'valuebox_panchors_under', 'valuebox_mappingqcstat_under', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable', 'overlap_box')) {
-      removeUI(selector = paste0('#', id), immediate = TRUE)
-    }
-  } else {
-    for (id in c('valuebox.preproc', 'valuebox.mapped', 'valuebox_panchors', 'valuebox_mappingqcstat')) {
+    for (id in c('dist.qc', 'q4', 'valuebox.overlap', 'valuebox.jaccard', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable', 'overlap_box')) {
       removeUI(selector = paste0('#', id), immediate = TRUE)
     }
   }
@@ -179,15 +174,11 @@ AzimuthServer <- function(input, output, session) {
     output$valubox.jaccard <- NULL
     output$valubox.upload <- NULL
     output$valuebox.preproc <- NULL
-    output$valuebox.preproc.under <- NULL
     output$valuebox.mapped <- NULL
-    output$valuebox.mapped.under <- NULL
     output$valuebox.overlap <- NULL
     output$valuebox.jaccard <- NULL
     output$valuebox_panchors <- NULL
-    output$valuebox_panchors_under <- NULL
     output$valuebox_mappingqcstat <- NULL
-    output$valuebox_mappingqcstat_under <- NULL
     app.env$emptyref <- NULL
     app.env$merged <- NULL
     app.env$metadata.discrete <- NULL
@@ -1091,7 +1082,6 @@ AzimuthServer <- function(input, output, session) {
           icon = icon("check"),
           color = "green"
         ))
-        output$valuebox.preproc.under <- output$valuebox.preproc
         if (!is.null(googlesheet)) {
           try(sheet_append(
             ss = googlesheet,
@@ -1229,7 +1219,6 @@ AzimuthServer <- function(input, output, session) {
               width = 6
             )
           })
-          output$valuebox.mapped.under <- output$valuebox.mapped
           app.env$object <- NULL
           app.env$anchors <- NULL
           react.env$progress$close()
@@ -1269,7 +1258,6 @@ AzimuthServer <- function(input, output, session) {
               )
             })
           }
-          output$valuebox_panchors_under <- output$valuebox_panchors
           react.env$map <- TRUE
         }
         react.env$anchors <- FALSE
@@ -1307,7 +1295,6 @@ AzimuthServer <- function(input, output, session) {
                                                           nanchors, ")"), icon = icon(name = "times"), 
                      color = "red", width = 6)
           })
-          output$valuebox.mapped.under <- output$valuebox.mapped
           print("checking")
           app.env$object <- NULL
           app.env$anchors <- NULL
@@ -1633,7 +1620,6 @@ AzimuthServer <- function(input, output, session) {
             )
           })
         }
-        output$valuebox_mappingqcstat_under <- output$valuebox_mappingqcstat
         react.env$cluster.score <- FALSE
         react.env$transform <- TRUE
       }

@@ -249,6 +249,8 @@ AzimuthUI <- tagList(
                        valueBoxOutput(outputId = "valuebox.jaccard", width = 3),
                        bsTooltip(id = "valuebox.jaccard", title = "Click for more info", placement = "top", trigger = 'hover')
                      ),
+                   ),
+                   fluidRow(
                      valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
                      div(
                        id = 'panchors_popup',
@@ -261,20 +263,6 @@ AzimuthUI <- tagList(
                        bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
                      ),
                      valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
-                   ),
-                   fluidRow(
-                     valueBoxOutput(outputId = 'valuebox.preproc.under', width = 3),
-                     div(
-                       id = 'panchors_popup',
-                       valueBoxOutput(outputId = "valuebox_panchors_under", width = 3),
-                       bsTooltip(id = "valuebox_panchors_under", title = "Click for more info", placement = "top", trigger = 'hover'),
-                     ),
-                     div(
-                       id = 'mappingqcstat_popup',
-                       valueBoxOutput(outputId = "valuebox_mappingqcstat_under", width = 3),
-                       bsTooltip(id = "valuebox_mappingqcstat_under", title = "Click for more info", placement = "top", trigger = 'hover'),
-                     ),
-                     valueBoxOutput(outputId = 'valuebox.mapped.under', width = 3),
                    )
             )
           )
