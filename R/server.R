@@ -547,7 +547,7 @@ AzimuthServer <- function(input, output, session) {
             message = 'Calculating nCount and nFeature',
             expr = {
               setProgress(value = 0)
-              calcn <- as.data.frame(x = Seurat:::CalcN(object = app.env$object))
+              calcn <- as.data.frame(x = SeuratObject:::CalcN(object = app.env$object))
               colnames(x = calcn) <- paste(
                 colnames(x = calcn),
                 app.env$default.assay,

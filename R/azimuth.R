@@ -82,7 +82,7 @@ RunAzimuth.Seurat <- function(
   # Calculate nCount_RNA and nFeature_RNA if the query does not
   # contain them already
   if (!all(c("nCount_RNA", "nFeature_RNA") %in% c(colnames(x = query[[]])))) {
-      calcn <- as.data.frame(x = Seurat:::CalcN(object = query))
+      calcn <- as.data.frame(x = SeuratObject:::CalcN(object = query))
       colnames(x = calcn) <- paste(
         colnames(x = calcn),
         "RNA",
