@@ -14,6 +14,7 @@
   do.adt = FALSE,
   verbose = TRUE,
   assay = "RNA",
+  k.anchor = 5,
   k.weight = 50,
   n.trees = 20,
   mapping.score.k = 100

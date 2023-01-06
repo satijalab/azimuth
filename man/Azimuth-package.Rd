@@ -74,13 +74,15 @@ welcome page
 }
 \item{\code{Azimuth.app.welcomebox}}{
 Provide (as a string) the code to render the box on the welcome page
-(quotes escaped). Example:\preformatted{box(
+(quotes escaped). Example:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{box(
   h3(\\"Header\\"),
   \\"body text\\",
   a(\\"link\\", href=\\"www.satijalab.org\\", target=\\"_blank\\"),
   width = 12
 )
-}
+}\if{html}{\out{</div>}}
 
 }
 \item{\code{Azimuth.app.homologs}}{

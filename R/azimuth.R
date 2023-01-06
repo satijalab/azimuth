@@ -14,7 +14,7 @@ NULL
 #' @return Seurat object with reference reductions and annotations
 #'
 #' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
-#'
+#' @importFrom Seurat UpdateSeuratObject
 #' @export
 #' @method RunAzimuth Seurat
 #' @rdname RunAzimuth
