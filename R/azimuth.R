@@ -27,6 +27,7 @@ RunAzimuth.Seurat <- function(
   do.adt = FALSE,
   verbose = TRUE,
   assay = "RNA",
+  k.anchor = 5,
   k.weight = 50,
   n.trees = 20,
   mapping.score.k = 100
@@ -104,7 +105,6 @@ RunAzimuth.Seurat <- function(
       assay = assay
     )
   }
-
   # Preprocess with SCTransform
   query <- SCTransform(
     object = query,
@@ -120,11 +120,13 @@ RunAzimuth.Seurat <- function(
     do.center = TRUE,
     verbose = verbose
   )
+  reference <- UpdateSeuratObject(reference)
   # Find anchors between query and reference
   anchors <- FindTransferAnchors(
     reference = reference,
     query = query,
     k.filter = NA,
+    k.anchor = k.anchor,
     reference.neighbors = "refdr.annoy.neighbors",
     reference.assay = "refAssay",
     query.assay = "refAssay",
@@ -136,6 +138,7 @@ RunAzimuth.Seurat <- function(
     mapping.score.k = mapping.score.k,
     verbose = verbose
   )
+
   # Transferred labels are in metadata columns named "predicted.*"
   # The maximum prediction score is in a metadata column named "predicted.*.score"
   # The prediction scores for each class are in an assay named "prediction.score.*"
