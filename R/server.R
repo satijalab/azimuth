@@ -690,7 +690,7 @@ AzimuthServer <- function(input, output, session) {
                          icon = icon(name = "check"), color = "green")
               })
             }
-            else if (perc_overlap < 80 & perc_overlap > 60) {
+            else if (perc_overlap < 70 & perc_overlap > 50) {
               output$valuebox_overlap<- renderValueBox(expr = {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                          icon = icon(name = "exclamation-circle"), color = "yellow")
@@ -705,13 +705,13 @@ AzimuthServer <- function(input, output, session) {
             jaccard <- round(x = PeakJaccard(app.env$chromatin_assay_1, refs$bridge[["ATAC"]]), digits = 4)
             print("JACCARD SIMILARITY")
             print(jaccard)
-            if (jaccard >= 50) {
+            if (jaccard >= 30) {
               output$valuebox_jaccard <- renderValueBox(expr = {
                 valueBox(value = jaccard, subtitle = "Jaccard Similarity",
                          icon = icon(name = "check"), color = "green")
               })
             }
-            else if (jaccard < 50 & jaccard > 20) {
+            else if (jaccard < 30 & jaccard > 20) {
               output$valuebox_jaccard<- renderValueBox(expr = {
                 valueBox(value = jaccard, subtitle = "Jaccard Similarity",
                          icon = icon(name = "exclamation-circle"), color = "yellow")
