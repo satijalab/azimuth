@@ -4380,13 +4380,13 @@ AzimuthBridgeServer <- function(input, output, session) {
           perc_overlap <- round(x = OverlapTotal(app.env$chromatin_assay_1, refs$bridge[["ATAC"]]), digits = 4)
           print("PERC OVERLAP")
           print(perc_overlap)
-          if (perc_overlap >= 80) {
+          if (perc_overlap >= 75) {
             output$valuebox_overlap <- renderValueBox(expr = {
               valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                        icon = icon(name = "check"), color = "green")
             })
           }
-          else if (perc_overlap < 80 & perc_overlap > 60) {
+          else if (perc_overlap < 75 & perc_overlap > 60) {
             output$valuebox_overlap<- renderValueBox(expr = {
               valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                        icon = icon(name = "exclamation-circle"), color = "yellow")
