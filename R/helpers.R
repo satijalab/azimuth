@@ -230,6 +230,12 @@ LoadFileInput <- function(path) {
         graphs = FALSE,
         images = FALSE
       )
+      if (inherits(x = object[[assay]], what = "Assay5")) {
+        if (length(Layers(object, search = "counts")) > 1) {
+          object[[assay]] <- JoinLayers(object[[assay]], 
+                                        search = "counts", new = "counts")
+        }
+      }
       object <- CreateSeuratObject(
         counts = GetAssayData(object = object[["RNA"]], slot = "counts"),
         min.cells = 1,
