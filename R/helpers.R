@@ -233,7 +233,7 @@ LoadFileInput <- function(path) {
       if (inherits(x = object[[assay]], what = "Assay5")) {
         if (length(Layers(object, search = "counts")) > 1) {
           object[[assay]] <- JoinLayers(object[[assay]], 
-                                        search = "counts", new = "counts")
+                                        layers = "counts", new = "counts")
         }
       }
       object <- CreateSeuratObject(
