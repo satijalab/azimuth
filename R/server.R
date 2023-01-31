@@ -1878,49 +1878,6 @@ AzimuthServer <- function(input, output, session) {
             )
           }
         }
-        
-        # Finalize the log
-        mapping.time <- difftime(
-          time1 = Sys.time(),
-          time2 = react.env$start,
-          units = 'secs'
-        )
-        time.fmt <- FormatDiffTime(dt = mapping.time)
-        app.env$messages <- c(
-          app.env$messages,
-          time.fmt
-        )
-        if (!is.null(x = googlesheet)) {
-          try(expr = sheet_append(
-            ss = googlesheet,
-            data = data.frame(
-              "MAPPINGTIME",
-              app_session_id,
-              as.numeric(x = mapping.time)
-            )
-          ))
-        }
-        if (!is.null(x = googlesheet)) {
-          try(
-            expr = sheet_append(
-              ss = googlesheet,
-              data = data.frame(
-                "SUMMARY",
-                app_session_id,
-                basename(getOption(x = 'Azimuth.app.reference')),
-                ReferenceVersion(object = refs$map),
-                app.env$demo,
-                app.env$ncellsupload,
-                app.env$ncellspreproc,
-                as.numeric(x = mapping.time),
-                Sys.Date(),
-                app.env$nanchors,
-                app.env$clusterpreservationqc
-              )
-            ),
-            silent = TRUE
-          )
-        }
         if (isTRUE(x = do.bridge)) {
           output$menu2 <- renderMenu(expr = {
             sidebarMenu(
@@ -1966,6 +1923,48 @@ AzimuthServer <- function(input, output, session) {
               )
             )
           })
+          # Finalize the log
+          mapping.time <- difftime(
+            time1 = Sys.time(),
+            time2 = react.env$start,
+            units = 'secs'
+          )
+          time.fmt <- FormatDiffTime(dt = mapping.time)
+          app.env$messages <- c(
+            app.env$messages,
+            time.fmt
+          )
+          if (!is.null(x = googlesheet)) {
+            try(expr = sheet_append(
+              ss = googlesheet,
+              data = data.frame(
+                "MAPPINGTIME",
+                app_session_id,
+                as.numeric(x = mapping.time)
+              )
+            ))
+          }
+          if (!is.null(x = googlesheet)) {
+            try(
+              expr = sheet_append(
+                ss = googlesheet,
+                data = data.frame(
+                  "SUMMARY",
+                  app_session_id,
+                  basename(getOption(x = 'Azimuth.app.reference')),
+                  ReferenceVersion(object = refs$map),
+                  app.env$demo,
+                  app.env$ncellsupload,
+                  app.env$ncellspreproc,
+                  as.numeric(x = mapping.time),
+                  Sys.Date(),
+                  app.env$nanchors,
+                  app.env$clusterpreservationqc
+                )
+              ),
+              silent = TRUE
+            )
+          }
         }
         app.env$object <- RenameCells(object = app.env$object, new.names = app.env$query.names)
         if (!isTRUE(x = do.bridge)) {
@@ -2071,6 +2070,48 @@ AzimuthServer <- function(input, output, session) {
         print(head(app.env$motif.diff.expr))
         print(head(app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]]))
         
+      }
+      # Finalize the log
+      mapping.time <- difftime(
+        time1 = Sys.time(),
+        time2 = react.env$start,
+        units = 'secs'
+      )
+      time.fmt <- FormatDiffTime(dt = mapping.time)
+      app.env$messages <- c(
+        app.env$messages,
+        time.fmt
+      )
+      if (!is.null(x = googlesheet)) {
+        try(expr = sheet_append(
+          ss = googlesheet,
+          data = data.frame(
+            "MAPPINGTIME",
+            app_session_id,
+            as.numeric(x = mapping.time)
+          )
+        ))
+      }
+      if (!is.null(x = googlesheet)) {
+        try(
+          expr = sheet_append(
+            ss = googlesheet,
+            data = data.frame(
+              "SUMMARY",
+              app_session_id,
+              basename(getOption(x = 'Azimuth.app.reference')),
+              ReferenceVersion(object = refs$map),
+              app.env$demo,
+              app.env$ncellsupload,
+              app.env$ncellspreproc,
+              as.numeric(x = mapping.time),
+              Sys.Date(),
+              app.env$nanchors,
+              app.env$clusterpreservationqc
+            )
+          ),
+          silent = TRUE
+        )
       }
       print("about to close progress")
       react.env$progress$close()
@@ -2217,7 +2258,6 @@ AzimuthServer <- function(input, output, session) {
           options = selectize.opts
         )
         print('should have made input feature')
-        print("featire ")
         if (isTRUE(x = do.adt)) {
           # app.env$adt.features <- sort(x = FilterFeatures(features = rownames(
           #   x = app.env$object[[adt.key]]
