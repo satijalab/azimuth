@@ -428,7 +428,7 @@ AzimuthUI <- tagList(
           tags$head(tags$style(HTML(".selectize-dropdown .optgroup-header { font-weight: bold; font-size: 13px; color: black; background: #f6f6f6}"))),
           tabName = 'tab_feature',
           box(
-            title = 'Feature Plots',
+            title = 'Gene Activity Scores',
             div(
               id = 'featureinput',
               class = 'thirds',
