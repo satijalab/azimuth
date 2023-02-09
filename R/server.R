@@ -683,15 +683,13 @@ AzimuthServer <- function(input, output, session) {
             #qc_table <- OverlapQC(app.env$chromatin_assay_1, refs$bridge)
             perc_overlap <- round(x = OverlapTotal(app.env$chromatin_assay_1, refs$bridge[["ATAC"]]), digits = 4)
             print("PERC OVERLAP")
-            print(perc_overlap)
-            print(perc_overlap >= 75)
-            if (perc_overlap >= 75) {
+            if (perc_overlap >= 70) {
               output$valuebox_overlap <- renderValueBox(expr = {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                          icon = icon(name = "check"), color = "green")
               })
             }
-            else if (perc_overlap < 75 & perc_overlap > 50) {
+            else if (perc_overlap < 70 & perc_overlap > 50) {
               output$valuebox_overlap<- renderValueBox(expr = {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
                          icon = icon(name = "exclamation-circle"), color = "yellow")
