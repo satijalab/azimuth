@@ -205,12 +205,14 @@ RunAzimuth.Seurat <- function(
 }
 
 
-#' @inheritParams RunAzimuth
+#' @inheritParams RunAzimuthATAC
 #' @param reference Name of reference to map to or a path to a directory containing ref.Rds bridge.Rds and ext.Rds
 #' @param annotation.levels list of annotation levels to map. If not specified, all will be mapped.
 #' @param umap.name name of umap reduction in the returned object
 #' @param do.adt transfer ADT assay
 #' @param assay query assay name
+#' @param dims.atac dimensions
+#' @param dims.rna dimensions
 #'
 #' @return Seurat object with reference reductions and annotations
 #'
@@ -222,11 +224,12 @@ RunAzimuth.Seurat <- function(
 #' @importFrom data.table as.data.table
 #' @importFrom JASPAR2020 JASPAR2020
 #' @importFrom TFBSTools getMatrixSet
+#' 
 #' @export
-#' @method RunAzimuth Bridge
-#' @rdname RunAzimuth.Bridge
+#' @method RunAzimuthATAC Seurat
+#' @rdname RunAzimuthATAC
 #'
-RunAzimuth.Bridge <- function(
+RunAzimuthATAC.Seurat <- function(
     query,
     reference,
     annotation.levels = NULL,
@@ -245,6 +248,7 @@ RunAzimuth.Bridge <- function(
     reference <- reference_all$map
     multiome <- reference_all$bridge
     obj.rna.ext <- reference_all$ext
+    annotation <- reference_all$annotation
   } else {
     stop("Can't find path to reference")
   }
@@ -260,16 +264,17 @@ RunAzimuth.Bridge <- function(
     annotation.levels <- annotation.levels[!grepl(pattern = "^nFeature", x = annotation.levels)]
     annotation.levels <- annotation.levels[!grepl(pattern = "^ori", x = annotation.levels)]
   }
-  if (file.exists(query)) {
-    query_counts <- LoadFileInput(path = query) 
-  } else {
-    stop("Can't find path to query")
-  }
+  # if (file.exists(query)) {
+  #   query_counts <- LoadFileInput(path = query) 
+  # } else {
+  #   stop("Can't find path to query")
+  # }
+  
   annotation <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86) # this could also be saved as an object if we wanna save 30 s 
   seqlevelsStyle(annotation) <- 'UCSC'
-  print("got annotations")
+  assay <- DefaultAssay(query)
   query_assay <- CreateChromatinAssay(
-    counts = query_counts[["RNA"]]@counts,
+    counts = query[[assay]]@counts,
     sep = c(":", "-"),
     annotation = annotation
   )
@@ -337,6 +342,13 @@ RunAzimuth.Bridge <- function(
     scale.factor = median(obj.atac$nCount_RNA)
   )
   # Motif analysis
+  main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+  keep.peaks <- which(as.character(seqnames(granges(app.env$object))) %in% main.chroms)
+  obj.atac[["ATAC"]] <- subset(obj.atac[["ATAC"]], features = rownames(obj.atac[["ATAC"]])[keep.peaks])
+  pfm <- getMatrixSet(
+    x = JASPAR2020,
+    opts = list(species = 9606, all_versions = FALSE)
+  )
 # 
 #   # pfm <- getMatrixSet(
 #   #   x = JASPAR2020,
@@ -413,6 +425,19 @@ RunAzimuth.character <- function(
 ) {
   obj <- LoadFileInput(path = query)
   return(RunAzimuth(obj, ...))
+}
+
+#' @inheritParams RunAzimuthATAC
+#' @export
+#' @method RunAzimuthATAC character
+#' @rdname RunAzimuthATAC
+#'
+RunAzimuthATAC.character <- function(
+    query,
+    ...
+) {
+  obj <- LoadFileInput(path = query)
+  return(RunAzimuthATAC(obj, ...))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
