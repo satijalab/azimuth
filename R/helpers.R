@@ -618,10 +618,7 @@ LoadReference <- function(path, seconds = 10L) {
 
 LoadBridgeReference<- function(path, seconds = 10L) {
   ref.names <- list(
-    bridge = 'bridge.Rds',
-    map = 'ref.Rds',
-    ext = 'ext.Rds',
-    annotation = 'annotation.Rds'
+    ext = 'ext.Rds'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -631,11 +628,8 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     if (!dir.exists(paths = path)) {
       stop("Cannot find directory ", path, call. = FALSE)
     }
-    bridgeref <- file.path(path, ref.names$bridge)
-    mapref <- file.path(path, ref.names$map)
     extref <- file.path(path, ref.names$ext)
-    annotationref <- file.path(path, ref.names$annotation)
-    exists <- file.exists(c(bridgeref, mapref, extref, annotationref))
+    exists <- file.exists(c(extref))
     if (!all(exists)) {
       stop(
         "Missing the following files from the directory provided: ",
@@ -665,14 +659,10 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     #  unlink(x = annref)
   }
   # Load the map reference
-  bridge <- readRDS(file = bridgeref)
-  map <- readRDS(file = mapref)
   ext <- readRDS(file = extref)
-  annotation <- readRDS(file = annotationref)
-  
   # handle new parameters in uwot models beginning in v0.1.13
-  if (!"num_precomputed_nns" %in% names(Misc(map[["refUMAP"]])$model)) {
-    Misc(map[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+  if (!"num_precomputed_nns" %in% names(Misc(ext[["refUMAP"]])$model)) {
+    Misc(ext[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
   }
   
   # Load the annoy index into the Neighbor object in the neighbors slot
@@ -681,16 +671,14 @@ LoadBridgeReference<- function(path, seconds = 10L) {
   #file = annref
   #)
   # Validate that reference contains required dims
-  print(ncol(x = map[["refDR"]]))
-  print(getOption(x = "Azimuth.map.ndims"))
-  if (ncol(x = map[["refDR"]]) < getOption(x = "Azimuth.map.ndims")) {
+  if (ncol(x = ext[["spca"]]) < getOption(x = "Azimuth.map.ndims")) {
     stop("Provided reference doesn't contain at least ",
          getOption(x = "Azimuth.map.ndims"), " dimensions. Please either
          regenerate reference with requested dimensionality or adjust ",
          "the Azimuth.map.ndims option.")
   }
   # Create plotref
-  ad <- Tool(object = map, slot = "AzimuthReference")
+  ad <- Tool(object = ext, slot = "AzimuthBridgeReference")
   plotref.dr <- GetPlotRef(object = ad)
   cm <- sparseMatrix(
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
@@ -703,11 +691,8 @@ LoadBridgeReference<- function(path, seconds = 10L) {
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   gc(verbose = FALSE)
   return(list(
-    map = map,
-    plot = plot,
-    bridge = bridge,
     ext = ext,
-    annotation = annotation
+    plot = plot
   ))
 }
 
@@ -937,7 +922,7 @@ RequantifyPeaks <- function(
     atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
     atac_inds <- queryHits(o_hits)
     atac_subset <- atac[atac_inds, ]
-    new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)])
+    new_names <- rownames(subject[["ATAC"]]@counts[subjectHits(o_hits)])
     if (verbose){
       message("Requantifying query peaks to match multiome")
     }

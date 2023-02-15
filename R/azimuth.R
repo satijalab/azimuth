@@ -851,6 +851,147 @@ AzimuthReference <- function(
   return(object)
 }
 
+
+#' Create a Seurat object compatible with Azimuth.
+#'
+#' @inheritParams CreateAzimuthData
+#' @param refUMAP Name of UMAP in reference to use for mapping
+#' @param refDR Name of DimReduc in reference to use for mapping
+#' @param refAssay Name of SCTAssay to use in reference
+#' @param dims Dimensions to use in reference neighbor finding
+#' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param ori.index Index of the cells used in mapping in the original object on
+#' which UMAP was run. Only need to provide if UMAP was run on different set of
+#' cells.
+#' @param assays Assays to retain for transfer
+#' @param metadata Metadata to retain for transfer
+#' @param verbose Display progress/messages
+#'
+#' @return Returns a Seurat object with AzimuthData stored in the tools slot for
+#' use with Azimuth.
+#'
+#' @importFrom SeuratObject Reductions Misc Misc<- Assays Cells Loadings Idents
+#' DefaultAssay Tool<-
+#' @importFrom Seurat FindNeighbors NormalizeData AverageExpression DietSeurat
+#' @importFrom methods as
+#'
+#' @export
+#'
+AzimuthBridgeReference <- function(
+  object,
+  reference.reduction = "spca",
+  bridge.ref.reduction = "ref.spca",
+  bridge.query.reduction = "slsi",
+  laplacian.reduction = "lap",
+  refUMAP = "wnn.umap",
+  refAssay = "SCT",
+  dims = 1:50,
+  plotref = "umap",
+  plot.metadata = NULL,
+  ori.index = NULL,
+  colormap = NULL,
+  assays = c("Bridge","RNA"),
+  metadata = NULL,
+  reference.version = "0.0.0",
+  verbose = FALSE
+) {
+  # Parameter validation
+  for (i in c(reference.reduction, bridge.ref.reduction, bridge.query.reduction, laplacian.reduction, refUMAP)){
+    if (!i %in% Reductions(object = object)) {
+      stop("Reduction (", i, ") not found in Seurat object provided")
+    }
+  }
+  if (is.null(x = Misc(object = object[[refUMAP]], slot = "model"))) {
+    stop("refUMAP (", refUMAP, ") does not have the umap model info stored. ",
+         "Please rerun RunUMAP with return.model = TRUE.")
+  }
+  if (is.null(x = metadata)) {
+    stop("Please specify at least one metadata field (for transfer and plotting).")
+  }
+  for(i in metadata) {
+    if (! i %in% colnames(x = object[[]])) {
+      warning(i, " not found in Seurat object metadata")
+      next
+    }
+    if (! is.factor(x = object[[i, drop = TRUE]])) {
+      warning(i, " is not a factor. Converting to factor with alphabetical ",
+              "levels.", call. = FALSE)
+      object[[i, drop = TRUE]] <- factor(x = object[[i, drop = TRUE]], levels = sort(x = unique(object[[i, drop = TRUE]])))
+    }
+  }
+  if (!refAssay %in% Assays(object = object)) {
+    stop("Seurat object provided must have the SCT Assay stored.")
+  }
+  if (!inherits(x = object[[refAssay]], what = "SCTAssay")) {
+    stop("refAssay (", refAssay, ") is not an SCTAssay.")
+  }
+  if (length(x = levels(x = object[[refAssay]])) != 2) {
+    stop("refAssay (", refAssay, ") should contain two SCT models, one for rna reference and one for multiome.")
+  }
+  
+  suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
+  # Turn atac data into empty sparse matrices 
+  object[["ATAC"]]$counts <- sparseMatrix(i = 1, j = 1, x = 1,
+                                        dims = c(nrow(object[['ATAC']]), ncol(object[['ATAC']])),
+                                        dimnames = dimnames(object[['ATAC']]@counts))
+  object[["ATAC"]]$data <- sparseMatrix(i = 1, j = 1, x = 1,
+                                             dims = c(nrow(object[['ATAC']]), ncol(object[['ATAC']])),
+                                             dimnames = dimnames(object[['ATAC']]@data))
+  
+  if (verbose) {
+    message("Computing pseudobulk averages")
+  }
+  features <- rownames(x = Loadings(object = object[[reference.reduction]]))
+  plot.metadata <- plot.metadata %||% object[[metadata]]
+  if (inherits(x = plotref, what = "DimReduc")) {
+    plot.metadata <- plot.metadata[Cells(x = plotref), ]
+  }
+  ad <- CreateAzimuthData(
+    object = object,
+    plotref = plotref,
+    plot.metadata  = plot.metadata,
+    colormap = colormap,
+    reference.version = reference.version
+  )
+  # Add the "ori.index" column.
+  ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
+  object$ori.index <- ori.index
+  
+  # Subset the features of the RNA assay
+  DefaultAssay(object = object) <- refAssay
+  object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
+  # Preserves DR after DietSeurat
+  DefaultAssay(object = object[[reference.reduction]]) <- refAssay
+  atac <- object[["ATAC"]]
+  object <- DietSeurat(
+    object = object,
+    counts = FALSE,
+    assays = c(refAssay, assays),
+    dimreducs = c(reference.reduction, bridge.ref.reduction, bridge.query.reduction, laplacian.reduction, "refUMAP")
+  )
+  metadata <- c(metadata, "ori.index")
+  for (i in colnames(x = object[[]])) {
+    if (!i %in% metadata){
+      object[[i]] <- NULL
+    }
+  }
+  sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
+  object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
+  slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = sct.model)
+  DefaultAssay(object = object) <- "refAssay"
+  DefaultAssay(object = object[[reference.reduction]]) <- "refAssay"
+  DefaultAssay(object = object[["refUMAP"]]) <- "refAssay"
+  Tool(object = object) <- ad
+  object <- DietSeurat(
+    object = object,
+    counts = FALSE,
+    assays = c("refAssay", assays),
+    dimreducs = c(reference.reduction, bridge.ref.reduction, bridge.query.reduction, laplacian.reduction, "refUMAP")
+  )
+  object[["ATAC"]] <- atac
+  return(object)
+}
+
 #' Create an \code{\link{AzimuthData}} object
 #'
 #' Create an auxiliary \code{\link{AzimuthData}} object for storing necessary
