@@ -1449,10 +1449,8 @@ AzimuthServer <- function(input, output, session) {
         }
         print("mapping cells ")
         react.env$progress$set(value = 0.5, message = "Mapping cells")
-        refdata <- lapply(X = app.env$metadataxfer, function(x) { 
-          refs$map[[x, drop = TRUE]]
-        })
-        names(x = refdata) <- app.env$metadataxfer
+        refdata <- as.list(app.env$metadataxfer)
+        names(refdata) <- app.env$metadataxfer
         if (do.adt) {
           print("trying to do adt")
           refdata[["impADT"]] <- GetAssayData(object = refs$map[["ADT"]], 
@@ -1716,7 +1714,7 @@ AzimuthServer <- function(input, output, session) {
           )
           refdr.ref <- RenameCells(
             object = refdr.ref, 
-            new.names = Cells(x = refs$map)
+            new.names = Cells(x = refs$map[["Bridge"]])
           )
         } else {
           print("doing the standard version")
@@ -4851,7 +4849,7 @@ AzimuthBridgeServer <- function(input, output, session) {
   observeEvent(eventExpr = react.env$bridge_anchors, handlerExpr = {
     if (isTRUE(x = react.env$bridge_anchors)) {
       react.env$progress$set(value = 0.3, message = "Finding anchors")
-      app.env$bridge_anchors <- FindBridgeTransferAnchors(extended.reference = refs$ext,
+      app.env$bridge_anchors <- FindBridgeTransferAnchors(extended.reference = refs$map,
                                                           query = app.env$object,
                                                           reduction = "lsiproject",
                                                           scale = FALSE,
@@ -5914,7 +5912,7 @@ AzimuthBridgeServer <- function(input, output, session) {
     if (!is.null(x = isolate(expr = app.env$chromatin_assay_1)) & isTRUE(x = react.env$dist.qc)) {
       print("making dist plots")
       dist <- OverlapDistPlot(query_assay = isolate(app.env$chromatin_assay_1),
-                              multiome = refs$bridge[["ATAC"]])
+                              multiome = refs$map[["ATAC"]])
     }
   })
   

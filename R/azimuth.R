@@ -304,11 +304,15 @@ RunAzimuthATAC.Seurat <- function(
   # The maximum prediction score is in a metadata column named "predicted.*.score"
   # The prediction scores for each class are in an assay named "prediction.score.*"
   # The imputed assay is named "impADT" if computed
-  refdata <- lapply(X = annotation.levels, function(x) {
-    reference[[x, drop = TRUE]]
-  })
-  names(x = refdata) <- annotation.levels
+  # refdata <- lapply(X = annotation.levels, function(x) {
+  #   reference[[x, drop = TRUE]]
+  # })
+  # names(x = refdata) <- annotation.levels
   
+  refdata <- as.list(annotation.levels)
+  names(refdata) <- annotation.levels
+  
+  # 
   #if (isTRUE(do.adt)) {
   #  refdata[["impADT"]] <- GetAssayData(
   #    object = reference[["ADT"]],
@@ -319,10 +323,7 @@ RunAzimuthATAC.Seurat <- function(
   obj.atac <- MapQuery(anchorset = bridge.anchor, 
                        reference = reference, 
                        query = obj.atac, 
-                       refdata = list(
-                         l1 = "celltype.l1",
-                         l2 = "celltype.l2",
-                         l3 = "celltype.l3"),
+                       refdata = refdata,
                        reduction.model = "refUMAP" 
   )
   # Get Gene Activities 
@@ -344,7 +345,7 @@ RunAzimuthATAC.Seurat <- function(
   # Motif analysis
 
 # 
-c
+
 #   # obj.atac <- AddMotifs(
 #   #   object = obj.atac,
 #   #   genome = BSgenome.Hsapiens.UCSC.hg38,
@@ -992,6 +993,7 @@ AzimuthBridgeReference <- function(
   object[["ATAC"]] <- AddMotifs(object = object[["ATAC"]], 
                                 genome = BSgenome.Hsapiens.UCSC.hg38, 
                                 pfm = pfm )
+  object[["ATAC"]] <- RegionStats(object[["ATAC"]], genome = BSgenome.Hsapiens.UCSC.hg38)
   return(object)
 }
 
@@ -1128,7 +1130,7 @@ ClusterPreservationScore <- function(query, ds.amount, type = "standard") {
       graph.name ="integrated_neighbors_nn"
     )
   } else if(type == "bridge") {
-    query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "ref.Bridge.reduc")
+    query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, dimreducs = "ref.Bridge.reduc") # counts = FALSE, 
     if (ncol(x = query) > ds.amount) {
       query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
     }
