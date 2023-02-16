@@ -618,7 +618,7 @@ LoadReference <- function(path, seconds = 10L) {
 
 LoadBridgeReference<- function(path, seconds = 10L) {
   ref.names <- list(
-    ext = 'ext.Rds'
+    map = 'ext.Rds'
   )
   if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
     path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
@@ -628,7 +628,7 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     if (!dir.exists(paths = path)) {
       stop("Cannot find directory ", path, call. = FALSE)
     }
-    extref <- file.path(path, ref.names$ext)
+    extref <- file.path(path, ref.names$map)
     exists <- file.exists(c(extref))
     if (!all(exists)) {
       stop(
@@ -659,10 +659,10 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     #  unlink(x = annref)
   }
   # Load the map reference
-  ext <- readRDS(file = extref)
+  map <- readRDS(file = extref)
   # handle new parameters in uwot models beginning in v0.1.13
-  if (!"num_precomputed_nns" %in% names(Misc(ext[["refUMAP"]])$model)) {
-    Misc(ext[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+  if (!"num_precomputed_nns" %in% names(Misc(map[["refUMAP"]])$model)) {
+    Misc(map[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
   }
   
   # Load the annoy index into the Neighbor object in the neighbors slot
@@ -671,14 +671,14 @@ LoadBridgeReference<- function(path, seconds = 10L) {
   #file = annref
   #)
   # Validate that reference contains required dims
-  if (ncol(x = ext[["spca"]]) < getOption(x = "Azimuth.map.ndims")) {
+  if (ncol(x = map[["spca"]]) < getOption(x = "Azimuth.map.ndims")) {
     stop("Provided reference doesn't contain at least ",
          getOption(x = "Azimuth.map.ndims"), " dimensions. Please either
          regenerate reference with requested dimensionality or adjust ",
          "the Azimuth.map.ndims option.")
   }
   # Create plotref
-  ad <- Tool(object = ext, slot = "AzimuthBridgeReference")
+  ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
   cm <- sparseMatrix(
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
@@ -688,10 +688,11 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     counts = cm
   )
   plot[["refUMAP"]] <- plotref.dr
+  plot <- RenameAssays(plot, assay.name = "RNA", new.assay = DefaultAssay(plot[["refUMAP"]]))
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   gc(verbose = FALSE)
   return(list(
-    ext = ext,
+    map = map,
     plot = plot
   ))
 }
@@ -922,7 +923,7 @@ RequantifyPeaks <- function(
     atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
     atac_inds <- queryHits(o_hits)
     atac_subset <- atac[atac_inds, ]
-    new_names <- rownames(subject[["ATAC"]]@counts[subjectHits(o_hits)])
+    new_names <- rownames(subject[["ATAC"]])[subjectHits(o_hits)]
     if (verbose){
       message("Requantifying query peaks to match multiome")
     }

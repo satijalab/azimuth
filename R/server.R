@@ -401,6 +401,7 @@ AzimuthServer <- function(input, output, session) {
             default = stop(safeError(error = "No reference provided"))
           )
         )
+        print(refs)
         setProgress(value = 1)
         enable(id = 'file')
         ToggleDemos(action = "enable", demos = demos)
@@ -671,17 +672,16 @@ AzimuthServer <- function(input, output, session) {
           setProgress(value = 0.3)
           tryCatch(expr = {
             print("about to make chromatin assay")
-            app.env$annotations <- refs$annotation
+            app.env$annotations <- refs$map[["ATAC"]]@annotation
             app.env$chromatin_assay_1 <- CreateChromatinAssay(
               counts = app.env$counts[["RNA"]]@counts, # this should probably be clearer 
               sep = c(":", "-"),
               annotation = app.env$annotations
             )
             print(app.env$chromatin_assay_1)
-            print(refs$bridge)
             #app.env$o_hits <- findOverlaps(app.env$chromatin_assay_1, refs$bridge[["ATAC"]])
             #qc_table <- OverlapQC(app.env$chromatin_assay_1, refs$bridge)
-            perc_overlap <- round(x = OverlapTotal(app.env$chromatin_assay_1, refs$bridge[["ATAC"]]), digits = 4)
+            perc_overlap <- round(x = OverlapTotal(app.env$chromatin_assay_1, refs$map[["ATAC"]]), digits = 4)
             print("PERC OVERLAP")
             if (perc_overlap >= 70) {
               output$valuebox_overlap <- renderValueBox(expr = {
@@ -701,7 +701,7 @@ AzimuthServer <- function(input, output, session) {
                          icon = icon(name = "exclamation-circle"), color = "red")
               })
             }
-            jaccard <- round(x = PeakJaccard(app.env$chromatin_assay_1, refs$bridge[["ATAC"]]), digits = 4)
+            jaccard <- round(x = PeakJaccard(app.env$chromatin_assay_1, refs$map[["ATAC"]]), digits = 4)
             print("JACCARD SIMILARITY")
             print(jaccard)
             if (jaccard >= 30) {
@@ -767,7 +767,7 @@ AzimuthServer <- function(input, output, session) {
           print("DOING REQUANTIFICATION")
           setProgress(value = 0.5)
           tryCatch(expr = {
-            app.env$requantified_multiome <- RequantifyPeaks(app.env$chromatin_assay_1, refs$bridge)
+            app.env$requantified_multiome <- RequantifyPeaks(app.env$chromatin_assay_1, refs$map)
             app.env$chromatin_assay_2 <- CreateChromatinAssay(
               counts = app.env$requantified_multiome,
               sep = c(":", "-"),
@@ -780,12 +780,12 @@ AzimuthServer <- function(input, output, session) {
             
             common.features <- intersect(
               x = rownames(x = app.env$object),
-              y = rownames(x = refs$bridge[["ATAC"]])
+              y = rownames(x = refs$map[["ATAC"]])
             )
             print(length(rownames(x = app.env$object)))
             head(row.names(app.env$object))
-            print(length(rownames(x = refs$bridge[["ATAC"]])))
-            head(rownames(refs$bridge[["ATAC"]]))
+            print(length(rownames(x = refs$map[["ATAC"]])))
+            head(rownames(refs$map[["ATAC"]]))
             print(length(common.features))
             reject_peaks <- c(
               length(x = common.features) < getOption(x = 'Azimuth.map.ngenes'),
@@ -1267,7 +1267,7 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (isTRUE(x = react.env$bridge_anchors)) {
         react.env$progress$set(value = 0.3, message = "Finding anchors")
-        app.env$anchors <- FindBridgeTransferAnchors(extended.reference = refs$ext,
+        app.env$anchors <- FindBridgeTransferAnchors(extended.reference = refs$map,
                                                      query = app.env$object,
                                                      reduction = "lsiproject",
                                                      scale = FALSE,
@@ -2055,7 +2055,7 @@ AzimuthServer <- function(input, output, session) {
             }
             print(head(top.da.peak))
             enriched.motifs <- FindMotifs( 
-              object = refs$bridge[["ATAC"]],
+              object = refs$map[["ATAC"]],
               features = top.da.peak)
             enriched.motifs$group <- names(peaks.list[num])
             motif.list[[num]] <- enriched.motifs
@@ -2908,7 +2908,7 @@ AzimuthServer <- function(input, output, session) {
     if (!is.null(x = isolate(expr = app.env$chromatin_assay_1)) & isTRUE(x = react.env$dist.qc)) {
       print("making dist plots")
       dist <- OverlapDistPlot(query_assay = isolate(app.env$chromatin_assay_1),
-                              multiome = refs$bridge[["ATAC"]])
+                              multiome = refs$map[["ATAC"]])
     }
   })
   output$refdim_intro <- renderPlot(expr = {

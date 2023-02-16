@@ -206,7 +206,7 @@ RunAzimuth.Seurat <- function(
 
 
 #' @inheritParams RunAzimuthATAC
-#' @param reference Name of reference to map to or a path to a directory containing ref.Rds bridge.Rds and ext.Rds
+#' @param reference Name of reference to map to or a path to a directory containing ext.Rds
 #' @param annotation.levels list of annotation levels to map. If not specified, all will be mapped.
 #' @param umap.name name of umap reduction in the returned object
 #' @param do.adt transfer ADT assay
@@ -244,11 +244,8 @@ RunAzimuthATAC.Seurat <- function(
     dims.rna = 1:50
 ) {
   if (dir.exists(reference)) { 
-    reference_all <- LoadBridgeReference(reference)
-    reference <- reference_all$map
-    multiome <- reference_all$bridge
-    obj.rna.ext <- reference_all$ext
-    annotation <- reference_all$annotation
+    reference <- LoadBridgeReference(reference)
+    reference <- reference$map
   } else {
     stop("Can't find path to reference")
   }
@@ -270,8 +267,7 @@ RunAzimuthATAC.Seurat <- function(
   #   stop("Can't find path to query")
   # }
   
-  annotation <- GetGRangesFromEnsDb(ensdb = EnsDb.Hsapiens.v86) # this could also be saved as an object if we wanna save 30 s 
-  seqlevelsStyle(annotation) <- 'UCSC'
+  annotation <- reference[["ATAC"]]@annotation
   assay <- DefaultAssay(query)
   query_assay <- CreateChromatinAssay(
     counts = query[[assay]]@counts,
@@ -282,7 +278,7 @@ RunAzimuthATAC.Seurat <- function(
   print(query_assay)
   #o_hits <- findOverlaps(query_assay, multiome[["ATAC"]])
   print("found overlaps")
-  query_requantified  <- RequantifyPeaks(query_assay, multiome)
+  query_requantified  <- RequantifyPeaks(query_assay, reference)
   print("requantified peaks")
   # Create assay with requantified ATAC data
   ATAC_assay <- CreateChromatinAssay(
@@ -300,7 +296,7 @@ RunAzimuthATAC.Seurat <- function(
   obj.atac <- RunTFIDF(obj.atac)
   
   # Find anchors between query and reference # deleted find transfer anchors 
-  bridge.anchor <- FindBridgeTransferAnchors(extended.reference = obj.rna.ext,
+  bridge.anchor <- FindBridgeTransferAnchors(extended.reference = reference,
                                              query = obj.atac,
                                              reduction = "lsiproject",
                                              dims = dims.atac)
@@ -320,11 +316,15 @@ RunAzimuthATAC.Seurat <- function(
   #  )
   #}
   
-  obj.atac <- MapQuery(anchorset = bridge.anchor,  # deleted transfer data 
+  obj.atac <- MapQuery(anchorset = bridge.anchor, 
                        reference = reference, 
                        query = obj.atac, 
-                       refdata = refdata,
-                       reduction.model = "refUMAP")
+                       refdata = list(
+                         l1 = "celltype.l1",
+                         l2 = "celltype.l2",
+                         l3 = "celltype.l3"),
+                       reduction.model = "refUMAP" 
+  )
   # Get Gene Activities 
   DefaultAssay(obj.atac) <- "peak.orig"
   print(obj.atac)
@@ -342,18 +342,9 @@ RunAzimuthATAC.Seurat <- function(
     scale.factor = median(obj.atac$nCount_RNA)
   )
   # Motif analysis
-  main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
-  keep.peaks <- which(as.character(seqnames(granges(app.env$object))) %in% main.chroms)
-  obj.atac[["ATAC"]] <- subset(obj.atac[["ATAC"]], features = rownames(obj.atac[["ATAC"]])[keep.peaks])
-  pfm <- getMatrixSet(
-    x = JASPAR2020,
-    opts = list(species = 9606, all_versions = FALSE)
-  )
+
 # 
-#   # pfm <- getMatrixSet(
-#   #   x = JASPAR2020,
-#   #   opts = list(species = 9606, all_versions = FALSE)
-#   # )
+c
 #   # obj.atac <- AddMotifs(
 #   #   object = obj.atac,
 #   #   genome = BSgenome.Hsapiens.UCSC.hg38,
@@ -886,7 +877,7 @@ AzimuthBridgeReference <- function(
   refUMAP = "wnn.umap",
   refAssay = "SCT",
   dims = 1:50,
-  plotref = "umap",
+  plotref = "wnn.umap",
   plot.metadata = NULL,
   ori.index = NULL,
   colormap = NULL,
@@ -953,6 +944,7 @@ AzimuthBridgeReference <- function(
     colormap = colormap,
     reference.version = reference.version
   )
+  
   # Add the "ori.index" column.
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
   object$ori.index <- ori.index
@@ -975,6 +967,7 @@ AzimuthBridgeReference <- function(
       object[[i]] <- NULL
     }
   }
+  # SCT assay
   sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
   object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
   slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = sct.model)
@@ -982,6 +975,8 @@ AzimuthBridgeReference <- function(
   DefaultAssay(object = object[[reference.reduction]]) <- "refAssay"
   DefaultAssay(object = object[["refUMAP"]]) <- "refAssay"
   Tool(object = object) <- ad
+  object@tools$AzimuthReference <- object@tools$AzimuthBridgeReference  
+  object@tools$AzimuthBridgeReference <- NULL
   object <- DietSeurat(
     object = object,
     counts = FALSE,
@@ -989,6 +984,14 @@ AzimuthBridgeReference <- function(
     dimreducs = c(reference.reduction, bridge.ref.reduction, bridge.query.reduction, laplacian.reduction, "refUMAP")
   )
   object[["ATAC"]] <- atac
+  # Add motifs on multiome atac
+  pfm <- getMatrixSet(
+    x = JASPAR2020,
+    opts = list(species = 9606, all_versions = FALSE)
+  )
+  object[["ATAC"]] <- AddMotifs(object = object[["ATAC"]], 
+                                genome = BSgenome.Hsapiens.UCSC.hg38, 
+                                pfm = pfm )
   return(object)
 }
 
