@@ -19,9 +19,16 @@ ENV HDF5_PLUGIN_PATH=/lzf
 COPY Rprofile.site /usr/local/lib/R/etc/Rprofile.site
 
 RUN R --no-echo -e "BiocManager::install(c('BSgenome.Hsapiens.UCSC.hg38', 'glmGamPoi', 'GenomeInfoDb', 'GenomicRanges', 'TFBSTools', 'JASPAR2020', 'EnsDb.Hsapiens.v86', 'IRanges', 'Rsamtools', 'S4Vectors'), force = TRUE)"
+#RUN Rscript -e "install.packages('devtools',repos = 'http://cran.us.r-project.org')"
+
+RUN R --no-echo -e "install.packages('sp', repos='http://cran.us.r-project.org')"
+RUN R --no-echo -e "install.packages('Matrix', repos='http://R-Forge.R-project.org')"
 RUN R --no-echo -e "install.packages(c('data.table', 'DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'Signac', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr'), repo='https://cloud.r-project.org')"
 RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveazure/seurat-disk', 'satijalab/seurat-data'), dependencies = FALSE)"
-RUN R --no-echo --no-restore --no-save -e "remotes::install_github('satijalab/seurat', 'feat/dictionary')"
+RUN R --no-echo --no-restore --no-save -e "remotes::install_github('mojaveazure/seurat-object', 'feat/CalN_generic', auth_token = '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', build = TRUE)"
+RUN R --no-echo --no-restore --no-save -e "remotes::install_github('satijalab/seurat-private', 'feat/S5_transferAnchors', auth_token = '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', build = FALSE)"
+
+
 
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"
