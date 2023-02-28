@@ -223,7 +223,7 @@ RunAzimuth.Seurat <- function(
 #' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
 #' @importFrom data.table as.data.table
 #' @importFrom JASPAR2020 JASPAR2020
-#' @importFrom TFBSTools getMatrixSet
+#' @importFrom TFBSTools getCan’t make counts emptMatrixSet
 #' 
 #' @export
 #' @method RunAzimuthATAC Seurat
@@ -1141,7 +1141,7 @@ ClusterPreservationScore <- function(query, ds.amount, type = "standard") {
       graph.name ="integrated_neighbors_nn"
     )
   } else if(type == "bridge") {
-    query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, dimreducs = "ref.Bridge.reduc") # counts = FALSE, 
+    query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "ref.Bridge.reduc") 
     if (ncol(x = query) > ds.amount) {
       query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
     }
