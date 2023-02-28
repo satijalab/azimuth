@@ -24,13 +24,9 @@ ENV HDF5_PLUGIN_PATH=/lzf
 
 COPY Rprofile.site /usr/local/lib/R/etc/Rprofile.site
 
-RUN R RHOME
-
-
 RUN R --no-echo --no-restore --no-save -e "remotes::install_github('bnprks/BPCells')"
 
 RUN R --no-echo -e "BiocManager::install(c('BSgenome.Hsapiens.UCSC.hg38', 'glmGamPoi', 'GenomeInfoDb', 'GenomicRanges', 'TFBSTools', 'JASPAR2020', 'EnsDb.Hsapiens.v86', 'IRanges', 'Rsamtools', 'S4Vectors'), force = TRUE)"
-#RUN Rscript -e "install.packages('devtools',repos = 'http://cran.us.r-project.org')"
 
 RUN R --no-echo -e "install.packages('sp', repos='http://cran.us.r-project.org')"
 RUN R --no-echo -e "install.packages('Matrix', repos='http://R-Forge.R-project.org')"
@@ -39,8 +35,6 @@ RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveaz
 RUN R --no-echo --no-restore --no-save -e "remotes::install_github('mojaveazure/seurat-object', 'feat/CalN_generic', build = TRUE)"
 RUN R --no-echo --no-restore --no-save -e "remotes::install_github('satijalab/seurat-private', 'feat/S5_transferAnchors', build = FALSE)"
 RUN R --no-echo --no-restore --no-save -e "remotes::install_github('stuart-lab/signac', 'seurat5')"
-
-
 
 
 ARG AZIMUTH_VER=unknown
