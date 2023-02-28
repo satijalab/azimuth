@@ -34,7 +34,7 @@ RunAzimuthATAC(query, ...)
  \item A \code{.h5seurat} object
 }}
 
-\item{reference}{Name of reference to map to or a path to a directory containing ref.Rds bridge.Rds and ext.Rds}
+\item{reference}{Name of reference to map to or a path to a directory containing ext.Rds}
 
 \item{annotation.levels}{list of annotation levels to map. If not specified, all will be mapped.}
 

@@ -600,7 +600,7 @@ LoadReference <- function(path, seconds = 10L) {
 #'  }
 #' }
 #'
-#' @importFrom SeuratObject Idents<-
+#' @importFrom SeuratObject Idents<- RenameAssays
 #' @importFrom Seurat LoadAnnoyIndex
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
@@ -671,7 +671,7 @@ LoadBridgeReference<- function(path, seconds = 10L) {
   #file = annref
   #)
   # Validate that reference contains required dims
-  if (ncol(x = map[["spca"]]) < getOption(x = "Azimuth.map.ndims")) {
+  if (ncol(x = map[["refDR"]]) < getOption(x = "Azimuth.map.ndims")) {
     stop("Provided reference doesn't contain at least ",
          getOption(x = "Azimuth.map.ndims"), " dimensions. Please either
          regenerate reference with requested dimensionality or adjust ",

@@ -5,6 +5,12 @@ RUN apt-get install -y libv8-dev
 RUN apt-get install -y libbz2-dev
 RUN apt-get install -y liblzma-dev
 
+RUN apt-get install pkg-config -y
+RUN apt install libhdf5-dev -y 
+RUN apt-get install gcc -y
+RUN pip install --no-binary=h5py h5py
+
+
 RUN mkdir lzf
 WORKDIR /lzf
 RUN wget https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.c https://raw.githubusercontent.com/h5py/h5py/3.0.0/lzf/lzf_filter.h
@@ -18,10 +24,24 @@ ENV HDF5_PLUGIN_PATH=/lzf
 
 COPY Rprofile.site /usr/local/lib/R/etc/Rprofile.site
 
+RUN R RHOME
+
+
+RUN R --no-echo --no-restore --no-save -e "remotes::install_github('bnprks/BPCells')"
+
 RUN R --no-echo -e "BiocManager::install(c('BSgenome.Hsapiens.UCSC.hg38', 'glmGamPoi', 'GenomeInfoDb', 'GenomicRanges', 'TFBSTools', 'JASPAR2020', 'EnsDb.Hsapiens.v86', 'IRanges', 'Rsamtools', 'S4Vectors'), force = TRUE)"
+#RUN Rscript -e "install.packages('devtools',repos = 'http://cran.us.r-project.org')"
+
+RUN R --no-echo -e "install.packages('sp', repos='http://cran.us.r-project.org')"
+RUN R --no-echo -e "install.packages('Matrix', repos='http://R-Forge.R-project.org')"
 RUN R --no-echo -e "install.packages(c('data.table', 'DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'Signac', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr'), repo='https://cloud.r-project.org')"
 RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveazure/seurat-disk', 'satijalab/seurat-data'), dependencies = FALSE)"
-RUN R --no-echo --no-restore --no-save -e "remotes::install_github('satijalab/seurat', 'feat/dictionary')"
+RUN R --no-echo --no-restore --no-save -e "remotes::install_github('mojaveazure/seurat-object', 'feat/CalN_generic', build = TRUE)"
+RUN R --no-echo --no-restore --no-save -e "remotes::install_github('satijalab/seurat-private', 'feat/S5_transferAnchors', build = FALSE)"
+RUN R --no-echo --no-restore --no-save -e "remotes::install_github('stuart-lab/signac', 'seurat5')"
+
+
+
 
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"

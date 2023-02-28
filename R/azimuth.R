@@ -862,9 +862,11 @@ AzimuthReference <- function(
 #' @return Returns a Seurat object with AzimuthData stored in the tools slot for
 #' use with Azimuth.
 #'
+#' @import BSgenome.Hsapiens.UCSC.hg38
 #' @importFrom SeuratObject Reductions Misc Misc<- Assays Cells Loadings Idents
 #' DefaultAssay Tool<-
 #' @importFrom Seurat FindNeighbors NormalizeData AverageExpression DietSeurat
+#' @importFrom TFBSTools getMatrixSet
 #' @importFrom methods as
 #'
 #' @export
@@ -921,7 +923,9 @@ AzimuthBridgeReference <- function(
     stop("refAssay (", refAssay, ") should contain two SCT models, one for rna reference and one for multiome.")
   }
   
+  suppressWarnings(expr = object[["refDR"]] <- object[[reference.reduction]])
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
+  suppressWarnings(expr = object[["ref.refDR"]] <- object[[paste0("ref", bridge.ref.reduction)]])
   # Turn atac data into empty sparse matrices 
   object[["ATAC"]]$counts <- sparseMatrix(i = 1, j = 1, x = 1,
                                         dims = c(nrow(object[['ATAC']]), ncol(object[['ATAC']])),
@@ -968,6 +972,7 @@ AzimuthBridgeReference <- function(
       object[[i]] <- NULL
     }
   }
+
   # SCT assay
   sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
   object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
@@ -975,6 +980,8 @@ AzimuthBridgeReference <- function(
   DefaultAssay(object = object) <- "refAssay"
   DefaultAssay(object = object[[reference.reduction]]) <- "refAssay"
   DefaultAssay(object = object[["refUMAP"]]) <- "refAssay"
+  DefaultAssay(object = object[["refDR"]]) <- "refAssay"
+  DefaultAssay(object = object[["ref.refDR"]]) <- "refAssay"
   Tool(object = object) <- ad
   object@tools$AzimuthReference <- object@tools$AzimuthBridgeReference  
   object@tools$AzimuthBridgeReference <- NULL
@@ -982,7 +989,7 @@ AzimuthBridgeReference <- function(
     object = object,
     counts = FALSE,
     assays = c("refAssay", assays),
-    dimreducs = c(reference.reduction, bridge.ref.reduction, bridge.query.reduction, laplacian.reduction, "refUMAP")
+    dimreducs = c(bridge.query.reduction, laplacian.reduction, "ref.refDR", "refDR", "refUMAP")
   )
   object[["ATAC"]] <- atac
   # Add motifs on multiome atac
@@ -990,6 +997,10 @@ AzimuthBridgeReference <- function(
     x = JASPAR2020,
     opts = list(species = 9606, all_versions = FALSE)
   )
+  main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+  keep.peaks <- which(as.character(seqnames(granges(object[["ATAC"]]))) %in% main.chroms)
+  object[["ATAC"]]<- subset(object[["ATAC"]], features = rownames(object[["ATAC"]])[keep.peaks])
+  
   object[["ATAC"]] <- AddMotifs(object = object[["ATAC"]], 
                                 genome = BSgenome.Hsapiens.UCSC.hg38, 
                                 pfm = pfm )
