@@ -617,6 +617,8 @@ LoadReference <- function(path, seconds = 10L) {
 #'
 
 LoadBridgeReference<- function(path, seconds = 10L) {
+  op <- options(Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
   ref.names <- list(
     map = 'ext.Rds'
   )

@@ -62,7 +62,7 @@ RunAzimuth.Seurat <- function(
   azimuth.version <- as.character(packageVersion(pkg = "Azimuth"))
   seurat.version <- as.character(packageVersion(pkg = "Seurat"))
   meta.data <- names(slot(reference, "meta.data"))
-
+  
   # is annotation levels are not specify, gather all levels of annotation
   if (is.null(annotation.levels)) {
     annotation.levels <- names(slot(object = reference, name = "meta.data"))
@@ -70,30 +70,30 @@ RunAzimuth.Seurat <- function(
     annotation.levels <- annotation.levels[!grepl(pattern = "^nFeature", x = annotation.levels)]
     annotation.levels <- annotation.levels[!grepl(pattern = "^ori", x = annotation.levels)]
   }
-
+  
   # Change the file path based on where the query file is located on your system.
   query <- ConvertGeneNames(
     object = query,
     reference.names = rownames(x = reference),
     homolog.table = 'https://seurat.nygenome.org/azimuth/references/homologs.rds'
   )
-
+  
   # Calculate nCount_RNA and nFeature_RNA if the query does not
   # contain them already
   if (!all(c("nCount_RNA", "nFeature_RNA") %in% c(colnames(x = query[[]])))) {
-      calcn <- as.data.frame(x = Seurat:::CalcN(object = query))
-      colnames(x = calcn) <- paste(
-        colnames(x = calcn),
-        "RNA",
-        sep = '_'
-      )
-      query <- AddMetaData(
-        object = query,
-        metadata = calcn
-      )
-      rm(calcn)
+    calcn <- as.data.frame(x = Seurat:::CalcN(object = query))
+    colnames(x = calcn) <- paste(
+      colnames(x = calcn),
+      "RNA",
+      sep = '_'
+    )
+    query <- AddMetaData(
+      object = query,
+      metadata = calcn
+    )
+    rm(calcn)
   }
-
+  
   # Calculate percent mitochondrial genes if the query contains genes
   # matching the regular expression "^MT-"
   if (any(grepl(pattern = '^MT-', x = rownames(x = query)))) {
@@ -104,7 +104,7 @@ RunAzimuth.Seurat <- function(
       assay = assay
     )
   }
-
+  
   # Preprocess with SCTransform
   query <- SCTransform(
     object = query,
@@ -144,14 +144,14 @@ RunAzimuth.Seurat <- function(
     reference[[x, drop = TRUE]]
   })
   names(x = refdata) <- annotation.levels
-
+  
   if (isTRUE(do.adt)) {
     refdata[["impADT"]] <- GetAssayData(
       object = reference[["ADT"]],
       slot = "data"
     )
   }
-
+  
   query <- TransferData(
     reference = reference,
     query = query,
@@ -230,18 +230,18 @@ RunAzimuth.Seurat <- function(
 #' @rdname RunAzimuthATAC
 #'
 RunAzimuthATAC.Seurat <- function(
-    query,
-    reference,
-    annotation.levels = NULL,
-    umap.name = "ref.umap",
-    do.adt = FALSE,
-    verbose = TRUE,
-    assay = "RNA",
-    k.weight = 50,
-    n.trees = 20,
-    mapping.score.k = 100,
-    dims.atac = 2:50, 
-    dims.rna = 1:50
+  query,
+  reference,
+  annotation.levels = NULL,
+  umap.name = "ref.umap",
+  do.adt = FALSE,
+  verbose = TRUE,
+  assay = "RNA",
+  k.weight = 50,
+  n.trees = 20,
+  mapping.score.k = 100,
+  dims.atac = 2:50, 
+  dims.rna = 1:50
 ) {
   if (dir.exists(reference)) { 
     reference <- LoadBridgeReference(reference)
@@ -343,65 +343,65 @@ RunAzimuthATAC.Seurat <- function(
     scale.factor = median(obj.atac$nCount_RNA)
   )
   # Motif analysis
-
-# 
-
-#   # obj.atac <- AddMotifs(
-#   #   object = obj.atac,
-#   #   genome = BSgenome.Hsapiens.UCSC.hg38,
-#   #   pfm = pfm
-#   # )
-#   # obj.atac <- RunChromVAR(
-#   #   object = obj.atac,
-#   #   genome = BSgenome.Hsapiens.UCSC.hg38
-#   # )
-#   # # Rename motifs from ids
-#   # motif_name <- ConvertMotifID(obj.atac[["peak.orig"]]@motifs, id = rownames(obj.atac[["chromvar"]]@data))
-#   # rownames(obj.atac[["chromvar"]]@data) <- motif_name
-#   # Remove peaks on scaffolds 
-#   DefaultAssay(obj.atac) <- "ATAC"
-#   main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
-#   keep.peaks <- which(as.character(seqnames(granges(obj.atac))) %in% main.chroms)
-#   app.env$object[["ATAC"]] <- subset(obj.atac, features = rownames(obj.atac)[keep.peaks])
-#   
-#   pfm <- getMatrixSet(
-#     x = JASPAR2020,
-#     opts = list(species = 9606, all_versions = FALSE)
-#   )
-#   print("adding motifs")
-#   
-#   # FindMotif version 
-#   print("finding motifs")
-#   for (i in annotation_levels) {
-#     paste(motif_expr, i, sep = "_") <- wilcoxauc(X = obj.atac,
-#                                                  group_by = paste0("predicted.", i),
-#                                                  assay = "data", 
-#                                                  seurat_assay = "ATAC")
-#     peaks.list <- split(paste(motif_expr, i, sep = "_"), 
-#                         f = paste(motif_expr, i, sep = "_")$group)
-#     motif.list <- list()
-#     for (num in 1:length(peaks.list)){
-#       print("starting to find motifs")
-#       if (nrow(peaks.list[[num]]) > 0){
-#         peaks.list[[num]] <- peaks.list[[num]][order(peaks.list[[num]]$logFC, decreasing = TRUE), ]
-#         if (nrow(peaks.list[[num]]) > 1000) {
-#           print("over 1000 peaks")
-#           top.da.peak <- peaks.list[[num]][1:1000,]$feature   #[peaks.list[[num]]$logFC > 0.5, ]$feature
-#         } else {
-#           print("smaller set of peaks")
-#           top.da.peak <- peaks.list[[num]][peaks.list[[num]]$pval < 0.05, ]$feature
-#         }
-#         enriched.motifs <- FindMotifs( 
-#           object = refs$bridge[["ATAC"]],
-#           features = top.da.peak)
-#         enriched.motifs$group <- names(peaks.list[num])
-#         motif.list[[num]] <- enriched.motifs
-#         print(head(enriched.motifs))
-#       }  
-#     }
-#     print(head(dplyr::bind_rows(motif.list)))
-#     app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- dplyr::bind_rows(motif.list)
-#     
+  
+  # 
+  
+  #   # obj.atac <- AddMotifs(
+  #   #   object = obj.atac,
+  #   #   genome = BSgenome.Hsapiens.UCSC.hg38,
+  #   #   pfm = pfm
+  #   # )
+  #   # obj.atac <- RunChromVAR(
+  #   #   object = obj.atac,
+  #   #   genome = BSgenome.Hsapiens.UCSC.hg38
+  #   # )
+  #   # # Rename motifs from ids
+  #   # motif_name <- ConvertMotifID(obj.atac[["peak.orig"]]@motifs, id = rownames(obj.atac[["chromvar"]]@data))
+  #   # rownames(obj.atac[["chromvar"]]@data) <- motif_name
+  #   # Remove peaks on scaffolds 
+  #   DefaultAssay(obj.atac) <- "ATAC"
+  #   main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+  #   keep.peaks <- which(as.character(seqnames(granges(obj.atac))) %in% main.chroms)
+  #   app.env$object[["ATAC"]] <- subset(obj.atac, features = rownames(obj.atac)[keep.peaks])
+  #   
+  #   pfm <- getMatrixSet(
+  #     x = JASPAR2020,
+  #     opts = list(species = 9606, all_versions = FALSE)
+  #   )
+  #   print("adding motifs")
+  #   
+  #   # FindMotif version 
+  #   print("finding motifs")
+  #   for (i in annotation_levels) {
+  #     paste(motif_expr, i, sep = "_") <- wilcoxauc(X = obj.atac,
+  #                                                  group_by = paste0("predicted.", i),
+  #                                                  assay = "data", 
+  #                                                  seurat_assay = "ATAC")
+  #     peaks.list <- split(paste(motif_expr, i, sep = "_"), 
+  #                         f = paste(motif_expr, i, sep = "_")$group)
+  #     motif.list <- list()
+  #     for (num in 1:length(peaks.list)){
+  #       print("starting to find motifs")
+  #       if (nrow(peaks.list[[num]]) > 0){
+  #         peaks.list[[num]] <- peaks.list[[num]][order(peaks.list[[num]]$logFC, decreasing = TRUE), ]
+  #         if (nrow(peaks.list[[num]]) > 1000) {
+  #           print("over 1000 peaks")
+  #           top.da.peak <- peaks.list[[num]][1:1000,]$feature   #[peaks.list[[num]]$logFC > 0.5, ]$feature
+  #         } else {
+  #           print("smaller set of peaks")
+  #           top.da.peak <- peaks.list[[num]][peaks.list[[num]]$pval < 0.05, ]$feature
+  #         }
+  #         enriched.motifs <- FindMotifs( 
+  #           object = refs$bridge[["ATAC"]],
+  #           features = top.da.peak)
+  #         enriched.motifs$group <- names(peaks.list[num])
+  #         motif.list[[num]] <- enriched.motifs
+  #         print(head(enriched.motifs))
+  #       }  
+  #     }
+  #     print(head(dplyr::bind_rows(motif.list)))
+  #     app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- dplyr::bind_rows(motif.list)
+  #     
   return(obj.atac)
 }
 
@@ -425,8 +425,8 @@ RunAzimuth.character <- function(
 #' @rdname RunAzimuthATAC
 #'
 RunAzimuthATAC.character <- function(
-    query,
-    ...
+  query,
+  ...
 ) {
   obj <- LoadFileInput(path = query)
   return(RunAzimuthATAC(obj, ...))
@@ -773,10 +773,10 @@ AzimuthReference <- function(
   if (length(x = levels(x = object[[refAssay]])) != 1) {
     stop("refAssay (", refAssay, ") should contain a single SCT model.")
   }
-
+  
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
-
+  
   # Calculate the Neighbors
   object <- FindNeighbors(
     object = object,
@@ -809,7 +809,7 @@ AzimuthReference <- function(
   # Add the "ori.index" column.
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
   object$ori.index <- ori.index
-
+  
   # Subset the features of the RNA assay
   DefaultAssay(object = object) <- refAssay
   object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
@@ -928,11 +928,11 @@ AzimuthBridgeReference <- function(
   suppressWarnings(expr = object[["ref.refDR"]] <- object[[paste0("ref", bridge.ref.reduction)]])
   # Turn atac data into empty sparse matrices 
   object[["ATAC"]]$counts <- sparseMatrix(i = 1, j = 1, x = 1,
-                                        dims = c(nrow(object[['ATAC']]), ncol(object[['ATAC']])),
-                                        dimnames = dimnames(object[['ATAC']]@counts))
+                                          dims = c(nrow(object[['ATAC']]), ncol(object[['ATAC']])),
+                                          dimnames = dimnames(object[['ATAC']]@counts))
   object[["ATAC"]]$data <- sparseMatrix(i = 1, j = 1, x = 1,
-                                             dims = c(nrow(object[['ATAC']]), ncol(object[['ATAC']])),
-                                             dimnames = dimnames(object[['ATAC']]@data))
+                                        dims = c(nrow(object[['ATAC']]), ncol(object[['ATAC']])),
+                                        dimnames = dimnames(object[['ATAC']]@data))
   
   if (verbose) {
     message("Computing pseudobulk averages")
@@ -972,7 +972,7 @@ AzimuthBridgeReference <- function(
       object[[i]] <- NULL
     }
   }
-
+  
   # SCT assay
   sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
   object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
@@ -985,6 +985,8 @@ AzimuthBridgeReference <- function(
   Tool(object = object) <- ad
   object@tools$AzimuthReference <- object@tools$AzimuthBridgeReference  
   object@tools$AzimuthBridgeReference <- NULL
+  # set RNA for downstream functions
+  object@tools$AzimuthReference@plotref@assay.used <- "RNA"
   object <- DietSeurat(
     object = object,
     counts = FALSE,
@@ -1005,6 +1007,7 @@ AzimuthBridgeReference <- function(
                                 genome = BSgenome.Hsapiens.UCSC.hg38, 
                                 pfm = pfm )
   object[["ATAC"]] <- RegionStats(object[["ATAC"]], genome = BSgenome.Hsapiens.UCSC.hg38)
+  object[["ATAC"]]@motifs@positions <- NULL
   return(object)
 }
 
@@ -1151,7 +1154,7 @@ ClusterPreservationScore <- function(query, ds.amount, type = "standard") {
       reduction = 'lsi',
       dims = 1:dims,
       graph.name = paste0("lsi_", c("nn", "snn"))
-      )
+    )
     query[["orig_neighbors"]] <- as.Neighbor(x = query[["lsi_nn"]])
     query <- FindClusters(object = query, resolution = 0.6, graph.name = 'lsi_snn')
     query <- FindNeighbors(
@@ -1160,9 +1163,9 @@ ClusterPreservationScore <- function(query, ds.amount, type = "standard") {
       dims = 1:dims,
       return.neighbor = TRUE,
       graph.name ="integrated_neighbors_nn")
-    } else{
-      print("Incorrect type: Must be either 'standard' or 'bridge'")
-    }
+  } else{
+    print("Incorrect type: Must be either 'standard' or 'bridge'")
+  }
   ids <- Idents(object = query)
   integrated.neighbor.indices <- Indices(object = query[["integrated_neighbors_nn"]])
   proj_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {
