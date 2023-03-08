@@ -234,7 +234,7 @@ RunAzimuth.Seurat <- function(
 #' @return Seurat object with reference reductions and annotations
 #'
 #' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
-#' @importFrom Signac CreateChromatinAssay GetGRangesFromEnsDb RunTFIDF RunChromVAR 
+#' @importFrom Signac FeatureMatrix CreateChromatinAssay GetGRangesFromEnsDb RunTFIDF RunChromVAR 
 #' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
 #' @importFrom IRanges findOverlaps
 #' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
@@ -249,7 +249,7 @@ RunAzimuth.Seurat <- function(
 RunAzimuthATAC.Seurat <- function(
   query,
   reference,
-  fragment.path,
+  fragment.path = NULL,
   annotation.levels = NULL,
   umap.name = "ref.umap",
   do.adt = FALSE,
@@ -261,6 +261,10 @@ RunAzimuthATAC.Seurat <- function(
   dims.atac = 2:50, 
   dims.rna = 1:50
 ) {
+  if (fragment.path == NULL){
+    stop("Must provide path to fragment file with fragment.path parameter.",
+    "To run azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
+  }
   if (dir.exists(reference)) { 
     reference <- LoadBridgeReference(reference)
     reference <- reference$map
@@ -290,17 +294,21 @@ RunAzimuthATAC.Seurat <- function(
   query_assay <- CreateChromatinAssay(
     counts = query[[assay]]@counts,
     sep = c(":", "-"),
+    fragments = fragment.path,
     annotation = annotation
   )
   print("made chromatin assay")
   print(query_assay)
-  #o_hits <- findOverlaps(query_assay, multiome[["ATAC"]])
-  print("found overlaps")
-  query_requantified  <- RequantifyPeaks(query_assay, reference)
+  query_requantified  <- FeatureMatrix(
+    fragments = Fragments(query_assay),
+    features = granges(reference[['ATAC']]),
+    cells = Cells(query_assay)
+  )
   print("requantified peaks")
   # Create assay with requantified ATAC data
   ATAC_assay <- CreateChromatinAssay(
     counts = query_requantified,
+    fragmetns = fragment.path
     sep = c(":", "-"),
     annotation = annotation
   )
@@ -345,13 +353,10 @@ RunAzimuthATAC.Seurat <- function(
                        reduction.model = "refUMAP" 
   )
   # Get Gene Activities 
-  DefaultAssay(obj.atac) <- "peak.orig"
-  print(obj.atac)
-  transcripts <- GetTranscripts(obj.atac)
-  #o_hits <- findOverlaps(obj.atac[["peak.orig"]], transcripts)
-  atac_final <- RequantifyPeaks(obj.atac, transcripts)
+
+  gene.activities <- GeneActivity(obj.atac)
   #add feature matrix to Chromatin Assay 
-  obj.atac[['RNA']] <- CreateAssayObject(counts = atac_final)
+  obj.atac[['RNA']] <- CreateAssayObject(counts = gene.activities)
   
   #Normalize the feature data
   obj.atac <- NormalizeData(
