@@ -308,7 +308,7 @@ RunAzimuthATAC.Seurat <- function(
   # Create assay with requantified ATAC data
   ATAC_assay <- CreateChromatinAssay(
     counts = query_requantified,
-    fragmetns = fragment.path
+    fragments = fragment.path,
     sep = c(":", "-"),
     annotation = annotation
   )
