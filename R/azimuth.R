@@ -261,7 +261,7 @@ RunAzimuthATAC.Seurat <- function(
   dims.atac = 2:50, 
   dims.rna = 1:50
 ) {
-  if (fragment.path == NULL){
+  if (is.null(fragment.path)){
     stop("Must provide path to fragment file with fragment.path parameter.",
     "To run Azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
   }
