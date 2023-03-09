@@ -560,6 +560,7 @@ LoadReference <- function(path, seconds = 10L) {
     counts = cm
   )
   plot[["refUMAP"]] <- plotref.dr
+  DefaultAssay(plot[["refUMAP"]]) <- DefaultAssay(plot)
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   gc(verbose = FALSE)
   return(list(
