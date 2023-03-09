@@ -263,7 +263,7 @@ RunAzimuthATAC.Seurat <- function(
 ) {
   if (fragment.path == NULL){
     stop("Must provide path to fragment file with fragment.path parameter.",
-    "To run azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
+    "To run Azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
   }
   if (dir.exists(reference)) { 
     reference <- LoadBridgeReference(reference)
