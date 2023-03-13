@@ -2960,7 +2960,7 @@ AzimuthServer <- function(input, output, session) {
       p(HTML(text = hovertext))
     )
   })
-  if(react.env$bridge){
+  if (isTRUE(x = do.bridge)){
     output$all_qc <- renderUI(
       fluidRow(
         uiOutput(outputId = "overlap_box"),

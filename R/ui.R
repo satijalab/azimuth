@@ -234,7 +234,7 @@ AzimuthUI <- tagList(
               width = 8
             ),
           ),
-        uiOutput(outputId = "overlap_box"),
+        uiOutput(outputId = "all_qc"),
         ),
         tabItem(
           tabName = 'tab_cell',
