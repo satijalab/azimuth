@@ -164,6 +164,10 @@ AzimuthServer <- function(input, output, session) {
     for (id in c('dist.qc', 'q4', 'valuebox_overlap', 'valuebox_jaccard', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable', 'overlap_box')) {
       removeUI(selector = paste0('#', id), immediate = TRUE)
     }
+  } else {
+    bridge <- reactive({
+      input$bridge
+    })
   }
   ResetEnv <- function() {
     print('resetting...')

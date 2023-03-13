@@ -234,38 +234,60 @@ AzimuthUI <- tagList(
               width = 8
             ),
           ),
-          fluidRow(
-            uiOutput(outputId = "overlap_box"),
-            column(8, 
-                   fluidRow(
-                     valueBoxOutput(outputId = 'valuebox.upload', width = 3),
-                     div(
-                       id = 'overlap_popup',
-                       valueBoxOutput(outputId = "valuebox_overlap", width = 3),
-                       bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
+          if (input$bridge) {
+            fluidRow(
+              uiOutput(outputId = "overlap_box"),
+              column(8, 
+                     fluidRow(
+                       valueBoxOutput(outputId = 'valuebox.upload', width = 3),
+                       div(
+                         id = 'overlap_popup',
+                         valueBoxOutput(outputId = "valuebox_overlap", width = 3),
+                         bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
+                       ),
+                       div(
+                         id = 'jaccard_popup',
+                         valueBoxOutput(outputId = "valuebox_jaccard", width = 3),
+                         bsTooltip(id = "valuebox_jaccard", title = "Click for more info", placement = "top", trigger = 'hover'),
+                       ),
                      ),
-                     div(
-                       id = 'jaccard_popup',
-                       valueBoxOutput(outputId = "valuebox_jaccard", width = 3),
-                       bsTooltip(id = "valuebox_jaccard", title = "Click for more info", placement = "top", trigger = 'hover'),
-                     ),
-                   ),
-                   fluidRow(
-                     valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
-                     div(
-                       id = 'panchors_popup',
-                       valueBoxOutput(outputId = "valuebox_panchors", width = 3),
-                       bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
-                     ),
-                     div(
-                       id = 'mappingqcstat_popup',
-                       valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
-                       bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
-                     ),
-                     valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
-                   )
+                     fluidRow(
+                       valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
+                       div(
+                         id = 'panchors_popup',
+                         valueBoxOutput(outputId = "valuebox_panchors", width = 3),
+                         bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
+                       ),
+                       div(
+                         id = 'mappingqcstat_popup',
+                         valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
+                         bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
+                       ),
+                       valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
+                     )
+              )
             )
-          )
+          } else {
+            fluidRow(
+              column(8, 
+                     fluidRow(
+                       valueBoxOutput(outputId = 'valuebox.upload', width = 3),
+                       valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
+                       div(
+                         id = 'panchors_popup',
+                         valueBoxOutput(outputId = "valuebox_panchors", width = 3),
+                         bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
+                       ),
+                       div(
+                         id = 'mappingqcstat_popup',
+                         valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
+                         bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
+                       ),
+                       valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
+                    )
+              )
+            )
+          }
         ),
         tabItem(
           tabName = 'tab_cell',
