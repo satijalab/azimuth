@@ -598,6 +598,9 @@ LoadReference <- function(path, seconds = 10L) {
          regenerate reference with requested dimensionality or adjust ",
          "the Azimuth.map.ndims option.")
   }
+  colnames(Loadings(object = map[["refDR"]])) <- gsub("^[^_]*_", 
+                                                Key(map[["refDR"]]), 
+                                                colnames(Loadings(object = map[["refDR"]])))
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
@@ -729,6 +732,9 @@ LoadBridgeReference<- function(path, seconds = 10L) {
          regenerate reference with requested dimensionality or adjust ",
          "the Azimuth.map.ndims option.")
   }
+  colnames(Loadings(object = map[["refDR"]])) <- gsub("^[^_]*_", 
+                                                      Key(map[["refDR"]]), 
+                                                      colnames(Loadings(object = map[["refDR"]])))
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
