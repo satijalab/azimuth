@@ -72,6 +72,7 @@ AzimuthServer <- function(input, output, session) {
     adt.features = character(length = 0L),
     anchors = NULL,
     annotations = NULL,
+    bridge = FALSE,
     bridge_anchors = FALSE,
     chromatin_assay_1 = NULL,
     chromatin_assay_2 = NULL,
@@ -164,10 +165,6 @@ AzimuthServer <- function(input, output, session) {
     for (id in c('dist.qc', 'q4', 'valuebox_overlap', 'valuebox_jaccard', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable', 'overlap_box')) {
       removeUI(selector = paste0('#', id), immediate = TRUE)
     }
-  } else {
-    bridge <- reactive({
-      input$bridge
-    })
   }
   ResetEnv <- function() {
     print('resetting...')
@@ -2963,7 +2960,65 @@ AzimuthServer <- function(input, output, session) {
       p(HTML(text = hovertext))
     )
   })
-  
+  if(react.env$bridge){
+    output$all_qc <- renderUI(
+      fluidRow(
+        uiOutput(outputId = "overlap_box"),
+        column(8, 
+               fluidRow(
+                 valueBoxOutput(outputId = 'valuebox.upload', width = 3),
+                 div(
+                   id = 'overlap_popup',
+                   valueBoxOutput(outputId = "valuebox_overlap", width = 3),
+                   bsTooltip(id = "valuebox_overlap", title = "Click for more info", placement = "top", trigger = 'hover'),
+                 ),
+                 div(
+                   id = 'jaccard_popup',
+                   valueBoxOutput(outputId = "valuebox_jaccard", width = 3),
+                   bsTooltip(id = "valuebox_jaccard", title = "Click for more info", placement = "top", trigger = 'hover'),
+                 ),
+               ),
+               fluidRow(
+                 valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
+                 div(
+                   id = 'panchors_popup',
+                   valueBoxOutput(outputId = "valuebox_panchors", width = 3),
+                   bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
+                 ),
+                 div(
+                   id = 'mappingqcstat_popup',
+                   valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
+                   bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
+                 ),
+                 valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
+               )
+        )
+      )
+    )
+  } else {
+    output$all_qc <- renderUI(
+        fluidRow(
+        column(8, 
+               fluidRow(
+                 valueBoxOutput(outputId = 'valuebox.upload', width = 3),
+                 valueBoxOutput(outputId = 'valuebox.preproc', width = 3),
+                 div(
+                   id = 'panchors_popup',
+                   valueBoxOutput(outputId = "valuebox_panchors", width = 3),
+                   bsTooltip(id = "valuebox_panchors", title = "Click for more info", placement = "top", trigger = 'hover'),
+                 ),
+                 div(
+                   id = 'mappingqcstat_popup',
+                   valueBoxOutput(outputId = "valuebox_mappingqcstat", width = 3),
+                   bsTooltip(id = "valuebox_mappingqcstat", title = "Click for more info", placement = "top", trigger = 'hover'),
+                 ),
+                 valueBoxOutput(outputId = 'valuebox.mapped', width = 3),
+               )
+        )
+      )
+    )
+    
+  }
   output$refdim <- renderPlot(expr = {
     if (!is.null(x = input$metacolor.ref)) {
       colormaps <- GetColorMap(object = refs$map)[input$metacolor.ref]
