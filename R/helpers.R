@@ -534,6 +534,8 @@ LoadH5AD <- function(path) {
 #' }
 #'
 LoadReference <- function(path, seconds = 10L) {
+  op <- options(Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
   ref.names <- list(
     map = 'ref.Rds',
     ann = 'idx.annoy'
