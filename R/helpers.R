@@ -769,6 +769,50 @@ LoadBridgeReference<- function(path, seconds = 10L) {
 
 
 
+#' Save \code{Azimuth} references and neighbors index to same folder
+#'
+#' @param object An \code{\link{Azimuth}} reference
+#' @param file Path to save \code{Azimuth} reference to; defaults to
+#' \code{file.path(getwd(), "azimuth_reference/"))}
+#' @inheritDotParams base::saveRDS
+#'
+#' @return Invisibly returns \code{file}
+#'
+#' @export
+#' @seealso \code{\link{saveRDS}()} \code{\link{readRDS}()}
+#'
+#'
+#' @examples
+#' # Make Azimuth Reference object
+#' obj.azimuth <- AzimuthReference(object)
+#' 
+#' # Save 
+#' SaveAzimuthReference(object = obj.azimuth, folder = "azimuth_reference")
+#' 
+#' # Run Azimuth
+#' 
+#' query <- RunAzimuth(query = query, 
+#'                     reference = "azimuth_reference", 
+#'                     ...)
+#' 
+#'
+SaveAzimuthReference <- function(
+    object = NULL,
+    folder = NULL
+) {
+  if (is.null(Tool(object, "AzimuthReference"))){
+    stop("The object is not an AzimuthReference object.", 
+         "Please run AzimuthReference() and try again.")
+  }
+  folder <- folder %||% file.path(getwd(), "azimuth_reference/"))
+  base::saveRDS(object = object, file = paste0(folder, "ref.Rds"), compress=F)
+  SaveAnnoyIndex(object = object[["refdr.annoy.neighbors"]], file = paste0(folder, "idx.annoy"))
+  message("Saved 'ref.Rds' and 'idx.annoy' in ", folder, "folder")
+  return(invisible(x = folder))
+}
+
+
+
 #' Transform an NN index
 #'
 #' @param object Seurat object

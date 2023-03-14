@@ -68,6 +68,14 @@ RunAzimuth.Seurat <- function(
       if (!"num_precomputed_nns" %in% names(Misc(reference[["refUMAP"]])$model)) {
         Misc(reference[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
       }
+      key.pattern = "^[^_]*_"
+      new.colnames <- gsub(pattern = key.pattern, 
+                           replacement = Key(reference[["refDR"]]), 
+                           x = colnames(Loadings(
+                             object = reference[["refDR"]],
+                             projected = FALSE)))
+      colnames(Loadings(object = reference[["refDR"]], 
+                        projected = FALSE)) <- new.colnames
     }
     dims <- as.double(length(slot(reference, "reductions")$refDR))
     if (isTRUE(do.adt) && !("ADT" %in% Assays(reference))) {
