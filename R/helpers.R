@@ -598,9 +598,15 @@ LoadReference <- function(path, seconds = 10L) {
          regenerate reference with requested dimensionality or adjust ",
          "the Azimuth.map.ndims option.")
   }
-  colnames(Loadings(object = map[["refDR"]])) <- gsub("^[^_]*_", 
-                                                Key(map[["refDR"]]), 
-                                                colnames(Loadings(object = map[["refDR"]])))
+  # Fix colnames of 'feature.loadings' in reference 
+  key.pattern = "^[^_]*_"
+  new.colnames <- gsub(pattern = key.pattern, 
+                       replacement = Key(map[["refDR"]]), 
+                       x = colnames(Loadings(
+                         object = map[["refDR"]],
+                         projected = FALSE)))
+  colnames(Loadings(object = map[["refDR"]], 
+                    projected = FALSE)) <- new.colnames
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
@@ -732,9 +738,14 @@ LoadBridgeReference<- function(path, seconds = 10L) {
          regenerate reference with requested dimensionality or adjust ",
          "the Azimuth.map.ndims option.")
   }
-  colnames(Loadings(object = map[["refDR"]])) <- gsub("^[^_]*_", 
-                                                      Key(map[["refDR"]]), 
-                                                      colnames(Loadings(object = map[["refDR"]])))
+  key.pattern = "^[^_]*_"
+  new.colnames <- gsub(pattern = key.pattern, 
+                       replacement = Key(map[["refDR"]]), 
+                       x = colnames(Loadings(
+                         object = map[["refDR"]],
+                         projected = FALSE)))
+  colnames(Loadings(object = map[["refDR"]], 
+                    projected = FALSE)) <- new.colnames
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
@@ -746,7 +757,6 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     counts = cm
   )
   plot[["refUMAP"]] <- plotref.dr
-  plot <- RenameAssays(plot, assay.name = "RNA", new.assay = DefaultAssay(plot[["refUMAP"]]))
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   gc(verbose = FALSE)
   return(list(
