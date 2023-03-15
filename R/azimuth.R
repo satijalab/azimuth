@@ -77,7 +77,7 @@ RunAzimuth.Seurat <- function(
       colnames(Loadings(object = reference[["refDR"]], 
                         projected = FALSE)) <- new.colnames
     }
-    dims <- as.double(length(slot(reference, "reductions")$refDR))
+    dims <- as.double(slot(reference, "neighbors")$refdr.annoy.neighbors@alg.info$ndim)
     if (isTRUE(do.adt) && !("ADT" %in% Assays(reference))) {
       warning("Cannot impute an ADT assay because the reference does not have antibody data")
       do.adt = FALSE
