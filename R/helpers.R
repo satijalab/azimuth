@@ -804,7 +804,7 @@ SaveAzimuthReference <- function(
     stop("The object is not an AzimuthReference object.", 
          "Please run AzimuthReference() and try again.")
   }
-  folder <- folder %||% file.path(getwd(), "azimuth_reference/"))
+  folder <- folder %||% file.path(getwd(), "azimuth_reference/")
   base::saveRDS(object = object, file = paste0(folder, "ref.Rds"), compress=F)
   SaveAnnoyIndex(object = object[["refdr.annoy.neighbors"]], file = paste0(folder, "idx.annoy"))
   message("Saved 'ref.Rds' and 'idx.annoy' in ", folder, "folder")
