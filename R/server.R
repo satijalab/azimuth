@@ -34,6 +34,7 @@ NULL
 #' FindBridgeTransferAnchors MapQuery NormalizeData
 #' @importFrom Signac AddMotifs Annotation CreateChromatinAssay Extend FindMotifs FindTopFeatures GRangesToString 
 #' GetGRangesFromEnsDb RunChromVAR RunSVD RunTFIDF AddMotifs
+#' NormalizeData ScaleData
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput updateCheckboxInput updateTextAreaInput
@@ -143,7 +144,10 @@ AzimuthServer <- function(input, output, session) {
     requantify_multiome = FALSE, 
     requantify_genes = FALSE,
     score = FALSE,
+    normalize = FALSE,
     sctransform = FALSE,
+    lognormalize = FALSE,
+    normalization.method = FALSE,
     start = numeric(length = 0L),
     transform = FALSE
   )
@@ -1093,16 +1097,21 @@ AzimuthServer <- function(input, output, session) {
         }
         app.env$object <- app.env$object[, cells.use]
         app.env$query.names <- app.env$query.names[cells.use]
+
         if (isTRUE(x = do.bridge)) {
           react.env$tfidf <- TRUE
+        } else if (!inherits(x = refs$map[["refAssay"]], what = "SCTAssay")) {
+          react.env$lognormalize <- TRUE 
+          react.env$normalize <- TRUE
         } else {
           react.env$sctransform <- TRUE
+          react.env$normalize <- TRUE
         }
       }
     }
   )
   observeEvent(
-    eventExpr = react.env$sctransform,
+    eventExpr = react.env$normalize,
     handlerExpr = {
       if (isTRUE(x = react.env$sctransform)) {
         react.env$progress$set(
@@ -1141,6 +1150,57 @@ AzimuthServer <- function(input, output, session) {
         )
         react.env$anchors <- TRUE
         react.env$sctransform <- FALSE
+        react.env$normalization.method <- "SCT"
+      } else if (isTRUE(x = react.env$lognormalize)) { 
+        react.env$progress$set(
+          value = 0.2,
+          message = 'Normalizing with Log Normalization'
+        )
+        app.env$object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = app.env$object[["RNA"]])), 
+                                           Class = "Assay")
+        DefaultAssay(app.env$object) <- "refAssay"
+        tryCatch(
+          expr = {
+            app.env$object <- suppressWarnings(expr = NormalizeData(
+              object = app.env$object,
+              normalization.method = "LogNormalize", 
+              scale.factor = 1000,
+              margin = 1
+            ))
+          },
+          error = function(e) {
+            app.env$object <- suppressWarnings(expr = NormalizeData(
+              object = app.env$object,
+              normalization.method = "LogNormalize", 
+              scale.factor = 1000,
+              margin = 1
+            ))
+          }
+        )
+        slot(object = app.env$object[["refAssay"]], name = "data") <- slot(object = app.env$object[["RNA"]], 
+                                                                           name = "data")
+        slot(object = app.env$object[["refAssay"]], name = "var.features") <- rownames(x = refs$map)
+        tryCatch( 
+          expr = {
+            app.env$object <- suppressWarnings(expr = ScaleData(
+              object = app.env$object,
+              model.use = "linear"
+            ))
+          },
+          error = function(e) {
+            app.env$object <- suppressWarnings(expr = ScaleData(
+              object = app.env$object,
+              model.use = "linear"
+            ))
+          }
+        )
+        app.env$messages <- c(
+          app.env$messages,
+          paste(ncol(x = app.env$object), "cells preprocessed")
+        )
+        react.env$anchors <- TRUE
+        react.env$lognormalize <- FALSE
+        react.env$normalization.method <- "LogNormalize" 
       }
     }
   )
@@ -1180,13 +1240,10 @@ AzimuthServer <- function(input, output, session) {
           k.filter = NA,
           reference.neighbors = "refdr.annoy.neighbors",
           reference.assay = "refAssay",
-          query.assay = 'refAssay',
+          query.assay = "refAssay",
           reference.reduction = 'refDR',
-          normalization.method = 'SCT',
-          features = intersect(
-            x = rownames(x = refs$map),
-            y = VariableFeatures(object = app.env$object)
-          ),
+          normalization.method = react.env$normalization.method,
+          features = rownames(x = refs$map),
           dims = 1:getOption(x = "Azimuth.map.ndims"),
           n.trees = n.trees,
           verbose = TRUE,
