@@ -160,7 +160,7 @@ RunAzimuth.Seurat <- function(
       reference.assay = "refAssay",
       query.assay = query.assay,
       reference.reduction = "refDR",
-      normalization.method = normalization.method
+      normalization.method = normalization.method,
       features = rownames(x = reference),
       dims = 1:dims,
       n.trees = n.trees,
@@ -758,6 +758,7 @@ SetColorMap.Seurat <- function(object, slot = "AzimuthReference", value, ...) {
 #' DefaultAssay Tool<-
 #' @importFrom Seurat FindNeighbors NormalizeData AverageExpression DietSeurat
 #' @importFrom methods as
+#' @importFrom BPCells write_matrix_dir open_matrix_dir
 #'
 #' @export
 #'
@@ -774,6 +775,7 @@ AzimuthReference <- function(
   colormap = NULL,
   assays = NULL,
   metadata = NULL,
+  bp_dir = NULL,
   reference.version = "0.0.0",
   verbose = FALSE
 ) {
@@ -846,9 +848,17 @@ AzimuthReference <- function(
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
   object$ori.index <- ori.index
   
-  # Subset the features of the RNA assay
+  # Subset the features of the assay if SCT, for log-normalized make BPCells dir
   DefaultAssay(object = object) <- refAssay
-  object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
+  if (refAssay == "SCT"){
+    object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
+  } else {
+    object[[refAssay]] <- as(object[[refAssay]], Class = "Assay5")
+    bp_dir = bp_dir %||% "~/azimuth_data"
+    write_matrix_dir(mat = object[[refAssay]]$data, dir = dir) 
+    message("wrote azimuth data to", dir)
+    object[[refAssay]]$data <- open_matrix_dir(dir = dir)
+  }
   # Preserves DR after DietSeurat
   DefaultAssay(object = object[["refDR"]]) <- refAssay
   object <- DietSeurat(
@@ -867,10 +877,6 @@ AzimuthReference <- function(
     model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]] # changing to generic model name (instead of sct.model)
     object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
     slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = model)
-  }else{
-    model <- slot(object = object[[refAssay]], name = "data")
-    object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "Assay")
-    slot(object = object[["refAssay"]], name = "data") <- model
   }
   DefaultAssay(object = object) <- "refAssay"
   DefaultAssay(object = object[["refDR"]]) <- "refAssay"
