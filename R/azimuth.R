@@ -855,9 +855,9 @@ AzimuthReference <- function(
   } else {
     object[[refAssay]] <- as(object[[refAssay]], Class = "Assay5")
     bp_dir = bp_dir %||% "~/azimuth_data"
-    write_matrix_dir(mat = object[[refAssay]]$data, dir = dir) 
+    write_matrix_dir(mat = object[[refAssay]]$data, dir = bp_dir) 
     message("wrote azimuth data to", dir)
-    object[[refAssay]]$data <- open_matrix_dir(dir = dir)
+    object[[refAssay]]$data <- open_matrix_dir(dir = bp_dir)
   }
   # Preserves DR after DietSeurat
   DefaultAssay(object = object[["refDR"]]) <- refAssay
@@ -877,6 +877,8 @@ AzimuthReference <- function(
     model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]] # changing to generic model name (instead of sct.model)
     object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
     slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = model)
+  } else {
+    object[["refAssay"]] <- refAssay
   }
   DefaultAssay(object = object) <- "refAssay"
   DefaultAssay(object = object[["refDR"]]) <- "refAssay"
