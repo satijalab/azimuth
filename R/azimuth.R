@@ -135,7 +135,7 @@ RunAzimuth.Seurat <- function(
       k.filter = NA,
       reference.neighbors = "refdr.annoy.neighbors",
       reference.assay = "refAssay",
-      query.assay = "refAssay",
+      query.assay = "RNA",
       reference.reduction = "refDR",
       normalization.method = "SCT",
       features = rownames(Loadings(reference[["refDR"]])),
