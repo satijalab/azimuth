@@ -486,7 +486,7 @@ RunAzimuthATAC.character <- function(
 #'   AzimuthApp(system.file("resources", "config.json", package = "Azimuth"))
 #' }
 #'
-AzimuthApp <- function(config = NULL, type = "standard", ...) {
+AzimuthApp <- function(config = NULL, ...) {
   useShinyjs()
   # If multiple items have the same name in the named list, with_options sets
   # the option to the last entry with that name in the list. Therefore, putting
@@ -529,17 +529,10 @@ AzimuthApp <- function(config = NULL, type = "standard", ...) {
     code = getOption(x = 'Azimuth.app.max_cells')
   )
   # Launch the app
-  if (type == "standard"){
-    with_options(
-      new = opts,
-      code = runApp(appDir = shinyApp(ui = AzimuthUI, server = AzimuthServer))
-    )
-  } else{
-    with_options(
-      new = opts,
-      code = runApp(appDir = shinyApp(ui = AzimuthBridgeUI, server = AzimuthBridgeServer))
-    )
-  }
+  with_options(
+    new = opts,
+    code = runApp(appDir = shinyApp(ui = AzimuthUI, server = AzimuthServer))
+  )
   return(invisible(x = NULL))
 }
 
