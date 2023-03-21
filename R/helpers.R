@@ -495,6 +495,61 @@ LoadH5AD <- function(path) {
   return(object)
 }
 
+
+#' Load obs from a H5AD file
+#'
+#' Read in only the metadata of an H5AD file and
+#' return a data.frame object
+#' @section AnnData H5AD File (extension \code{h5ad}):
+#' @importFrom SeuratDisk Connect
+#' @export
+#'
+LoadH5ADobs <- function(path) {
+  suppressWarnings(expr = hfile <- SeuratDisk:: Connect(filename = path, force = TRUE))
+  hfile_obs <- hfile[['obs']]
+  obs_groups <- setdiff(names(hfile_obs), c('__categories', '_index'))
+  matrix <- as.data.frame(
+    x = matrix(data = NA,
+               nrow = hfile_obs[['_index']]$dims[1],
+               ncol = length(obs_groups))
+  )
+  colnames(matrix) <- obs_groups
+  rownames(matrix) <- hfile_obs[['_index']][]
+  if ('__categories' %in% names(x = hfile_obs)) {
+    hfile_cate <- hfile_obs[['__categories']]
+    for (i in seq_along(obs_groups)) {
+      obs.i <- obs_groups[i]
+      obs_value_i <- hfile_obs[[obs.i]][]
+      if (obs.i %in% names(x = hfile_cate)){
+        obs_value_i <- factor(x = obs_value_i, labels =  hfile_cate[[obs.i]][])
+      }
+      matrix[,i] <- obs_value_i
+    }
+  } else {
+    for (i in seq_along(obs_groups)) {
+      obs.i <- obs_groups[i]
+      if (all(names(hfile_obs[[obs.i]]) == c("categories", "codes"))) {
+        if (
+          length(unique(hfile_obs[[obs.i]][['codes']][])) == length(hfile_obs[[obs.i]][['categories']][])
+        ) {
+          obs_value_i <- factor(
+            x = hfile_obs[[obs.i]][['codes']][],
+            labels =  hfile_obs[[obs.i]][['categories']][]
+          )
+        } else {
+          obs_value_i <- hfile_obs[[obs.i]][['codes']][]
+        }
+      } else {
+        obs_value_i <- hfile_obs[[obs.i]][]
+      }
+      matrix[,i] <- obs_value_i
+    }
+  }
+  hfile$close_all()
+  return(matrix)
+}
+
+
 #' Load the reference RDS files
 #'
 #' Read in a reference \code{\link[Seurat]{Seurat}} object and annoy index. This
