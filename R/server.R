@@ -1135,6 +1135,9 @@ AzimuthServer <- function(input, output, session) {
             ))
           }
         )
+        app.env$object[[paste0(c("nCount_", "nFeature_"), "refAssay")]] <- app.env$object[[paste0(c("nCount_", 
+                                                                                                    "nFeature_"), 
+                                                                                                  "RNA")]]
         app.env$messages <- c(
           app.env$messages,
           paste(ncol(x = app.env$object), "cells preprocessed")
@@ -1183,6 +1186,7 @@ AzimuthServer <- function(input, output, session) {
           query.assay = 'refAssay',
           reference.reduction = 'refDR',
           normalization.method = 'SCT',
+          recompute.residuals = FALSE,
           features = intersect(
             x = rownames(x = refs$map),
             y = VariableFeatures(object = app.env$object)
