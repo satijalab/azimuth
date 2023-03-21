@@ -128,22 +128,6 @@ RunAzimuth.Seurat <- function(
         assay = assay
       )
     }
-    
-    # Preprocess with SCTransform
-    query <- SCTransform(
-      object = query,
-      assay = assay,
-      new.assay.name = "refAssay",
-      residual.features = rownames(x = reference),
-      reference.SCT.model = reference[["refAssay"]]@SCTModel.list$refmodel,
-      method = 'glmGamPoi',
-      ncells = 2000,
-      n_genes = 2000,
-      do.correct.umi = FALSE,
-      do.scale = FALSE,
-      do.center = TRUE,
-      verbose = verbose
-    )
     # Find anchors between query and reference
     anchors <- FindTransferAnchors(
       reference = reference,
@@ -154,7 +138,7 @@ RunAzimuth.Seurat <- function(
       query.assay = "refAssay",
       reference.reduction = "refDR",
       normalization.method = "SCT",
-      features = intersect(rownames(x = reference), VariableFeatures(object = query)),
+      features = rownames(Loadings(reference[["refDR"]])),
       dims = 1:dims,
       n.trees = n.trees,
       mapping.score.k = mapping.score.k,
@@ -324,8 +308,7 @@ RunAzimuthATAC.Seurat <- function(
   # Create Seurat Object
   obj.atac <- CreateSeuratObject(counts = ATAC_assay, assay = 'ATAC')
   obj.atac[['peak.orig']] <- query_assay
-  #obj.atac <- subset(obj.atac, subset = nCount_ATAC < 7e4 & nCount_ATAC > 2000) we don't want to subset here 
-  
+
   # normalize query
   obj.atac <- RunTFIDF(obj.atac)
   
