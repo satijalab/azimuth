@@ -1546,8 +1546,8 @@ AzimuthServer <- function(input, output, session) {
           object = app.env$object,
           assay = 'RNA',
           normalization.method = 'LogNormalize',
-          scale.factor = median(app.env$object[[grep("nCount", 
-                                                     colnames(app.env$object@meta.data))]])
+          scale.factor = median(unlist(app.env$object[[grep("nCount", 
+                                                            colnames(app.env$object@meta.data))]])))
         )
         print("feature data normalized")
         

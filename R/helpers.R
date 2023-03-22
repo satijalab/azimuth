@@ -811,9 +811,9 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
     dimnames = list("placeholder", Cells(x = plotref.dr))
   )
-  plot <- CreateSeuratObject(
-    counts = cm
-  )
+  op <- options(Seurat.object.assay.version = "v3")
+  on.exit(expr = options(op), add = TRUE)
+  plot <- CreateSeuratObject(counts = cm)
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   gc(verbose = FALSE)
