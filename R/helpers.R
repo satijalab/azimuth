@@ -231,7 +231,11 @@ LoadFileInput <- function(path, bridge = FALSE) {
       if (is.list(x = mat)) {
         mat <- mat[[1]]
       }
-      CreateSeuratObject(counts = mat, min.cells = 1, min.features = 1)
+      object <- CreateSeuratObject(counts = mat, min.cells = 1, min.features = 1)
+      if (inherits(x = object[["RNA"]], what = "Assay5")) {
+        object[["RNA"]]$data <- object[["RNA"]]$counts
+      }
+      object
     },
     'rds' = {
       object <- readRDS(file = path)
@@ -259,6 +263,9 @@ LoadFileInput <- function(path, bridge = FALSE) {
           min.features = 1,
           meta.data = object[[]]
         )
+        if (inherits(x = object[["RNA"]], what = "Assay5")) {
+          object[["RNA"]]$data <- object[["RNA"]]$counts
+        }
       } else {
         stop("The RDS file must be a Seurat object", call. = FALSE)
       }
@@ -312,6 +319,9 @@ LoadFileInput <- function(path, bridge = FALSE) {
         min.features = 1,
         meta.data = object[[]]
       )
+      if (inherits(x = object[[assay]], what = "Assay5")) {
+        object[[assay]]$data <- object[[assay]]$counts
+      }
     },
     stop("Unknown file type: ", type, call. = FALSE)
   ))
@@ -574,7 +584,7 @@ LoadH5ADobs <- function(path) {
 #' }
 #'
 #' @importFrom SeuratObject Idents<-
-#' @importFrom Seurat LoadAnnoyIndex
+#' @importFrom Seurat LoadAnnoyIndex Loadings
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
@@ -717,7 +727,7 @@ LoadReference <- function(path, seconds = 10L) {
 #' }
 #'
 #' @importFrom SeuratObject Idents<- RenameAssays
-#' @importFrom Seurat LoadAnnoyIndex
+#' @importFrom Seurat LoadAnnoyIndex Loadings
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
@@ -810,9 +820,9 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
     dimnames = list("placeholder", Cells(x = plotref.dr))
   )
-  plot <- CreateSeuratObject(
-    counts = cm
-  )
+  op <- options(Seurat.object.assay.version = "v3")
+  on.exit(expr = options(op), add = TRUE)
+  plot <- CreateSeuratObject(counts = cm)
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   gc(verbose = FALSE)

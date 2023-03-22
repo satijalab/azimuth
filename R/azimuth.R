@@ -105,7 +105,7 @@ RunAzimuth.Seurat <- function(
     # Calculate nCount_RNA and nFeature_RNA if the query does not
     # contain them already
     if (!all(c("nCount_RNA", "nFeature_RNA") %in% c(colnames(x = query[[]])))) {
-      calcn <- as.data.frame(x = Seurat:::CalcN(object = query))
+      calcn <- as.data.frame(x = Seurat:::CalcN(object = query[["RNA"]]))
       colnames(x = calcn) <- paste(
         colnames(x = calcn),
         "RNA",
@@ -232,6 +232,7 @@ RunAzimuth.Seurat <- function(
 #' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
 #' @importFrom data.table as.data.table
 #' @importFrom JASPAR2020 JASPAR2020
+#' @importFrom TFBSTools getMatrixSet
 #' 
 #' @export
 #' @method RunAzimuthATAC Seurat
@@ -1129,6 +1130,9 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 ClusterPreservationScore <- function(query, ds.amount, type = "standard") {
   dims <- min(50, getOption(x = "Azimuth.map.ndims"))
   if(type == "standard"){
+    if(inherits(query[["RNA"]], what = "Assay5")){
+      VariableFeatures(query) <- rownames(query[["refAssay"]]@SCTModel.list$model1@feature.attributes)
+    }
     query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
     if (ncol(x = query) > ds.amount) {
       query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))

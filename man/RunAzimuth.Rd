@@ -9,6 +9,7 @@
 \method{RunAzimuth}{Seurat}(
   query,
   reference,
+  query.modality = "RNA",
   annotation.levels = NULL,
   umap.name = "ref.umap",
   do.adt = FALSE,
@@ -16,7 +17,8 @@
   assay = "RNA",
   k.weight = 50,
   n.trees = 20,
-  mapping.score.k = 100
+  mapping.score.k = 100,
+  ...
 )
 
 \method{RunAzimuth}{character}(query, ...)
