@@ -231,7 +231,10 @@ LoadFileInput <- function(path, bridge = FALSE) {
       if (is.list(x = mat)) {
         mat <- mat[[1]]
       }
-      CreateSeuratObject(counts = mat, min.cells = 1, min.features = 1)
+      object <- CreateSeuratObject(counts = mat, min.cells = 1, min.features = 1)
+      if (inherits(x = object[["RNA"]], what = "Assay5")) {
+        object[[assay]]$data <- object[[assay]]$counts
+      }
     },
     'rds' = {
       object <- readRDS(file = path)
@@ -575,7 +578,7 @@ LoadH5ADobs <- function(path) {
 #' }
 #'
 #' @importFrom SeuratObject Idents<-
-#' @importFrom Seurat LoadAnnoyIndex
+#' @importFrom Seurat LoadAnnoyIndex Loadings
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
@@ -718,7 +721,7 @@ LoadReference <- function(path, seconds = 10L) {
 #' }
 #'
 #' @importFrom SeuratObject Idents<- RenameAssays
-#' @importFrom Seurat LoadAnnoyIndex
+#' @importFrom Seurat LoadAnnoyIndex Loadings
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
