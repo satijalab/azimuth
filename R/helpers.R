@@ -233,7 +233,7 @@ LoadFileInput <- function(path, bridge = FALSE) {
       }
       object <- CreateSeuratObject(counts = mat, min.cells = 1, min.features = 1)
       if (inherits(x = object[["RNA"]], what = "Assay5")) {
-        object[["RNA"]]$data <- object[["RNA"]$counts
+        object[["RNA"]]$data <- object[["RNA"]]$counts
       }
       object
     },
