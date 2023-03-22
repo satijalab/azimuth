@@ -233,8 +233,9 @@ LoadFileInput <- function(path, bridge = FALSE) {
       }
       object <- CreateSeuratObject(counts = mat, min.cells = 1, min.features = 1)
       if (inherits(x = object[["RNA"]], what = "Assay5")) {
-        object[[assay]]$data <- object[[assay]]$counts
+        object[["RNA"]]$data <- object[["RNA"]$counts
       }
+      object
     },
     'rds' = {
       object <- readRDS(file = path)
@@ -262,6 +263,9 @@ LoadFileInput <- function(path, bridge = FALSE) {
           min.features = 1,
           meta.data = object[[]]
         )
+        if (inherits(x = object[["RNA"]], what = "Assay5")) {
+          object[["RNA"]]$data <- object[["RNA"]]$counts
+        }
       } else {
         stop("The RDS file must be a Seurat object", call. = FALSE)
       }
@@ -308,7 +312,6 @@ LoadFileInput <- function(path, bridge = FALSE) {
           object[[assay]] <- JoinLayers(object[[assay]], 
                                         layers = "counts", new = "counts")
         }
-        object[[assay]]$data <- object[[assay]]$counts
       }
       object <- CreateSeuratObject(
         counts = GetAssayData(object = object[[assay]], slot = "counts"),
@@ -316,6 +319,9 @@ LoadFileInput <- function(path, bridge = FALSE) {
         min.features = 1,
         meta.data = object[[]]
       )
+      if (inherits(x = object[[assay]], what = "Assay5")) {
+        object[[assay]]$data <- object[[assay]]$counts
+      }
     },
     stop("Unknown file type: ", type, call. = FALSE)
   ))
