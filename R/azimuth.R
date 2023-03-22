@@ -232,7 +232,6 @@ RunAzimuth.Seurat <- function(
 #' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
 #' @importFrom data.table as.data.table
 #' @importFrom JASPAR2020 JASPAR2020
-#' @importFrom TFBSTools getCan’t make counts emptMatrixSet
 #' 
 #' @export
 #' @method RunAzimuthATAC Seurat
