@@ -1187,10 +1187,7 @@ AzimuthServer <- function(input, output, session) {
           reference.reduction = 'refDR',
           normalization.method = 'SCT',
           recompute.residuals = FALSE,
-          features = intersect(
-            x = rownames(x = refs$map),
-            y = VariableFeatures(object = app.env$object)
-          ),
+          features = rownames(x = Loadings(refs$map[["refDR"]])), 
           dims = 1:getOption(x = "Azimuth.map.ndims"),
           n.trees = n.trees,
           verbose = TRUE,

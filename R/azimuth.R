@@ -1130,6 +1130,9 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 ClusterPreservationScore <- function(query, ds.amount, type = "standard") {
   dims <- min(50, getOption(x = "Azimuth.map.ndims"))
   if(type == "standard"){
+    if(inherits(query[["RNA"]], what = "Assay5")){
+      VariableFeatures(query) <- rownames(query[["refAssay"]]@SCTModel.list$model1@feature.attributes)
+    }
     query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
     if (ncol(x = query) > ds.amount) {
       query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))

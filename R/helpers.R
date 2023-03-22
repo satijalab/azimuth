@@ -305,6 +305,7 @@ LoadFileInput <- function(path, bridge = FALSE) {
           object[[assay]] <- JoinLayers(object[[assay]], 
                                         layers = "counts", new = "counts")
         }
+        object[[assay]]$data <- object[[assay]]$counts
       }
       object <- CreateSeuratObject(
         counts = GetAssayData(object = object[[assay]], slot = "counts"),
