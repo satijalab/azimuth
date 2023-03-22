@@ -675,7 +675,7 @@ AzimuthServer <- function(input, output, session) {
             print("about to make chromatin assay")
             app.env$annotations <- refs$map[["ATAC"]]@annotation
             app.env$chromatin_assay_1 <- CreateChromatinAssay(
-              counts = app.env$counts[["RNA"]]@counts, # this should probably be clearer 
+              counts = app.env$counts[["RNA"]]$counts, 
               sep = c(":", "-"),
               annotation = app.env$annotations
             )
