@@ -497,6 +497,7 @@ LoadH5AD <- function(path) {
   colnames <- rownames(metadata)
   rownames(x = counts) <- rownames
   colnames(x = counts) <- colnames
+  options(Seurat.object.assay.calcn = TRUE)
   object <- CreateSeuratObject(counts = counts)
   if (ncol(x = metadata)) {
     object <- AddMetaData(object = object, metadata = metadata)
@@ -583,7 +584,7 @@ LoadH5ADobs <- function(path) {
 #'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
 #' }
 #'
-#' @importFrom SeuratObject Idents<-
+#' @importFrom SeuratObject Idents<- Loadings<- 
 #' @importFrom Seurat LoadAnnoyIndex Loadings
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
@@ -726,7 +727,7 @@ LoadReference <- function(path, seconds = 10L) {
 #'  }
 #' }
 #'
-#' @importFrom SeuratObject Idents<- RenameAssays
+#' @importFrom SeuratObject Idents<- RenameAssays Loadings<- 
 #' @importFrom Seurat LoadAnnoyIndex Loadings
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
