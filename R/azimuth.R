@@ -14,6 +14,7 @@ NULL
 #' @return Seurat object with reference reductions and annotations
 #'
 #' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
+#' @importFrom SeuratObject CheckDots
 #'
 #' @export
 #' @method RunAzimuth Seurat
@@ -226,7 +227,8 @@ RunAzimuth.Seurat <- function(
 #' @return Seurat object with reference reductions and annotations
 #'
 #' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
-#' @importFrom Signac FeatureMatrix CreateChromatinAssay GetGRangesFromEnsDb RunTFIDF RunChromVAR 
+#' @importFrom Signac FeatureMatrix CreateChromatinAssay GetGRangesFromEnsDb 
+#' RunTFIDF RunChromVAR Fragments GeneACtivity
 #' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
 #' @importFrom IRanges findOverlaps
 #' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
