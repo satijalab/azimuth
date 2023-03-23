@@ -254,7 +254,7 @@ RunAzimuthATAC.Seurat <- function(
   dims.rna = 1:50
 ) {
   if (is.null(fragment.path)){
-    stop("Must provide path to fragment file with fragment.path parameter.",
+    stop("Must provide path to fragment file with `fragment.path` parameter.",
     "To run Azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
   }
   if (dir.exists(reference)) { 
@@ -284,7 +284,7 @@ RunAzimuthATAC.Seurat <- function(
   annotation <- reference[["ATAC"]]@annotation
   assay <- DefaultAssay(query)
   query_assay <- CreateChromatinAssay(
-    counts = query[[assay]]@counts,
+    counts = query[[assay]]$counts,
     sep = c(":", "-"),
     fragments = fragment.path,
     annotation = annotation

@@ -697,34 +697,21 @@ LoadReference <- function(path, seconds = 10L) {
 
 #' Load the bridge, reference, and reference extension RDS files
 #'
-#' Read in a reference \code{\link[Seurat]{Seurat}} object, the multiomic bridge, and the precomputed extended reference. This
-#' function can read either from URLs or a file path. In order to read properly,
-#' there must be the following files:
-#' \itemize{
-#'  \item \dQuote{ref.Rds} for the downsampled reference \code{Seurat}
-#'  object (for mapping)
-#'  \item \dQuote{bridge.Rds} for the multiomic bridge \code{Seurat} object 
+#' Read in a precomputed extended reference. This function can
+#' read either from URLs or a file path. The function looks for the following 
 #'  \item \dQuote{ext.Rds} for the extended reference \code{Seurat} object 
 #' }
 #'
-#' @param path Path or URL to the three RDS files
+#' @param path Path or URL to the RDS file
 #' @param seconds Timeout to check for URLs in seconds
 #'
-#' @return A list with four entries:
+#' @return A list with two entries:
 #' \describe{
 #'  \item{\code{map}}{
-#'   The downsampled reference \code{\link[Seurat]{Seurat}}
-#'   object (for mapping)
-#'  }
-#'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
-#'  \item{\code{nridhe}}{
-#'   The multiomic bridge \code{\link[Seurat]{Seurat}}
+#'   The extended reference \code{\link[Seurat]{Seurat}}
 #'   object 
 #'  }
-#'  \item{\code{ext}}{
-#'   The extended reference \code{\link[Seurat]{Seurat}}
-#'   object
-#'  }
+#'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
 #' }
 #'
 #' @importFrom SeuratObject Idents<- RenameAssays Loadings<- 
@@ -738,10 +725,12 @@ LoadReference <- function(path, seconds = 10L) {
 #' \dontrun{
 #' # Load from a URL
 #' ref <- LoadBridgeReference("https://seurat.nygenome.org/references/pbmc")
-#' # Load from a directory
-#' ref2 <- LoadBridgeReference("/var/www/html")
+#' # Load a file from the path to a directory 
+#' ref2 <- LoadBridgeReference("path/")
 #' }
-#'
+#' # Load a file directly
+#' ref3 <- LoadBridgeReference("ext.Rds")
+#' }
 
 LoadBridgeReference<- function(path, seconds = 10L) {
   op <- options(Seurat.object.assay.calcn = FALSE)
@@ -754,10 +743,13 @@ LoadBridgeReference<- function(path, seconds = 10L) {
   }
   uri <- httr::build_url(url = httr::parse_url(url = path))
   if (grepl(pattern = '^://', x = uri) | grepl(pattern = '^[a-zA-Z]{1}://', x = uri)) {
-    if (!dir.exists(paths = path)) {
-      stop("Cannot find directory ", path, call. = FALSE)
+    if (file.exists(path) && !dir.exists(path)){
+      extref <- path
+    } else if (!dir.exists(paths = path)) {
+        stop("Cannot find directory ", path, call. = FALSE)
+    } else {
+      extref <- file.path(path, ref.names$map)
     }
-    extref <- file.path(path, ref.names$map)
     exists <- file.exists(c(extref))
     if (!all(exists)) {
       stop(
@@ -781,11 +773,10 @@ LoadBridgeReference<- function(path, seconds = 10L) {
       )
     }
     #mapref <- url(description = ref.uris[['map']])
-    #annref <- tempfile()
-    #download.file(url = ref.uris[['ann']], destfile = annref, quiet = TRUE)
-    #on.exit(expr = {
-    #  close(con = mapref)
-    #  unlink(x = annref)
+    on.exit(expr = {
+      close(con = extref)
+      unlink(x = annref)
+    })
   }
   # Load the map reference
   map <- readRDS(file = extref)
@@ -794,11 +785,6 @@ LoadBridgeReference<- function(path, seconds = 10L) {
     Misc(map[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
   }
   
-  # Load the annoy index into the Neighbor object in the neighbors slot
-  #map[["refdr.annoy.neighbors"]] <- LoadAnnoyIndex(
-  # object = map[["refdr.annoy.neighbors"]],
-  #file = annref
-  #)
   # Validate that reference contains required dims
   if (ncol(x = map[["refDR"]]) < getOption(x = "Azimuth.map.ndims")) {
     stop("Provided reference doesn't contain at least ",
