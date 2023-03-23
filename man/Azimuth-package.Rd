@@ -6,7 +6,7 @@
 \alias{Azimuth-package}
 \title{Azimuth: A Shiny App Demonstrating a Query-Reference Mapping Algorithm for Single-Cell Data}
 \description{
-What the package does (one paragraph).
+Azimuth uses an annotated reference dataset to automate the processing, analysis, and interpretation of a new single-cell RNA-seq or ATAC-seq experiment. Azimuth leverages a 'reference-based mapping' pipeline that inputs a counts matrix and performs normalization, visualization, cell annotation, and differential expression (biomarker discovery).
 }
 \section{Package options}{
 

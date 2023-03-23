@@ -9,6 +9,7 @@
 \method{RunAzimuthATAC}{Seurat}(
   query,
   reference,
+  fragment.path = NULL,
   annotation.levels = NULL,
   umap.name = "ref.umap",
   do.adt = FALSE,

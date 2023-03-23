@@ -675,7 +675,7 @@ AzimuthServer <- function(input, output, session) {
             print("about to make chromatin assay")
             app.env$annotations <- refs$map[["ATAC"]]@annotation
             app.env$chromatin_assay_1 <- CreateChromatinAssay(
-              counts = app.env$counts[["RNA"]]@counts, # this should probably be clearer 
+              counts = app.env$counts[["RNA"]]$counts, 
               sep = c(":", "-"),
               annotation = app.env$annotations
             )
@@ -1187,10 +1187,7 @@ AzimuthServer <- function(input, output, session) {
           reference.reduction = 'refDR',
           normalization.method = 'SCT',
           recompute.residuals = FALSE,
-          features = intersect(
-            x = rownames(x = refs$map),
-            y = VariableFeatures(object = app.env$object)
-          ),
+          features = rownames(x = Loadings(refs$map[["refDR"]])), 
           dims = 1:getOption(x = "Azimuth.map.ndims"),
           n.trees = n.trees,
           verbose = TRUE,
@@ -1549,7 +1546,8 @@ AzimuthServer <- function(input, output, session) {
           object = app.env$object,
           assay = 'RNA',
           normalization.method = 'LogNormalize',
-          scale.factor = median(app.env$object$nCount_RNA)
+          scale.factor = median(unlist(app.env$object[[grep("nCount", 
+                                                            colnames(app.env$object@meta.data))]]))
         )
         print("feature data normalized")
         
