@@ -22,7 +22,6 @@ RoxygenNote: 7.2.3
 biocViews:
 Remotes:
   immunogenomics/presto,
-  mojaveazure/seurat-disk@seurat5,
   satijalab/seurat-data@seurat5,
   mojaveazure/seurat-object@seurat5
 Depends:
