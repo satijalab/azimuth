@@ -1887,7 +1887,7 @@ AzimuthServer <- function(input, output, session) {
               ),
               menuItem(
                 text = "Feature Plots",
-                tabName = "tab_feature",
+                tabName = "tab_gene_activity",
                 icon = icon("chart-area")
               ),
               menuItem(

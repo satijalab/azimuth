@@ -313,12 +313,22 @@ LoadFileInput <- function(path, bridge = FALSE) {
                                         layers = "counts", new = "counts")
         }
       }
-      object <- CreateSeuratObject(
-        counts = GetAssayData(object = object[[assay]], slot = "counts"),
-        min.cells = 1,
-        min.features = 1,
-        meta.data = object[[]]
-      )
+      object <- tryCatch({
+        CreateSeuratObject(
+          counts = GetAssayData(object = object[[assay]], slot = "counts"),
+          min.cells = 1,
+          min.features = 1,
+          meta.data = object[[]]
+        )
+      }, error = function(e){
+        object <- UpdateSeuratObject(object)
+        CreateSeuratObject(
+          counts = GetAssayData(object = object[[assay]], slot = "counts"),
+          min.cells = 1,
+          min.features = 1,
+          meta.data = object[[]]
+        )
+      })
       if (inherits(x = object[[assay]], what = "Assay5")) {
         object[[assay]]$data <- object[[assay]]$counts
       }

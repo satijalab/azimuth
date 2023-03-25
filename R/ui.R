@@ -392,12 +392,12 @@ AzimuthUI <- tagList(
             width = 12
           )
         ),
-        # Feature tab
+        # RNA Feature tab
         tabItem(
           tags$head(tags$style(HTML(".selectize-dropdown .optgroup-header { font-weight: bold; font-size: 13px; color: black; background: #f6f6f6}"))),
           tabName = 'tab_feature',
           box(
-            title = 'Gene Activity Scores',
+            title = 'Feature Plots',
             div(
               id = 'featureinput',
               class = 'thirds',
@@ -413,6 +413,103 @@ AzimuthUI <- tagList(
               selectizeInput(
                 inputId = 'adtfeature',
                 label = 'Imputed protein',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'continput',
+              class = 'thirds',
+              selectizeInput(
+                inputId = 'metadata.cont',
+                label = 'Prediction Scores and Metadata',
+                choices = ''
+              )
+            ),
+            plotOutput(outputId = 'edim'),
+            selectizeInput(
+              inputId = 'metagroup',
+              label = 'Metadata to group by',
+              choices = '',
+              width = '25%'
+            ),
+            checkboxInput(inputId = 'check.featpoints', label = 'Hide points'),
+            plotOutput(outputId = 'evln'),
+            width = 12
+          ),
+          box(
+            title = p(
+              'Predicted cell type cluster biomarkers',
+              bsButton(
+                inputId = 'q3',
+                label = '',
+                icon = icon(name = 'question'),
+                style = 'info',
+                size = 'extra-small'
+              )
+            ),
+            bsPopover(
+              id = 'q3',
+              title = 'Biomarkers Table',
+              content = paste(
+                'Only available for clusters with at least 15 cells.',
+                paste(
+                  # 'logFC: log fold-change between cells in the cluster specified and other cells',
+                  'auc: area under ROC',
+                  'padj: Benjamini-Hochberg adjusted p value',
+                  'pct_in: percent of cells in the cluster with nonzero feature value',
+                  'pct_out: percent of cells out of the cluster with nonzero feature value',
+                  sep = '; '
+                )
+              ),
+              placement = 'right',
+              trigger = 'focus',
+              options = list(container = 'body')
+            ),
+            div(
+              id = 'markerclustersgroupinput',
+              class = 'halves',
+              selectizeInput(
+                inputId = 'markerclustersgroup',
+                label = 'Metadata group',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'markerclustersgroupinput',
+              class = 'halves',
+              selectizeInput(
+                inputId = 'markerclusters',
+                label = 'Predicted cell type',
+                choices = ''
+              )
+            ),
+            div(
+              id = 'biotable',
+              class = 'halves',
+              h3('RNA biomarkers'),
+              DTOutput(outputId = 'biomarkers')
+            ),
+            div(
+              id = 'imputedtable',
+              class = 'halves',
+              uiOutput(outputId = 'imputedlabel'),
+              DTOutput(outputId = 'adtbio')
+            ),
+            width = 12
+          )
+        ),
+        # ATAC Feature tab
+        tabItem(
+          tags$head(tags$style(HTML(".selectize-dropdown .optgroup-header { font-weight: bold; font-size: 13px; color: black; background: #f6f6f6}"))),
+          tabName = 'tab_feature',
+          box(
+            title = 'Gene Activity Scores',
+            div(
+              id = 'featureinput',
+              class = 'thirds',
+              selectizeInput(
+                inputId = 'feature',
+                label = 'Feature',
                 choices = ''
               )
             ),

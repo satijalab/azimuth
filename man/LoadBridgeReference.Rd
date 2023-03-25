@@ -23,8 +23,8 @@ A list with two entries:
 }
 \description{
 Read in a precomputed extended reference. This function can
-read either from URLs or a file path. The function looks for the following 
-\item \dQuote{ext.Rds} for the extended reference \code{Seurat} object
+read either from URLs or a file path. The function looks for a file 
+called ext.Rds for the extended reference \code{Seurat} object
 }
 \examples{
 \dontrun{
