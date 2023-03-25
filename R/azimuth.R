@@ -40,7 +40,6 @@ RunAzimuth.Seurat <- function(
                             reference = reference, 
                             annotation.levels = annotation.levels, 
                             umap.name = umap.name,
-                            do.adt = do.adt,
                             verbose = verbose, 
                             assay = assay,
                             k.weight = k.weight,
@@ -246,7 +245,6 @@ RunAzimuthATAC.Seurat <- function(
   fragment.path = NULL,
   annotation.levels = NULL,
   umap.name = "ref.umap",
-  do.adt = FALSE,
   verbose = TRUE,
   assay = "RNA",
   k.weight = 50,
@@ -265,11 +263,10 @@ RunAzimuthATAC.Seurat <- function(
   } else {
     stop("Can't find path to reference")
   }
-  #reference.version <- ReferenceVersion(reference)
+  reference.version <- ReferenceVersion(reference)
   azimuth.version <- as.character(packageVersion(pkg = "Azimuth"))
   seurat.version <- as.character(packageVersion(pkg = "Seurat"))
   meta.data <- names(slot(reference, "meta.data"))
-  
   # is annotation levels are not specify, gather all levels of annotation
   if (is.null(annotation.levels)) {
     annotation.levels <- names(slot(object = reference, name = "meta.data"))
@@ -277,12 +274,7 @@ RunAzimuthATAC.Seurat <- function(
     annotation.levels <- annotation.levels[!grepl(pattern = "^nFeature", x = annotation.levels)]
     annotation.levels <- annotation.levels[!grepl(pattern = "^ori", x = annotation.levels)]
   }
-  # if (file.exists(query)) {
-  #   query_counts <- LoadFileInput(path = query) 
-  # } else {
-  #   stop("Can't find path to query")
-  # }
-  
+
   annotation <- reference[["ATAC"]]@annotation
   assay <- DefaultAssay(query)
   query_assay <- CreateChromatinAssay(
@@ -308,6 +300,7 @@ RunAzimuthATAC.Seurat <- function(
   )
   
   # Create Seurat Object
+  options(Seurat.object.assay.calcn = TRUE)
   obj.atac <- CreateSeuratObject(counts = ATAC_assay, assay = 'ATAC')
   obj.atac[['peak.orig']] <- query_assay
 
@@ -322,23 +315,10 @@ RunAzimuthATAC.Seurat <- function(
   # Transferred labels are in metadata columns named "predicted.*"
   # The maximum prediction score is in a metadata column named "predicted.*.score"
   # The prediction scores for each class are in an assay named "prediction.score.*"
-  # The imputed assay is named "impADT" if computed
-  # refdata <- lapply(X = annotation.levels, function(x) {
-  #   reference[[x, drop = TRUE]]
-  # })
-  # names(x = refdata) <- annotation.levels
   
   refdata <- as.list(annotation.levels)
   names(refdata) <- annotation.levels
-  
-  # 
-  #if (isTRUE(do.adt)) {
-  #  refdata[["impADT"]] <- GetAssayData(
-  #    object = reference[["ADT"]],
-  #    slot = "data"
-  #  )
-  #}
-  
+
   obj.atac <- MapQuery(anchorset = bridge.anchor, 
                        reference = reference, 
                        query = obj.atac, 
@@ -346,78 +326,17 @@ RunAzimuthATAC.Seurat <- function(
                        reduction.model = "refUMAP" 
   )
   # Get Gene Activities 
-
   gene.activities <- GeneActivity(obj.atac)
   #add feature matrix to Chromatin Assay 
   obj.atac[['RNA']] <- CreateAssayObject(counts = gene.activities)
-  
   #Normalize the feature data
   obj.atac <- NormalizeData(
     object = obj.atac,
     assay = 'RNA',
     normalization.method = 'LogNormalize',
-    scale.factor = median(obj.atac$nCount_RNA)
+    scale.factor = median(unlist(obj.atac[[grep("nCount", 
+                                                colnames(obj.atac@meta.data))]]))
   )
-  # Motif analysis
-  
-  # 
-  
-  #   # obj.atac <- AddMotifs(
-  #   #   object = obj.atac,
-  #   #   genome = BSgenome.Hsapiens.UCSC.hg38,
-  #   #   pfm = pfm
-  #   # )
-  #   # obj.atac <- RunChromVAR(
-  #   #   object = obj.atac,
-  #   #   genome = BSgenome.Hsapiens.UCSC.hg38
-  #   # )
-  #   # # Rename motifs from ids
-  #   # motif_name <- ConvertMotifID(obj.atac[["peak.orig"]]@motifs, id = rownames(obj.atac[["chromvar"]]@data))
-  #   # rownames(obj.atac[["chromvar"]]@data) <- motif_name
-  #   # Remove peaks on scaffolds 
-  #   DefaultAssay(obj.atac) <- "ATAC"
-  #   main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
-  #   keep.peaks <- which(as.character(seqnames(granges(obj.atac))) %in% main.chroms)
-  #   app.env$object[["ATAC"]] <- subset(obj.atac, features = rownames(obj.atac)[keep.peaks])
-  #   
-  #   pfm <- getMatrixSet(
-  #     x = JASPAR2020,
-  #     opts = list(species = 9606, all_versions = FALSE)
-  #   )
-  #   print("adding motifs")
-  #   
-  #   # FindMotif version 
-  #   print("finding motifs")
-  #   for (i in annotation_levels) {
-  #     paste(motif_expr, i, sep = "_") <- wilcoxauc(X = obj.atac,
-  #                                                  group_by = paste0("predicted.", i),
-  #                                                  assay = "data", 
-  #                                                  seurat_assay = "ATAC")
-  #     peaks.list <- split(paste(motif_expr, i, sep = "_"), 
-  #                         f = paste(motif_expr, i, sep = "_")$group)
-  #     motif.list <- list()
-  #     for (num in 1:length(peaks.list)){
-  #       print("starting to find motifs")
-  #       if (nrow(peaks.list[[num]]) > 0){
-  #         peaks.list[[num]] <- peaks.list[[num]][order(peaks.list[[num]]$logFC, decreasing = TRUE), ]
-  #         if (nrow(peaks.list[[num]]) > 1000) {
-  #           print("over 1000 peaks")
-  #           top.da.peak <- peaks.list[[num]][1:1000,]$feature   #[peaks.list[[num]]$logFC > 0.5, ]$feature
-  #         } else {
-  #           print("smaller set of peaks")
-  #           top.da.peak <- peaks.list[[num]][peaks.list[[num]]$pval < 0.05, ]$feature
-  #         }
-  #         enriched.motifs <- FindMotifs( 
-  #           object = refs$bridge[["ATAC"]],
-  #           features = top.da.peak)
-  #         enriched.motifs$group <- names(peaks.list[num])
-  #         motif.list[[num]] <- enriched.motifs
-  #         print(head(enriched.motifs))
-  #       }  
-  #     }
-  #     print(head(dplyr::bind_rows(motif.list)))
-  #     app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- dplyr::bind_rows(motif.list)
-  #     
   return(obj.atac)
 }
 
