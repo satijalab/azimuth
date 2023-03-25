@@ -698,8 +698,8 @@ LoadReference <- function(path, seconds = 10L) {
 #' Load the bridge, reference, and reference extension RDS files
 #'
 #' Read in a precomputed extended reference. This function can
-#' read either from URLs or a file path. The function looks for the following 
-#' \item \dQuote{ext.Rds} for the extended reference \code{Seurat} object 
+#' read either from URLs or a file path. The function looks for a file 
+#' called ext.Rds for the extended reference \code{Seurat} object 
 #'
 #' @param path Path or URL to the RDS file
 #' @param seconds Timeout to check for URLs in seconds
