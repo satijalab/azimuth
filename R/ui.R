@@ -501,7 +501,7 @@ AzimuthUI <- tagList(
         # ATAC Feature tab
         tabItem(
           tags$head(tags$style(HTML(".selectize-dropdown .optgroup-header { font-weight: bold; font-size: 13px; color: black; background: #f6f6f6}"))),
-          tabName = 'tab_feature',
+          tabName = 'tab_gene_activity',
           box(
             title = 'Gene Activity Scores',
             div(
