@@ -12,7 +12,6 @@
   fragment.path = NULL,
   annotation.levels = NULL,
   umap.name = "ref.umap",
-  do.adt = FALSE,
   verbose = TRUE,
   assay = "RNA",
   k.weight = 50,
@@ -41,13 +40,13 @@ RunAzimuthATAC(query, ...)
 
 \item{umap.name}{name of umap reduction in the returned object}
 
-\item{do.adt}{transfer ADT assay}
-
 \item{assay}{query assay name}
 
 \item{dims.atac}{dimensions}
 
 \item{dims.rna}{dimensions}
+
+\item{do.adt}{transfer ADT assay}
 }
 \value{
 Seurat object with reference reductions and annotations

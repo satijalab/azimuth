@@ -7,45 +7,32 @@
 LoadBridgeReference(path, seconds = 10L)
 }
 \arguments{
-\item{path}{Path or URL to the three RDS files}
+\item{path}{Path or URL to the RDS file}
 
 \item{seconds}{Timeout to check for URLs in seconds}
 }
 \value{
-A list with four entries:
+A list with two entries:
 \describe{
  \item{\code{map}}{
-  The downsampled reference \code{\link[Seurat]{Seurat}}
-  object (for mapping)
- }
- \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
- \item{\code{nridhe}}{
-  The multiomic bridge \code{\link[Seurat]{Seurat}}
+  The extended reference \code{\link[Seurat]{Seurat}}
   object 
  }
- \item{\code{ext}}{
-  The extended reference \code{\link[Seurat]{Seurat}}
-  object
- }
+ \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
 }
 }
 \description{
-Read in a reference \code{\link[Seurat]{Seurat}} object, the multiomic bridge, and the precomputed extended reference. This
-function can read either from URLs or a file path. In order to read properly,
-there must be the following files:
-\itemize{
- \item \dQuote{ref.Rds} for the downsampled reference \code{Seurat}
- object (for mapping)
- \item \dQuote{bridge.Rds} for the multiomic bridge \code{Seurat} object 
- \item \dQuote{ext.Rds} for the extended reference \code{Seurat} object 
-}
+Read in a precomputed extended reference. This function can
+read either from URLs or a file path. The function looks for the following 
+\item \dQuote{ext.Rds} for the extended reference \code{Seurat} object
 }
 \examples{
 \dontrun{
 # Load from a URL
 ref <- LoadBridgeReference("https://seurat.nygenome.org/references/pbmc")
-# Load from a directory
-ref2 <- LoadBridgeReference("/var/www/html")
+# Load a file from the path to a directory 
+ref2 <- LoadBridgeReference("path/")
+# Load a file directly
+ref3 <- LoadBridgeReference("ext.Rds")
 }
-
 }

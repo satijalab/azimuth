@@ -699,8 +699,7 @@ LoadReference <- function(path, seconds = 10L) {
 #'
 #' Read in a precomputed extended reference. This function can
 #' read either from URLs or a file path. The function looks for the following 
-#'  \item \dQuote{ext.Rds} for the extended reference \code{Seurat} object 
-#' }
+#' \item \dQuote{ext.Rds} for the extended reference \code{Seurat} object 
 #'
 #' @param path Path or URL to the RDS file
 #' @param seconds Timeout to check for URLs in seconds
@@ -727,7 +726,6 @@ LoadReference <- function(path, seconds = 10L) {
 #' ref <- LoadBridgeReference("https://seurat.nygenome.org/references/pbmc")
 #' # Load a file from the path to a directory 
 #' ref2 <- LoadBridgeReference("path/")
-#' }
 #' # Load a file directly
 #' ref3 <- LoadBridgeReference("ext.Rds")
 #' }
