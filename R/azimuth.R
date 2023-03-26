@@ -246,18 +246,28 @@ RunAzimuthATAC.Seurat <- function(
   annotation.levels = NULL,
   umap.name = "ref.umap",
   verbose = TRUE,
-  assay = "RNA",
+  assay = NULL,
   k.weight = 50,
   n.trees = 20,
   mapping.score.k = 100,
   dims.atac = 2:50, 
   dims.rna = 1:50
 ) {
-  if (is.null(fragment.path)){
-    stop("Must provide path to fragment file with `fragment.path` parameter.",
-    "To run Azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
+  assay <- assay %||% DefaultAssay(object = query)
+  if (inherits(x = query[[assay]], what = "ChromatinAssay")) {
+    if ((length(x = Fragments(query)) == 0) && is.null(x = fragment.path)) {
+      stop("Must provide Seurat Object with `ChromatinAssay` that contains fragments info or ",
+           "path to fragment file with `fragment.path` parameter. ", 
+           "To run Azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
+    }
+  } else {
+    if (is.null(x = fragment.path)) {
+      stop("Must provide Seurat Object with `ChromatinAssay` that contains fragments info or ",
+           "path to fragment file with `fragment.path` parameter. ", 
+           "To run Azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
+    }
   }
-  if (dir.exists(reference)) { 
+  if (dir.exists(paths = reference)) { 
     reference <- LoadBridgeReference(reference)
     reference <- reference$map
   } else {
@@ -276,25 +286,27 @@ RunAzimuthATAC.Seurat <- function(
   }
 
   annotation <- reference[["ATAC"]]@annotation
-  assay <- DefaultAssay(query)
+  if (!is.null(x = fragment.path)){
+    fragments = fragment.path
+  } else {
+    fragments = Fragments(query)
+  }
+  
   query_assay <- CreateChromatinAssay(
     counts = query[[assay]]$counts,
     sep = c(":", "-"),
-    fragments = fragment.path,
+    fragments = fragments,
     annotation = annotation
   )
-  print("made chromatin assay")
-  print(query_assay)
   query_requantified  <- FeatureMatrix(
     fragments = Fragments(query_assay),
     features = granges(reference[['ATAC']]),
     cells = Cells(query_assay)
   )
-  print("requantified peaks")
   # Create assay with requantified ATAC data
   ATAC_assay <- CreateChromatinAssay(
     counts = query_requantified,
-    fragments = fragment.path,
+    fragments = fragments,
     sep = c(":", "-"),
     annotation = annotation
   )

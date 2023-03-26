@@ -705,7 +705,7 @@ LoadReference <- function(path, seconds = 10L) {
   ))
 }
 
-#' Load the bridge, reference, and reference extension RDS files
+#' Load the extended reference RDS file for bridge integration
 #'
 #' Read in a precomputed extended reference. This function can
 #' read either from URLs or a file path. The function looks for a file 
