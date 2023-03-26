@@ -28,13 +28,14 @@ RunAzimuth.Seurat <- function(
   umap.name = "ref.umap",
   do.adt = FALSE,
   verbose = TRUE,
-  assay = "RNA",
+  assay = NULL,
   k.weight = 50,
   n.trees = 20,
   mapping.score.k = 100, 
   ...
 ) {
   CheckDots(...)
+  assay <- assay %||% DefaultAssay(query)
   if (query.modality == "ATAC"){
     query <- RunAzimuthATAC(query = query, 
                             reference = reference, 
