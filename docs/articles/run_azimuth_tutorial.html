@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Azimuth</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.4.6.9001</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.4.6</span>
       </span>
     </div>
 
@@ -94,7 +94,7 @@
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
 <p>This vignette demonstrates how to map scRNA-seq and scATAC-seq data to Azimuth reference datasets directly in R, without the need to upload data into the web application.</p>
-<p>Reference-based mapping provides an attractive alternative to unsupervised analysis. When well-curated and annotated references are available, reference-mapping can rapdidly, robustly, and sensitively annotate and interpret query datasets. As part of the <a href="portal.hubmapconsortium.org">Human Biomolecular Atlas Project</a>, we have built integrated references for multiple human tissues, available at <a href="azimuth.hubmapconsortium.org">azimuth.hubmapconsortium.org</a>. Azimuth is a web-tool that maps user-uploaded datasets - starting from an unnormalized expression counts matrix.</p>
+<p>Reference-based mapping provides an attractive alternative to unsupervised analysis. When well-curated and annotated references are available, reference-mapping can rapdidly, robustly, and sensitively annotate and interpret query datasets. As part of the <a href="https://portal.hubmapconsortium.org/" class="external-link">Human Biomolecular Atlas Project</a>, we have built integrated references for multiple human tissues, available at <a href="https://azimuth.hubmapconsortium.org/" class="external-link">azimuth.hubmapconsortium.org</a>. Azimuth is a web-tool that maps user-uploaded datasets - starting from an unnormalized expression counts matrix.</p>
 <p>In this vignette, we demonstrate the use of a function <code><a href="../reference/RunAzimuth.html">RunAzimuth()</a></code> which facilitates annotation of single cell datasets.</p>
 <p>As with the web application, Azimuth is compatible with a wide range of inputs, including Seurat objects, 10x HDF5 files, and Scanpy/h5ad files. Once Azimuth is run, a Seurat object is returned which contains</p>
 <ul>
@@ -106,7 +106,7 @@
 <div class="section level4">
 <h4 id="azimuth-atac">Azimuth ATAC<a class="anchor" aria-label="anchor" href="#azimuth-atac"></a>
 </h4>
-<p>We recently released <strong>Azimuth ATAC</strong>, which uses the bridge integration methodology introduced in Hao, et al 2022. and demonstrated in <a href="https://satijalab.org/seurat/articles/bridge_integration_vignette.html" class="external-link">this vignette</a>. A multimodal bridge dataset, measuring both scRNA-seq and scATAC-seq data per cell, is used to transfer annotations from our high quality RNA references to an ATAC query. The <a href="https://azimuth.hubmapconsortium.org/" class="external-link">Azimuth ATAC web application</a> increases app efficiency by using a fast requantification method based on overlap to match the peaks in your query ATAC data to that of the multiome. Thus, users only need to upload the peak-cell matrix from their data. Alternatively, if users would like to requantify peaks from the information stored in their fragment file, the <code><a href="../reference/RunAzimuth.html">RunAzimuth()</a></code> function in R will run standard bridge integration using both the peak-cell matrix and the fragment file. For Azimuth ATAC, you can download the reference dataset <a href="">here</a>.</p>
+<p>We recently released <strong>Azimuth ATAC</strong>, which uses the bridge integration methodology introduced in Hao, et al 2022. and demonstrated in <a href="https://satijalab.org/seurat/articles/bridge_integration_vignette.html" class="external-link">this vignette</a>. A multimodal bridge dataset, measuring both scRNA-seq and scATAC-seq data per cell, is used to transfer annotations from our high quality RNA references to an ATAC query. The <a href="https://azimuth.hubmapconsortium.org/" class="external-link">Azimuth ATAC web application</a> increases app efficiency by using a fast requantification method based on overlap to match the peaks in your query ATAC data to that of the multiome. Thus, users only need to upload the peak-cell matrix from their data. Alternatively, if users would like to requantify peaks from the information stored in their fragment file, the <code><a href="../reference/RunAzimuth.html">RunAzimuth()</a></code> function in R will run standard bridge integration using both the peak-cell matrix and the fragment file. The workflow for scRNA-seq queries is included <a href="https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html#scatac-seq-queries" class="external-link">below</a>.</p>
 </div>
 </div>
 <div class="section level2">
@@ -287,7 +287,7 @@
 <span><span class="co">##  [5] pbmcref.SeuratData_1.0.0       bonemarrowref.SeuratData_1.0.0</span></span>
 <span><span class="co">##  [7] SeuratData_0.2.2.9001          Azimuth_0.4.6.9001            </span></span>
 <span><span class="co">##  [9] shinyBS_0.61.1                 Seurat_4.9.9.9039             </span></span>
-<span><span class="co">## [11] SeuratObject_4.9.9.9079        sp_1.6-0                      </span></span>
+<span><span class="co">## [11] SeuratObject_4.9.9.9080        sp_1.6-0                      </span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## loaded via a namespace (and not attached):</span></span>
 <span><span class="co">##   [1] rappdirs_0.3.3                    rtracklayer_1.58.0               </span></span>
