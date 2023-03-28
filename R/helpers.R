@@ -105,10 +105,12 @@ ConvertGeneNames <- function(object, reference.names, homolog.table) {
     # subset/rename object accordingly
     counts <- GetAssayData(object = object[["RNA"]], slot = "counts")[rownames(x = object)[new.indices], ]
     rownames(x = counts) <- new.names
+    reductions <- slot(object = object, name = "reductions")
     object <- CreateSeuratObject(
       counts = counts,
       meta.data = object[[]]
     )
+    slot(object = object, name = "reductions") <- reductions
     return(object)
   }
 }
