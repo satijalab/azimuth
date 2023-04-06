@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{LoadBridgeReference}
 \alias{LoadBridgeReference}
-\title{Load the bridge, reference, and reference extension RDS files}
+\title{Load the extended reference RDS file for bridge integration}
 \usage{
 LoadBridgeReference(path, seconds = 10L)
 }
@@ -23,8 +23,8 @@ A list with two entries:
 }
 \description{
 Read in a precomputed extended reference. This function can
-read either from URLs or a file path. The function looks for the following 
-\item \dQuote{ext.Rds} for the extended reference \code{Seurat} object
+read either from URLs or a file path. The function looks for a file 
+called ext.Rds for the extended reference \code{Seurat} object
 }
 \examples{
 \dontrun{

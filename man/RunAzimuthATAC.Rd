@@ -13,7 +13,7 @@
   annotation.levels = NULL,
   umap.name = "ref.umap",
   verbose = TRUE,
-  assay = "RNA",
+  assay = NULL,
   k.weight = 50,
   n.trees = 20,
   mapping.score.k = 100,

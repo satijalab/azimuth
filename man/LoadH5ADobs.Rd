@@ -4,7 +4,7 @@
 \alias{LoadH5ADobs}
 \title{Load obs from a H5AD file}
 \usage{
-LoadH5ADobs(path)
+LoadH5ADobs(path, cell.groups = NULL)
 }
 \description{
 Read in only the metadata of an H5AD file and
