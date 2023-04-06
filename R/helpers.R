@@ -158,6 +158,68 @@ ConvertEnsembleToSymbol <- function(
   return(mat.filter)
 }
 
+#' Connect to a single-cell HDF5 dataset
+#'
+#' @param filename Name of on-disk file
+#' @param type Type of single-cell dataset to connect as; choose from:
+#' \itemize{
+#'  \item h5seurat
+#' }
+#' Leave as \code{NULL} to guess type from file extension
+#' @param mode Mode to connect to data as; choose from:
+#' \describe{
+#'  \item{r}{Open existing dataset in read-only mode}
+#'  \item{r+}{Open existing dataset in read/write mode}
+#' }
+#' @param force Force a connection if validation steps fail; returns a
+#' \code{\link[hdf5r]{H5File}} object
+#'
+#' @return An object of class \code{type}, opened in mode \code{mode}
+#'
+#' @importFrom hdf5r H5File
+#'
+#' @export
+#'
+Connect <- function(
+  filename,
+  type = NULL,
+  mode = c('r', 'r+'),
+  force = FALSE
+) {
+  type <- type %||% FileType(file = filename)
+  mode <- match.arg(arg = mode)
+  if (!file.exists(filename)) {
+    stop("Cannot find ", type, " file ", filename, call. = FALSE)
+  }
+  return(tryCatch(
+    expr = {
+      cls <- GetSCDisk(r6class = type)
+      cls$new(filename = filename, mode = mode)
+    },
+    error = function(err) {
+      if (!isTRUE(x = force)) {
+        stop(err$message, call. = FALSE)
+      }
+      warning(err$message, call. = FALSE, immediate. = TRUE)
+      return(H5File$new(filename = filename, mode = mode))
+    }
+  ))
+}
+
+#' Determine a filetype based on its extension
+#'
+#' @param file Name of file
+#'
+#' @return The extension, all lowercase
+#'
+#' @importFrom tools file_ext
+#'
+FileType <- function(file) {
+  ext <- file_ext(x = file)
+  ext <- ifelse(test = nchar(x = ext), yes = ext, no = basename(path = file))
+  return(tolower(x = ext))
+}
+
 # Return CSS styling for hover box on interactive plots
 #
 # @param x X hover position (hover$coords_css$x)
@@ -524,11 +586,10 @@ LoadH5AD <- function(path) {
 #' Read in only the metadata of an H5AD file and
 #' return a data.frame object
 #' @section AnnData H5AD File (extension \code{h5ad}):
-#' @importFrom SeuratDisk Connect
 #' @export
 #'
 LoadH5ADobs <- function(path, cell.groups = NULL) {
-  suppressWarnings(expr = hfile <- SeuratDisk:: Connect(filename = path, force = TRUE))
+  suppressWarnings(expr = hfile <- Connect(filename = path, force = TRUE))
   hfile_obs <- hfile[['obs']]
   obs_groups <- setdiff(names(hfile_obs), c('__categories', '_index', 'cell'))
   cell.groups <- cell.groups %||% intersect(names(hfile_obs), c('_index', 'cell'))
