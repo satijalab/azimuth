@@ -590,8 +590,8 @@ LoadH5AD <- function(path) {
 #' @export
 #'
 LoadH5ADobs <- function(path, cell.groups = NULL) {
-  cells.index <- h5read(file = path, name = 'obs')$index
-  h5closeAll()
+  cell.var <- rhdf5::h5readAttributes(file = path, name = 'obs')$`_index`
+  cells.index <- h5read(file = path, name = 'obs')[[cell.var]]
   suppressWarnings(expr = hfile <- Connect(filename = path, force = TRUE))
   hfile_obs <- hfile[['obs']]
   #cell.groups <- cell.groups %||% intersect(names(hfile_obs), c('_index', 'cell', 'cell_id'))
