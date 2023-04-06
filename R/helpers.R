@@ -527,17 +527,27 @@ LoadH5AD <- function(path) {
 #' @importFrom SeuratDisk Connect
 #' @export
 #'
-LoadH5ADobs <- function(path) {
+LoadH5ADobs <- function(path, cell.groups = NULL) {
   suppressWarnings(expr = hfile <- SeuratDisk:: Connect(filename = path, force = TRUE))
   hfile_obs <- hfile[['obs']]
-  obs_groups <- setdiff(names(hfile_obs), c('__categories', '_index'))
+  obs_groups <- setdiff(names(hfile_obs), c('__categories', '_index', 'cell'))
+  cell.groups <- cell.groups %||% intersect(names(hfile_obs), c('_index', 'cell'))
+  if (length(cell.groups) != 1) {
+    stop('cell group var is unknown')
+  }
+  if (cell.groups == '_index') {
+    cell.groups.var <- cell.groups.var
+  } else if (cell.groups == 'cell') {
+    cell.groups.var <- hfile_obs[['cell']][['categories']]
+  }
+
   matrix <- as.data.frame(
     x = matrix(data = NA,
-               nrow = hfile_obs[['_index']]$dims[1],
+               nrow = cell.groups.var$dims[1],
                ncol = length(obs_groups))
   )
   colnames(matrix) <- obs_groups
-  rownames(matrix) <- hfile_obs[['_index']][]
+  rownames(matrix) <- cell.groups.var[]
   if ('__categories' %in% names(x = hfile_obs)) {
     hfile_cate <- hfile_obs[['__categories']]
     for (i in seq_along(obs_groups)) {
