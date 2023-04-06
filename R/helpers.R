@@ -586,29 +586,32 @@ LoadH5AD <- function(path) {
 #' Read in only the metadata of an H5AD file and
 #' return a data.frame object
 #' @section AnnData H5AD File (extension \code{h5ad}):
+#' @importFrom rhdf5 h5read
 #' @export
 #'
 LoadH5ADobs <- function(path, cell.groups = NULL) {
+  cells.index <- h5read(file = path, name = 'obs')$index
+  h5closeAll()
   suppressWarnings(expr = hfile <- Connect(filename = path, force = TRUE))
   hfile_obs <- hfile[['obs']]
-  obs_groups <- setdiff(names(hfile_obs), c('__categories', '_index', 'cell'))
-  cell.groups <- cell.groups %||% intersect(names(hfile_obs), c('_index', 'cell'))
-  if (length(cell.groups) != 1) {
-    stop('cell group var is unknown')
-  }
-  if (cell.groups == '_index') {
-    cell.groups.var <- cell.groups.var
-  } else if (cell.groups == 'cell') {
-    cell.groups.var <- hfile_obs[['cell']][['categories']]
-  }
+  #cell.groups <- cell.groups %||% intersect(names(hfile_obs), c('_index', 'cell', 'cell_id'))
+  obs_groups <- setdiff(names(hfile_obs), c('__categories',  c('_index', 'cell', 'cell_id')))
+  # if (length(cell.groups) != 1) {
+  #   stop('cell group var is unknown')
+  # }
+  # if (cell.groups == '_index') {
+  #   cell.groups.var <- hfile_obs[[cell.groups]]
+  # } else {
+  #   cell.groups.var <- hfile_obs[[cell.groups]][['categories']]
+  # }
 
   matrix <- as.data.frame(
     x = matrix(data = NA,
-               nrow = cell.groups.var$dims[1],
+               nrow = length(cells.index),
                ncol = length(obs_groups))
   )
   colnames(matrix) <- obs_groups
-  rownames(matrix) <- cell.groups.var[]
+  rownames(matrix) <- cells.index
   if ('__categories' %in% names(x = hfile_obs)) {
     hfile_cate <- hfile_obs[['__categories']]
     for (i in seq_along(obs_groups)) {
