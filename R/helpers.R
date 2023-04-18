@@ -596,15 +596,6 @@ LoadH5ADobs <- function(path, cell.groups = NULL) {
   hfile_obs <- hfile[['obs']]
   #cell.groups <- cell.groups %||% intersect(names(hfile_obs), c('_index', 'cell', 'cell_id'))
   obs_groups <- setdiff(names(hfile_obs), c('__categories',  c('_index', 'cell', 'cell_id')))
-  # if (length(cell.groups) != 1) {
-  #   stop('cell group var is unknown')
-  # }
-  # if (cell.groups == '_index') {
-  #   cell.groups.var <- hfile_obs[[cell.groups]]
-  # } else {
-  #   cell.groups.var <- hfile_obs[[cell.groups]][['categories']]
-  # }
-
   matrix <- as.data.frame(
     x = matrix(data = NA,
                nrow = length(cells.index),
@@ -637,7 +628,11 @@ LoadH5ADobs <- function(path, cell.groups = NULL) {
           obs_value_i <- hfile_obs[[obs.i]][['codes']][]
         }
       } else {
-        obs_value_i <- hfile_obs[[obs.i]][]
+        # list of list, skip for now
+        obs_value_i <- tryCatch(expr = hfile_obs[[obs.i]][],
+                                error = function(e) {
+          return('unknown')
+        })
       }
       matrix[,i] <- obs_value_i
     }
