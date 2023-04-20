@@ -28,7 +28,7 @@ AzimuthReference(
 
 \item{refDR}{Name of DimReduc in reference to use for mapping}
 
-\item{refAssay}{Name of SCTAssay to use in reference}
+\item{refAssay}{Name of assay to use in reference}
 
 \item{dims}{Dimensions to use in reference neighbor finding}
 
