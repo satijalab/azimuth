@@ -31,7 +31,7 @@ NULL
 #' @importFrom Seurat CreateAssayObject GetAssayData DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
-#' FindBridgeTransferAnchors MapQuery NormalizeData
+#' FindBridgeTransferAnchors MapQuery NormalizeData ScaleData
 #' @importFrom Signac AddMotifs Annotation CreateChromatinAssay Extend FindMotifs FindTopFeatures GRangesToString 
 #' GetGRangesFromEnsDb RunChromVAR RunSVD RunTFIDF AddMotifs
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
@@ -124,8 +124,11 @@ AzimuthServer <- function(input, output, session) {
     bridge = FALSE,
     bridge.query = FALSE,
     bridge_anchors = FALSE,
+    lognormalize = FALSE,
     motif = FALSE, 
     motif.features = FALSE,
+    normalize = FALSE,
+    normalization.method = FALSE,
     chromatin_assay_1 = FALSE,
     cluster.score = FALSE,
     features = FALSE,
@@ -1066,14 +1069,18 @@ AzimuthServer <- function(input, output, session) {
         app.env$query.names <- app.env$query.names[cells.use]
         if (isTRUE(x = do.bridge)) {
           react.env$tfidf <- TRUE
+        } else if (!inherits(x = refs$map[["refAssay"]], what = "SCTAssay")) {
+          react.env$lognormalize <- TRUE 
+          react.env$normalize <- TRUE
         } else {
           react.env$sctransform <- TRUE
+          react.env$normalize <- TRUE
         }
       }
     }
   )
   observeEvent(
-    eventExpr = react.env$sctransform,
+    eventExpr = react.env$normalize,
     handlerExpr = {
       if (isTRUE(x = react.env$sctransform)) {
         react.env$progress$set(
@@ -1104,18 +1111,65 @@ AzimuthServer <- function(input, output, session) {
               do.center = TRUE,
               new.assay.name = "refAssay"
             ))
-          }
-        )
-        app.env$object[[paste0(c("nCount_", "nFeature_"), "refAssay")]] <- app.env$object[[paste0(c("nCount_", 
-                                                                                                    "nFeature_"), 
-                                                                                                  "RNA")]]
-        app.env$messages <- c(
-          app.env$messages,
-          paste(ncol(x = app.env$object), "cells preprocessed")
+            }
         )
         react.env$anchors <- TRUE
         react.env$sctransform <- FALSE
+        react.env$normalization.method <- "SCT"
+      } else if (isTRUE(x = react.env$lognormalize)) { 
+        react.env$progress$set(
+          value = 0.2,
+          message = 'Normalizing with Log Normalization'
+        )
+        app.env$object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = app.env$object[["RNA"]])), 
+                                          Class = "Assay")
+        DefaultAssay(app.env$object) <- "refAssay"
+        tryCatch(
+          expr = {
+            app.env$object <- suppressWarnings(expr = NormalizeData(
+              object = app.env$object,
+              normalization.method = "LogNormalize",
+              scale.factor = 1000,
+              margin = 1
+            ))
+          },
+          error = function(e) {
+            app.env$object <- suppressWarnings(expr = NormalizeData(
+              object = app.env$object,
+              normalization.method = "LogNormalize",
+              scale.factor = 1000,
+              margin = 1
+            ))
+          }
+        )
+        app.env$object[["refAssay"]]$data <- app.env$object[["RNA"]]$data
+        #slot(object = app.env$object[["refAssay"]], name = "var.features") <- rownames(x = refs$map)
+        tryCatch(
+          expr = {
+            app.env$object <- suppressWarnings(expr = ScaleData(
+              object = app.env$object,
+              model.use = "linear"
+            ))
+          },
+          error = function(e) {
+            app.env$object <- suppressWarnings(expr = ScaleData(
+              object = app.env$object,
+              model.use = "linear"
+            ))
+          }
+        )
+        
+        react.env$anchors <- TRUE
+        react.env$lognormalize <- FALSE
+        react.env$normalization.method <- "LogNormalize" 
       }
+      app.env$messages <- c(
+        app.env$messages,
+        paste(ncol(x = app.env$object), "cells preprocessed")
+      )
+      app.env$object[[paste0(c("nCount_", "nFeature_"), "refAssay")]] <- app.env$object[[paste0(c("nCount_", 
+                                                                                                  "nFeature_"), 
+                                                                                                "RNA")]]
     }
   )
   observeEvent(
@@ -1154,9 +1208,9 @@ AzimuthServer <- function(input, output, session) {
           k.filter = NA,
           reference.neighbors = "refdr.annoy.neighbors",
           reference.assay = "refAssay",
-          query.assay = 'refAssay',
+          query.assay = "refAssay",
           reference.reduction = 'refDR',
-          normalization.method = 'SCT',
+          normalization.method = react.env$normalization.method,
           recompute.residuals = FALSE,
           features = rownames(x = Loadings(refs$map[["refDR"]])), 
           dims = 1:getOption(x = "Azimuth.map.ndims"),
@@ -1411,7 +1465,7 @@ AzimuthServer <- function(input, output, session) {
           refdata[["impADT"]] <- GetAssayData(object = refs$map[["ADT"]], 
                                               slot = "data")
         }
-        app.env$object <-  MapQuery(anchorset = app.env$anchors,  # deleted transfer data 
+        app.env$object <-  MapQuery(anchorset = app.env$anchors,  
                                     reference = refs$map, 
                                     query = app.env$object, 
                                     refdata = refdata,
@@ -2127,9 +2181,6 @@ AzimuthServer <- function(input, output, session) {
           options = selectize.opts
         )
         if (isTRUE(x = do.adt)) {
-          # app.env$adt.features <- sort(x = FilterFeatures(features = rownames(
-          #   x = app.env$object[[adt.key]]
-          # )))
           app.env$adt.features <- sort(x = rownames(
             x = app.env$object[[adt.key]]
           ))
@@ -2189,14 +2240,6 @@ AzimuthServer <- function(input, output, session) {
         allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(
           object = allowed.clusters
         ))))
-        # updateSelectizeInput(
-        #   session = session,
-        #   inputId = 'select.prediction',
-        #   choices = allowed.clusters,
-        #   selected = allowed.clusters[1],
-        #   server = TRUE,
-        #   options = selectize.opts
-        # )
         
         updateSelectizeInput(
           session = session,
