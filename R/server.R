@@ -31,7 +31,7 @@ NULL
 #' @importFrom Seurat CreateAssayObject GetAssayData DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
-#' FindBridgeTransferAnchors MapQuery NormalizeData
+#' FindBridgeTransferAnchors MapQuery NormalizeData ScaleData
 #' @importFrom Signac AddMotifs Annotation CreateChromatinAssay Extend FindMotifs FindTopFeatures GRangesToString 
 #' GetGRangesFromEnsDb RunChromVAR RunSVD RunTFIDF AddMotifs
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
@@ -124,8 +124,11 @@ AzimuthServer <- function(input, output, session) {
     bridge = FALSE,
     bridge.query = FALSE,
     bridge_anchors = FALSE,
+    lognormalize = FALSE,
     motif = FALSE, 
     motif.features = FALSE,
+    normalize = FALSE,
+    normalization.method = FALSE,
     chromatin_assay_1 = FALSE,
     cluster.score = FALSE,
     features = FALSE,
@@ -161,7 +164,6 @@ AzimuthServer <- function(input, output, session) {
     addClass(id = 'biotable', class = 'fulls')
   }
   if (!isTRUE(x = do.bridge)) {
-    print("removing ui elements")
     for (id in c('dist.qc', 'q4', 'valuebox_overlap', 'valuebox_jaccard', 'motifinput', 'continput.motif', 'metagroup.motif', 'motifvln', 'markerclustersgroupinput.motif', 'motiftable', 'overlap_box')) {
       removeUI(selector = paste0('#', id), immediate = TRUE)
     }
@@ -189,9 +191,6 @@ AzimuthServer <- function(input, output, session) {
   motif.proxy <- dataTableProxy(outputId = "motifs")
   rna.proxy <- dataTableProxy(outputId = 'biomarkers')
   adt.proxy <- dataTableProxy(outputId = 'adtbio')
-  print(getOption('Azimuth.app.googlesheet'))
-  print(getOption('Azimuth.app.googletoken'))
-  print(getOption('Azimuth.app.googletokenemail'))
   logging <- all(vapply(
     X = paste0('Azimuth.app.google', c('sheet', 'token', 'tokenemail')),
     FUN = function(x) {
@@ -200,8 +199,6 @@ AzimuthServer <- function(input, output, session) {
     FUN.VALUE = logical(length = 1L)
   ))
   googlesheet <- NULL
-  print("LOGGING")
-  print(logging)
   if (logging) {
     try(
       expr = {
@@ -397,7 +394,6 @@ AzimuthServer <- function(input, output, session) {
     withProgress(
       message = "Loading bridge and reference",
       expr = {
-        print("bridge version")
         disable(id = 'file')
         ToggleDemos(action = "disable", demos = demos)
         setProgress(value = 0.2)
@@ -407,7 +403,6 @@ AzimuthServer <- function(input, output, session) {
             default = stop(safeError(error = "No reference provided"))
           )
         )
-        print(refs)
         setProgress(value = 1)
         enable(id = 'file')
         ToggleDemos(action = "enable", demos = demos)
@@ -418,7 +413,6 @@ AzimuthServer <- function(input, output, session) {
     withProgress(
       message = "Loading reference",
       expr = {
-        print("standard version")
         disable(id = 'file')
         ToggleDemos(action = "disable", demos = demos)
         setProgress(value = 0)
@@ -513,7 +507,6 @@ AzimuthServer <- function(input, output, session) {
               setProgress(value = 0)
               tryCatch(
                 expr = {
-                  print("Doing standard path")
                   app.env$object <- LoadFileInput(path = react.env$path)
                   app.env$object <- DietSeurat(
                     app.env$object,
@@ -581,7 +574,6 @@ AzimuthServer <- function(input, output, session) {
                     app.env$object <- NULL
                     gc(verbose = FALSE)
                     reject <- min(which(x = reject))
-                    print("GOING TO REJECT")
                     app.env$messages <- paste(
                       c(
                         'Not enough genes in common with reference.',
@@ -677,18 +669,15 @@ AzimuthServer <- function(input, output, session) {
         withProgress(message = "Making Chromatin Assay", expr = {
           setProgress(value = 0.3)
           tryCatch(expr = {
-            print("about to make chromatin assay")
             app.env$annotations <- refs$map[["ATAC"]]@annotation
             app.env$chromatin_assay_1 <- CreateChromatinAssay(
               counts = app.env$counts[["RNA"]]$counts, 
               sep = c(":", "-"),
               annotation = app.env$annotations
             )
-            print(app.env$chromatin_assay_1)
             #app.env$o_hits <- findOverlaps(app.env$chromatin_assay_1, refs$bridge[["ATAC"]])
             #qc_table <- OverlapQC(app.env$chromatin_assay_1, refs$bridge)
             perc_overlap <- round(x = OverlapTotal(app.env$chromatin_assay_1, refs$map[["ATAC"]]), digits = 4)
-            print("PERC OVERLAP")
             if (perc_overlap >= 70) {
               output$valuebox_overlap <- renderValueBox(expr = {
                 valueBox(value = perc_overlap, subtitle = "Overlap Percentage",
@@ -708,8 +697,6 @@ AzimuthServer <- function(input, output, session) {
               })
             }
             jaccard <- round(x = PeakJaccard(app.env$chromatin_assay_1, refs$map[["ATAC"]]), digits = 4)
-            print("JACCARD SIMILARITY")
-            print(jaccard)
             if (jaccard >= 30) {
               output$valuebox_jaccard <- renderValueBox(expr = {
                 valueBox(value = jaccard, subtitle = "Jaccard Similarity",
@@ -729,22 +716,14 @@ AzimuthServer <- function(input, output, session) {
                          icon = icon(name = "exclamation-circle"), color = "red")
               })
             }
-            print("made chromatin assay ")
             query.cell.names <- paste0("query", 1:ncol(x = app.env$chromatin_assay_1))
-            print("got query cell names")
-            head(query.cell.names)
             while (any(query.cell.names %in% Cells(x = refs$map))) {
               query.cell.names <- paste0(query.cell.names, 
                                          "x")
             }
-            print("assessed query cell names")
             app.env$query.names <- Cells(x = app.env$chromatin_assay_1)
-            print("QUERY CELLS")
-            print(length(app.env$query.names))
-            print("got cells ")
             app.env$chromatin_assay_1 <- RenameCells(object = app.env$chromatin_assay_1, 
                                                      new.names = query.cell.names)
-            print("renamed cells")
             
             # remove this because we don't have mitochondrial genes, just peaks 
             removeUI(selector = '#pctmt', immediate = TRUE)
@@ -770,7 +749,6 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (isTRUE(x = react.env$requantify_multiome)) {
         withProgress(message = "Requantifying Peaks to Match Bridge", expr = {
-          print("DOING REQUANTIFICATION")
           setProgress(value = 0.5)
           tryCatch(expr = {
             app.env$requantified_multiome <- RequantifyPeaks(app.env$chromatin_assay_1, refs$map)
@@ -788,17 +766,11 @@ AzimuthServer <- function(input, output, session) {
               x = rownames(x = app.env$object),
               y = rownames(x = refs$map[["ATAC"]])
             )
-            print(length(rownames(x = app.env$object)))
-            head(row.names(app.env$object))
-            print(length(rownames(x = refs$map[["ATAC"]])))
-            head(rownames(refs$map[["ATAC"]]))
-            print(length(common.features))
             reject_peaks <- c(
               length(x = common.features) < getOption(x = 'Azimuth.map.ngenes'),
               length(x = Cells(x = app.env$object)) > getOption(x = 'Azimuth.app.max_cells')
             )
             if (any(reject_peaks)) {
-              print("GOING TO REJECT 2")
               app.env$object <- NULL
               gc(verbose = FALSE)
               reject_peaks <- min(which(x = reject_peaks))
@@ -1100,14 +1072,18 @@ AzimuthServer <- function(input, output, session) {
         app.env$query.names <- app.env$query.names[cells.use]
         if (isTRUE(x = do.bridge)) {
           react.env$tfidf <- TRUE
+        } else if (!inherits(x = refs$map[["refAssay"]], what = "SCTAssay")) {
+          react.env$lognormalize <- TRUE 
+          react.env$normalize <- TRUE
         } else {
           react.env$sctransform <- TRUE
+          react.env$normalize <- TRUE
         }
       }
     }
   )
   observeEvent(
-    eventExpr = react.env$sctransform,
+    eventExpr = react.env$normalize,
     handlerExpr = {
       if (isTRUE(x = react.env$sctransform)) {
         react.env$progress$set(
@@ -1138,18 +1114,65 @@ AzimuthServer <- function(input, output, session) {
               do.center = TRUE,
               new.assay.name = "refAssay"
             ))
-          }
-        )
-        app.env$object[[paste0(c("nCount_", "nFeature_"), "refAssay")]] <- app.env$object[[paste0(c("nCount_", 
-                                                                                                    "nFeature_"), 
-                                                                                                  "RNA")]]
-        app.env$messages <- c(
-          app.env$messages,
-          paste(ncol(x = app.env$object), "cells preprocessed")
+            }
         )
         react.env$anchors <- TRUE
         react.env$sctransform <- FALSE
+        react.env$normalization.method <- "SCT"
+      } else if (isTRUE(x = react.env$lognormalize)) { 
+        react.env$progress$set(
+          value = 0.2,
+          message = 'Normalizing with Log Normalization'
+        )
+        app.env$object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = app.env$object[["RNA"]])), 
+                                          Class = "Assay")
+        DefaultAssay(app.env$object) <- "refAssay"
+        tryCatch(
+          expr = {
+            app.env$object <- suppressWarnings(expr = NormalizeData(
+              object = app.env$object,
+              normalization.method = "LogNormalize",
+              scale.factor = 1000,
+              margin = 1
+            ))
+          },
+          error = function(e) {
+            app.env$object <- suppressWarnings(expr = NormalizeData(
+              object = app.env$object,
+              normalization.method = "LogNormalize",
+              scale.factor = 1000,
+              margin = 1
+            ))
+          }
+        )
+        app.env$object[["refAssay"]]$data <- app.env$object[["RNA"]]$data
+        #slot(object = app.env$object[["refAssay"]], name = "var.features") <- rownames(x = refs$map)
+        tryCatch(
+          expr = {
+            app.env$object <- suppressWarnings(expr = ScaleData(
+              object = app.env$object,
+              model.use = "linear"
+            ))
+          },
+          error = function(e) {
+            app.env$object <- suppressWarnings(expr = ScaleData(
+              object = app.env$object,
+              model.use = "linear"
+            ))
+          }
+        )
+        
+        react.env$anchors <- TRUE
+        react.env$lognormalize <- FALSE
+        react.env$normalization.method <- "LogNormalize" 
       }
+      app.env$messages <- c(
+        app.env$messages,
+        paste(ncol(x = app.env$object), "cells preprocessed")
+      )
+      app.env$object[[paste0(c("nCount_", "nFeature_"), "refAssay")]] <- app.env$object[[paste0(c("nCount_", 
+                                                                                                  "nFeature_"), 
+                                                                                                "RNA")]]
     }
   )
   observeEvent(
@@ -1188,9 +1211,9 @@ AzimuthServer <- function(input, output, session) {
           k.filter = NA,
           reference.neighbors = "refdr.annoy.neighbors",
           reference.assay = "refAssay",
-          query.assay = 'refAssay',
+          query.assay = "refAssay",
           reference.reduction = 'refDR',
-          normalization.method = 'SCT',
+          normalization.method = react.env$normalization.method,
           recompute.residuals = FALSE,
           features = rownames(x = Loadings(refs$map[["refDR"]])), 
           dims = 1:getOption(x = "Azimuth.map.ndims"),
@@ -1234,7 +1257,6 @@ AzimuthServer <- function(input, output, session) {
           query.unique <- length(x = unique(x = slot(object = app.env$anchors, name = "anchors")[, "cell2"]))
           percent.anchors <- round(x = query.unique / ncol(x = app.env$object) * 100, digits = 2)
           if (percent.anchors <  getOption(x = "Azimuth.map.panchorscolors")[1]) {
-            print("rendering value box 1")
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(
                 value = paste0(percent.anchors, "%"),
@@ -1244,7 +1266,6 @@ AzimuthServer <- function(input, output, session) {
               )
             })
           } else if (percent.anchors <  getOption(x = "Azimuth.map.panchorscolors")[2]) {
-            print("rendering value box 2")
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(
                 value = paste0(percent.anchors, "%"),
@@ -1282,22 +1303,18 @@ AzimuthServer <- function(input, output, session) {
         nanchors <- nrow(x = slot(object = app.env$anchors, 
                                   name = "anchors"))
         app.env$nanchors <- nanchors
-        print("going onto googlesheet")
         if (!is.null(googlesheet)) {
-          print("doing google sheet thing")
           try(sheet_append(ss = googlesheet, data = data.frame("NANCHORS", 
                                                                app_session_id, nanchors)))
         }
         if (nanchors < getOption(x = "Azimuth.map.nanchors") | 
             length(x = unique(x = slot(object = app.env$anchors, 
                                        name = "anchors")[, 2])) < 50) {
-          print("doing this length if ")
           output$valuebox.mapped <- renderValueBox(expr = {
             valueBox(value = "Failure", subtitle = paste0("Too few anchors identified (", 
                                                           nanchors, ")"), icon = icon(name = "times"), 
                      color = "red", width = 6)
           })
-          print("checking")
           app.env$object <- NULL
           app.env$anchors <- NULL
           react.env$progress$close()
@@ -1307,13 +1324,11 @@ AzimuthServer <- function(input, output, session) {
           gc(verbose = FALSE)
         }
         else {
-          print("doing the else")
           query.unique <- length(x = unique(x = slot(object = app.env$anchors, 
                                                      name = "anchors")[, "cell2"]))
           percent.anchors <- round(x = query.unique/ncol(x = app.env$object) * 
                                      100, digits = 2)
           if (percent.anchors < getOption(x = "Azimuth.map.panchorscolors")[1]) {
-            print("rendering value box 1")
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(value = paste0(percent.anchors, 
                                       "%"), subtitle = "% of query cells with anchors", 
@@ -1321,7 +1336,6 @@ AzimuthServer <- function(input, output, session) {
             })
           }
           else if (percent.anchors < getOption(x = "Azimuth.map.panchorscolors")[2]) {
-            print("rendering value box 2")
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(value = paste0(percent.anchors, 
                                       "%"), subtitle = "% of query cells with anchors", 
@@ -1329,17 +1343,14 @@ AzimuthServer <- function(input, output, session) {
             })
           }
           else {
-            print("rendering value box 4")
             output$valuebox_panchors <- renderValueBox(expr = {
               valueBox(value = paste0(percent.anchors, 
                                       "%"), subtitle = "% of query cells with anchors", 
                        color = "green", icon = icon(name = "check"))
             })
           }
-          print("finished anchors")
           react.env$mapquery <- TRUE
         }
-        print("making bridge anchors false")
         react.env$bridge_anchors <- FALSE
       }
     }
@@ -1444,29 +1455,24 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = list(react.env$mapquery, input$metadataxfer), 
     handlerExpr = {
       if (isTRUE(x = react.env$mapquery)) {
-        print("doing this mapquery")
         if (is.null(x = input$metadataxfer)) {
           app.env$metadataxfer <- names(x = GetColorMap(object = refs$map))
         }
         else {
           app.env$metadataxfer <- input$metadataxfer
         }
-        print("mapping cells ")
         react.env$progress$set(value = 0.5, message = "Mapping cells")
         refdata <- as.list(app.env$metadataxfer)
         names(refdata) <- app.env$metadataxfer
         if (do.adt) {
-          print("trying to do adt")
           refdata[["impADT"]] <- GetAssayData(object = refs$map[["ADT"]], 
                                               slot = "data")
         }
-        app.env$object <-  MapQuery(anchorset = app.env$anchors,  # deleted transfer data 
+        app.env$object <-  MapQuery(anchorset = app.env$anchors,  
                                     reference = refs$map, 
                                     query = app.env$object, 
                                     refdata = refdata,
                                     reduction.model = "refUMAP")
-        print("finished mapquery")
-        print(app.env$metadataxfer)
         app.env$singlepred <- NULL
         for (i in app.env$metadataxfer) { 
           app.env$singlepred <- c(app.env$singlepred, 
@@ -1526,23 +1532,11 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (isTRUE(react.env$gene_activity)) {
         # Use original peaks 
-        print("GENE ACTIVITY ")
         DefaultAssay(app.env$object) <- "peak.orig"
-        print(app.env$object)
-        startTime <- Sys.time()
         app.env$transcripts <- GetTranscripts(app.env$object)
-        endTime <- Sys.time()
-        print("TOTAL TIME TO GET TRANSCRIPTS")
-        print(endTime - startTime)
         temp <- RequantifyPeaks(app.env$object, app.env$transcripts)
         #add feature matrix to Chromatin Assay 
         app.env$object[['RNA']] <- CreateAssayObject(counts = temp)
-        
-        #o_hits <- findOverlaps(app.env$object[["ATAC"]], app.env$transcripts)
-        #temp <- RequantifyPeaks(o_hits, app.env$object, app.env$transcripts)
-        #dd feature matrix to Chromatin Assay 
-        #app.env$object[['RNA']] <- CreateAssayObject(counts = temp)
-        
         #Normalize the feature data
         app.env$object <- NormalizeData(
           object = app.env$object,
@@ -1551,8 +1545,6 @@ AzimuthServer <- function(input, output, session) {
           scale.factor = median(unlist(app.env$object[[grep("nCount", 
                                                             colnames(app.env$object@meta.data))]]))
         )
-        print("feature data normalized")
-        
         react.env$gene_activity <- FALSE
         react.env$score <- TRUE
       }
@@ -1635,9 +1627,7 @@ AzimuthServer <- function(input, output, session) {
           message = 'Calculating mapping score'
         )
         # post mapping QC
-        print("scoring")
         if (isTRUE(x = do.bridge)){
-          print("doing bridge cluster preservation score")
           app.env$object[['refAssay']] <- app.env$object[['ATAC']]
           DefaultAssay(app.env$object) <- 'refAssay'
           DefaultAssay(app.env$object[["ref.Bridge.reduc"]]) <- 'refAssay'
@@ -1652,7 +1642,6 @@ AzimuthServer <- function(input, output, session) {
             digits = 2
           )
         } else {
-          print("doing standard scoring")
           qc.stat <- round(
             x = ClusterPreservationScore(
               query = app.env$object,
@@ -1702,7 +1691,6 @@ AzimuthServer <- function(input, output, session) {
           })
         }
         if (isTRUE(x = do.bridge)){
-          print("doing bridge and gonna subset")
           refdr <- subset(
             x = app.env$anchors@object.list[[1]][["Bridge.reduc"]], # im gonna try calling this Bridge.Reduc
             cells = paste0(Cells(x = app.env$object), "_query")
@@ -1711,8 +1699,6 @@ AzimuthServer <- function(input, output, session) {
             object = refdr, 
             new.names = Cells(x = app.env$object)
           )
-          print("BRIDGE REFDR")
-          print(refdr)
           refdr.ref <- subset(
             x = app.env$anchors@object.list[[1]][["Bridge.reduc"]], 
             cells = paste0(Cells(x = refs$map), "_reference")
@@ -1722,7 +1708,6 @@ AzimuthServer <- function(input, output, session) {
             new.names = Cells(x = refs$map[["Bridge"]])
           )
         } else {
-          print("doing the standard version")
           refdr <- subset(
             x = app.env$anchors@object.list[[1]][["pcaproject.l2"]],
             cells = paste0(Cells(x = app.env$object), "_query")
@@ -1744,11 +1729,9 @@ AzimuthServer <- function(input, output, session) {
           plan("sequential")
         }
         # reduce size of object in anchorset
-        print("doing diet seurat")
         app.env$anchors@object.list[[1]] <- DietSeurat(
           object = app.env$anchors@object.list[[1]]
         )
-        print("subsetting")
         app.env$anchors@object.list[[1]] <- subset(
           x = app.env$anchors@object.list[[1]],
           features = c(rownames(x = app.env$anchors@object.list[[1]])[1])
@@ -1991,52 +1974,6 @@ AzimuthServer <- function(input, output, session) {
         x = JASPAR2020,
         opts = list(species = 9606, all_versions = FALSE)
       )
-      print("adding motifs")
-      # startTime <- Sys.time()
-      # app.env$object <- AddMotifs(
-      #   object = app.env$object,
-      #   genome = BSgenome.Hsapiens.UCSC.hg38,
-      #   pfm = pfm
-      # )
-      # endTime <- Sys.time()
-      # print("TOTAL TIME TO ADD MOTIFS")
-      # print(endTime - startTime)
-      # print("calculating motif")
-      # library(BiocParallel)
-      # register(MulticoreParam(3))
-      # startTime <- Sys.time()
-      # app.env$object <- Runmotif(
-      #   object = app.env$object,
-      #   genome = BSgenome.Hsapiens.UCSC.hg38
-      # )
-      # endTime <- Sys.time()
-      # print("TOTAL TIME TO RUN motif")
-      # print(endTime - startTime)
-      # # Rename motifs from ids
-      # motif_name <- ConvertMotifID(app.env$object[["peak.orig"]]@motifs, id = rownames(app.env$object[[app.env$default.assay]]@data))
-      # rownames(app.env$object[[app.env$default.assay]]@data) <- motif_name
-      
-      # print(head(row.names(app.env$object[[app.env$default.assay]]@data)))
-      # for (i in app.env$metadataxfer[!app.env$singlepred]) {
-      #   print("setting motif.diff.expr")
-      #   Idents(app.env$object) <- paste0("predicted.", i)
-      #   app.env$default.assay <- "motif"
-      #   app.env$motif.diff.expr[[paste(app.env$default.assay, # changed all of these to default.assay
-      #                                     i, sep = "_")]] <- FindAllMarkers(object = app.env$object, assay = app.env$default.assay, slot = "data", 
-      #                                                                       only.pos = T, mean.fcn = rowMeans, fc.name = "avg_diff")
-      #   motif_ids <- ConvertMotifID(app.env$object[["peak.orig"]]@motifs, name = app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]]$gene)
-      #   
-      #   print("MOTIF IDS")
-      #   print(head(motif_ids))
-      #   app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]]$motif_id <- motif_ids
-      #   print("column names of differential expression")
-      #   print(colnames(app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]]))
-      #   
-      # }
-      
-      
-      # FindMotif version 
-      print("finding motifs")
       for (i in app.env$metadataxfer[!app.env$singlepred]) {
         app.env$peaks.diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(X = app.env$object,
                                                                                            group_by = paste0("predicted.", i),
@@ -2046,30 +1983,21 @@ AzimuthServer <- function(input, output, session) {
                             f = app.env$peaks.diff.expr[[paste(app.env$default.assay, i, sep = "_")]]$group)
         motif.list <- list()
         for (num in 1:length(peaks.list)){
-          print("starting to find motifs")
           if (nrow(peaks.list[[num]]) > 0){
             peaks.list[[num]] <- peaks.list[[num]][order(peaks.list[[num]]$logFC, decreasing = TRUE), ]
             if (nrow(peaks.list[[num]]) > 1000) {
-              print("over 1000 peaks")
               top.da.peak <- peaks.list[[num]][1:1000,]$feature   #[peaks.list[[num]]$logFC > 0.5, ]$feature
             } else {
-              print("smaller set of peaks")
               top.da.peak <- peaks.list[[num]][peaks.list[[num]]$pval < 0.05, ]$feature
             }
-            print(head(top.da.peak))
             enriched.motifs <- FindMotifs( 
               object = refs$map[["ATAC"]],
               features = top.da.peak)
             enriched.motifs$group <- names(peaks.list[num])
             motif.list[[num]] <- enriched.motifs
-            print(head(enriched.motifs))
           }  
         }
-        print(head(dplyr::bind_rows(motif.list)))
         app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- dplyr::bind_rows(motif.list)
-        print("MOTIF DIFF EXPR ")
-        print(head(app.env$motif.diff.expr))
-        print(head(app.env$motif.diff.expr[[paste(app.env$default.assay, i, sep = "_")]]))
         
       }
       # Finalize the log
@@ -2114,7 +2042,6 @@ AzimuthServer <- function(input, output, session) {
           silent = TRUE
         )
       }
-      print("about to close progress")
       react.env$progress$close()
       react.env$motif <- FALSE
     }
@@ -2124,7 +2051,6 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = react.env$metadata,
     handlerExpr = {
       if (isTRUE(x = react.env$metadata)) {
-        print("at metadata")
         #  Add the discrete metadata dropdowns
         metadata.discrete <- sort(
           x = PlottableMetadataNames(
@@ -2233,22 +2159,18 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = react.env$features,
     handlerExpr = {
       if (isTRUE(x = react.env$features)) {
-        print("doing features")
         DefaultAssay(app.env$object) <- "RNA"
         app.env$default.feature <- ifelse(
           test = getOption(x = 'Azimuth.app.default_gene') %in% rownames(x = app.env$object),
           yes = getOption(x = 'Azimuth.app.default_gene'),
           no = VariableFeatures(object = app.env$object)[1]
         )
-        print("DEFAULT FEATURE")
-        print(app.env$default.feature)
         app.env$features <- unique(x = c(
           FilterFeatures(
             features = VariableFeatures(object = app.env$object)[1:selectize.opts$maxOptions]
           ),
           FilterFeatures(features = rownames(x = app.env$object))
         ))
-        print(head(app.env$features))
         updateSelectizeInput(
           session = session,
           inputId = 'feature',
@@ -2258,11 +2180,7 @@ AzimuthServer <- function(input, output, session) {
           server = TRUE,
           options = selectize.opts
         )
-        print('should have made input feature')
         if (isTRUE(x = do.adt)) {
-          # app.env$adt.features <- sort(x = FilterFeatures(features = rownames(
-          #   x = app.env$object[[adt.key]]
-          # )))
           app.env$adt.features <- sort(x = rownames(
             x = app.env$object[[adt.key]]
           ))
@@ -2286,24 +2204,16 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = react.env$motif.features, 
     handlerExpr = {
       if (isTRUE(x = react.env$motif.features)) {
-        print("doing motif features")
-        print("printing")
         DefaultAssay(app.env$object) <- app.env$default.assay
-        print("APP ENV motif FEATURE DEFAULT")
-        print(head(row.names(app.env$object[[app.env$default.assay]]@data)))
         app.env$default.motif.feature <- ifelse(test = getOption(x = 'Azimuth.app.default_motif') %in% 
                                                   row.names(x = app.env$object[[app.env$default.assay]]@data), 
                                                 yes = getOption(x = 'Azimuth.app.default_motif'), 
                                                 no = row.names(x = app.env$object[[app.env$default.assay]]@data)[1])
-        print(app.env$default.motif.feature)
         app.env$motif.features <- unique(x = row.names(x = app.env$object[[app.env$default.assay]]@data)) # c(FilterFeatures(features =
-        print(head(app.env$motif.features))
-        print(app.env$default.motif.feature %in% app.env$motif.features)
         updateSelectizeInput(session = session, inputId = "motif.feature", 
                              label = "Motif", choices = app.env$motif.features, 
                              selected = app.env$default.motif.feature, server = TRUE, 
                              options = selectize.opts)
-        print("should have made motif feature")
         
         if (isTRUE(x = do.adt)) {
           app.env$adt.features <- sort(x = rownames(x = app.env$object[[adt.key]]))
@@ -2313,7 +2223,6 @@ AzimuthServer <- function(input, output, session) {
         }
         react.env$motif.features <- FALSE
         react.env$markers <- TRUE
-        print("finished motif features")
       }
     }
   )
@@ -2321,7 +2230,6 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = react.env$markers,
     handlerExpr = {
       if (isTRUE(x = react.env$markers)) {
-        print("doing markers")
         allowed.clusters <- names(x = which(
           x = table(app.env$object[[paste0("predicted.", app.env$default.metadata)]]) > getOption(x = 'Azimuth.de.mincells')
         ))
@@ -2332,15 +2240,6 @@ AzimuthServer <- function(input, output, session) {
         allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(
           object = allowed.clusters
         ))))
-        print(allowed.clusters)
-        # updateSelectizeInput(
-        #   session = session,
-        #   inputId = 'select.prediction',
-        #   choices = allowed.clusters,
-        #   selected = allowed.clusters[1],
-        #   server = TRUE,
-        #   options = selectize.opts
-        # )
         
         updateSelectizeInput(
           session = session,
@@ -2401,7 +2300,6 @@ AzimuthServer <- function(input, output, session) {
     handlerExpr = {
       if (nchar(x = input$feature)) {
         if (nchar(x = input$markerclustersgroup)) {
-          print(paste0("FEATURE IN NEW BLOCK: ", input$feature))
           if (isTRUE(x = do.bridge)) {
             app.env$feature <- ifelse(
               test = input$feature %in% rownames(x = app.env$object[[app.env$gene.assay]]),
@@ -2439,7 +2337,6 @@ AzimuthServer <- function(input, output, session) {
             groups.use = input$markerclusters,
             n = Inf
           ))
-          print("DID TABLE CHECK FOR GET FEATURE")
           tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, !table.check)]
           for (tab in tables.clear) {
             selectRows(proxy = tab, selected = NULL)
@@ -2453,8 +2350,6 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = input$motif.feature,
     handlerExpr = {
       if (nchar(x = input$motif.feature)) {
-        if (nchar(x = input$markerclustersgroup.motif)) {
-          print(paste0("motif FEATURE IN NEW BLOCK: ", input$motif.feature))
           app.env$motif.feature <- ifelse(
             test = input$motif.feature %in% rownames(x = app.env$object),
             yes = paste0(
@@ -2468,15 +2363,12 @@ AzimuthServer <- function(input, output, session) {
             groups.use = input$markerclusters.motif,
             n = Inf
           ))
-          print("DID TABLE CHECK FOR GET MOTIF FEATURE")
-          print(table.check)
           tables.clear <- list(adt.proxy, motif.proxy)[c(TRUE, !table.check)]
           for (tab in tables.clear) {
             selectRows(proxy = tab, selected = NULL)
           }
         }
       }
-    }
   )
   
   observeEvent( # Protein feature
@@ -2512,55 +2404,6 @@ AzimuthServer <- function(input, output, session) {
       }
     }
   )
-  # observeEvent(
-  #   eventExpr = react.env$get.feature, 
-  #   handlerExpr = {
-  #     if (isTRUE(react.env$get.feature)) {
-  #       print("react.env$get.feature")
-  #       print(app.env$feature)
-  #       #req(input$markerclustersgroup)
-  #       #req(input$feature)
-  #       print(paste0("input feature:", input$feature))
-  #       print("MARKER CLUSTERS GROUP")
-  #       print(input$markerclustersgroup)
-  #       table.check <- input$feature %in% rownames(x = RenderDiffExp(
-  #         diff.exp = app.env$diff.expr[[paste(app.env$gene.assay, input$markerclustersgroup, sep = "_")]],
-  #         groups.use = input$markerclusters,
-  #         n = Inf
-  #       ))
-  #       print("DID TABLE CHECK FOR GET FEATURE")
-  #       tables.clear <- list(adt.proxy, rna.proxy)[c(TRUE, !table.check)]
-  #       for (tab in tables.clear) {
-  #         selectRows(proxy = tab, selected = NULL)
-  #       }
-  #     }
-  #     react.env$get.feature <- FALSE
-  #   }
-  # )
-  # observeEvent(
-  #   eventExpr = react.env$get.motif.feature, 
-  #   handlerExpr = {
-  #     if (isTRUE(react.env$get.motif.feature)) {
-  #       # req(input$markerclusters)
-  #       # req(input$markerclustersgroup.motif)
-  #       # req(input$motif.feature)
-  #       print(paste0("input motif feature:", input$motif.feature))
-  #       print("MARKER CLUSTERS GROUP")
-  #       print(input$markerclustersgroup.motif)
-  #       table.check <- input$motif.feature %in% rownames(x = RenderDiffMotifExp(
-  #         diff.exp = app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup.motif, sep = "_")]],
-  #         groups.use = input$markerclusters,
-  #         n = Inf
-  #       ))
-  #       print(table.check)
-  #       tables.clear <- list(adt.proxy, motif.proxy)[c(TRUE, !table.check)]
-  #       for (tab in tables.clear) {
-  #         selectRows(proxy = tab, selected = NULL)
-  #       }
-  #     }
-  #   react.env$get.motif.feature <- FALSE
-  #   }
-  # )
   observeEvent( # Continuous Metadata
     eventExpr = input$metadata.cont,
     handlerExpr = {
@@ -2708,7 +2551,6 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = input$motif_rows_selected,
     handlerExpr = {
       if (length(x = input$motif_rows_selected)) {
-        print("selecting motif rows ")
         updateSelectizeInput(
           session = session,
           inputId = 'motif',
@@ -2909,7 +2751,6 @@ AzimuthServer <- function(input, output, session) {
   )
   output$dist.qc <- renderPlot(expr = {
     if (!is.null(x = isolate(expr = app.env$chromatin_assay_1)) & isTRUE(x = react.env$dist.qc)) {
-      print("making dist plots")
       dist <- OverlapDistPlot(query_assay = isolate(app.env$chromatin_assay_1),
                               multiome = refs$map[["ATAC"]])
     }
@@ -3428,10 +3269,6 @@ AzimuthServer <- function(input, output, session) {
       )
       max.pred.names <- paste0("predicted.", app.env$metadataxfer, ".score")
       avail <- c(avail, names(x = prediction.names))
-      print("AVAIL")
-      print(head(avail))
-      print(app.env$feature)
-      print(app.env$feature %in% avail)
       if (do.adt) {
         avail <- c(
           avail,
@@ -3471,8 +3308,6 @@ AzimuthServer <- function(input, output, session) {
             pred <- gsub(pattern = ".score", replacement = "", x = pred)
             title <- paste0("Max Prediction Score - ", pred)
           }
-          print("FEATURE FOR FEATURE PLOT")
-          print(app.env$feature)
           VlnPlot(
             object = app.env$object,
             features = app.env$feature,
@@ -3491,7 +3326,6 @@ AzimuthServer <- function(input, output, session) {
   })
   output$edim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
-      print("RENDERING DIM PLOT")
       palettes <- list(
         c("lightgrey", "blue"),
         c('lightgrey', 'darkred')
@@ -3564,8 +3398,6 @@ AzimuthServer <- function(input, output, session) {
             pred <- gsub(pattern = ".score", replacement = "", x = pred)
             title <- paste0("Max Prediction Score - ", pred)
           }
-          print("FEATURE FOR FEATURE PLOT")
-          print(app.env$feature)
           suppressWarnings(expr = FeaturePlot(
             object = app.env$object,
             features = app.env$feature,
@@ -3579,71 +3411,8 @@ AzimuthServer <- function(input, output, session) {
     }
   })
   
-  # output$motifvln <- renderPlot(expr = {
-  #   if (!is.null(x = app.env$object)) {
-  #     print("RENDERING VLN PLOT FOR MOTIF")
-  #     avail <- c(paste0(Key(object = app.env$object[[app.env$default.assay]]), 
-  #                       rownames(x = app.env$object[[app.env$default.assay]])), colnames(x = app.env$object[[]]))
-  #     prediction.names <- unlist(x = lapply(X = app.env$metadataxfer, 
-  #                                           FUN = function(x) {
-  #                                             assay <- paste0("prediction.score.", x)
-  #                                             pred <- rep(x = x, times = nrow(x = app.env$object[[assay]]))
-  #                                             names(x = pred) <- paste0(Key(object = app.env$object[[assay]]), 
-  #                                                                       rownames(x = app.env$object[[assay]]))
-  #                                             return(pred)
-  #                                           }))
-  #     print("PREDICTION NAMES")
-  #     print(head(prediction.names))
-  #     max.pred.names <- paste0("predicted.", app.env$metadataxfer, 
-  #                              ".score")
-  #     avail <- c(avail, names(x = prediction.names))
-  #     print("AVAIL")
-  #     print(head(avail))
-  #     print("second if statement")
-  #     print(app.env$motif.feature)
-  #     print(app.env$motif.feature %in% avail)
-  #     if (app.env$motif.feature %in% avail) {
-  #       print("went into the second if statement")
-  #       if (app.env$motif.feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
-  #         ggplot() + annotate("text", x = 4, y = 25, 
-  #                             size = 8, label = "Mapping score still computing ... ") + 
-  #           theme_void()
-  #       }
-  #       else {
-  #         title <- ifelse(test = grepl(pattern = "^motif_", 
-  #                                      x = app.env$motif.feature), yes = gsub(pattern = "^motif_", 
-  #                                                                                replacement = "", x = app.env$motif.feature), no = app.env$motif.feature)
-  #         if (app.env$motif.feature %in% names(x = prediction.names)) {
-  #           print("went into the third if statement")
-  #           pred <- strsplit(x = app.env$motif.feature, split = "_")[[1]][2]
-  #           group <- prediction.names[app.env$motif.feature]
-  #           title <- paste0("Prediction Score (", group, 
-  #                           ") ", pred)
-  #         }
-  #         if (app.env$motif.feature %in% max.pred.names) {
-  #           print("went into the fourth print statement")
-  #           pred <- gsub(pattern = "predicted.", replacement = "", 
-  #                        x = app.env$motif.feature)
-  #           pred <- gsub(pattern = ".score", replacement = "", 
-  #                        x = pred)
-  #           title <- paste0("Max Prediction Score - ", 
-  #                           pred)
-  #         }
-  #         print("making vln plot")
-  #         print("MOTIF FOR VLN PLOT")
-  #         print(app.env$motif.feature)
-  #         VlnPlot(object = app.env$object, features = app.env$motif.feature, 
-  #                 group.by = input$metagroup.motif, pt.size = ifelse(test = input$check.featpoints, 
-  #                                                                    yes = 0, no = Seurat:::AutoPointSize(data = app.env$object))) + 
-  #           ggtitle(label = title) + NoLegend()
-  #       }
-  #     }
-  #   }
-  # })
-  
   output$motifdim <- renderPlot(expr = {
     if (!is.null(x = app.env$object)) {
-      print("MAKING MOTIF DIM PLOT")
       palettes <- list(c("lightgrey", "blue"), c("lightgrey", 
                                                  "darkred"))
       names(x = palettes) <- c(Key(object = app.env$object[[app.env$default.assay]]), 
@@ -3659,8 +3428,6 @@ AzimuthServer <- function(input, output, session) {
       max.pred.names <- paste0("predicted.", app.env$metadataxfer, 
                                ".score")
       md <- c(colnames(x = app.env$object[[]]), names(x = prediction.names))
-      print("MD")
-      print(head(md))
       feature.key <- if (app.env$motif.feature %in% md) {
         "md_"
       }
@@ -3668,11 +3435,7 @@ AzimuthServer <- function(input, output, session) {
         paste0(unlist(x = strsplit(x = app.env$motif.feature, 
                                    split = "_"))[1], "_")
       }
-      print("FEATURE KEY:")
-      print(head(feature.key))
       pal.use <- palettes[[feature.key]]
-      print("PAL.USE:")
-      print(head(pal.use))
       if (!is.null(x = pal.use)) {
         if (app.env$motif.feature == "mapping.score" && !resolved(x = app.env$mapping.score)) {
           ggplot() + annotate("text", x = 4, y = 25, 
@@ -3823,12 +3586,6 @@ AzimuthServer <- function(input, output, session) {
   )
   output$motifs <- renderDT(
     expr = {
-      print("RENDERING MOTIF DATA TABLE")
-      print("INPUT MARKER CLUSTERS: ")
-      print(input$markerclustersgroup)
-      print(paste(app.env$default.assay, input$markerclustersgroup, sep ="_"))
-      print(head(app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup.motif, sep ="_")]]))
-      print(input$markerclusters)
       if (!is.null(x = app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup.motif, sep ="_")]])) {
         RenderDiffMotifExp(
           diff.exp =  app.env$motif.diff.expr[[paste(app.env$default.assay, input$markerclustersgroup.motif, sep ="_")]],
