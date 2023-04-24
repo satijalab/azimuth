@@ -758,20 +758,6 @@ AzimuthReference <- function(
   # Add the "ori.index" column.
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
   object$ori.index <- ori.index
-  if (refAssay != "SCT") {
-    features = rownames(x = Loadings(object = object[["refDR"]]))
-    reference.data <-  GetAssayData(
-      object = object,
-      assay = refAssay,
-      slot = "data")[features, ]
-    feature.mean = Seurat:::RowMeanSparse(mat = reference.data)
-    feature.sd = sqrt(x = Seurat:::RowVarSparse(mat = as.sparse(reference.data)))
-    feature.sd[is.na(x = feature.sd)] <- 1
-    
-    # Add feature level metadata
-    object[[refAssay]]@meta.features$feature.mean <- feature.mean
-    object[[refAssay]]@meta.features$feature.sd <- feature.sd
-  }
   # Subset the features of the RNA assay
   DefaultAssay(object = object) <- refAssay
   object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
@@ -794,7 +780,7 @@ AzimuthReference <- function(
     object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
     slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = model)
   }else{
-    object[["refAssay"]] <- refAssay
+    object[["refAssay"]] <- object[[refAssay]]
   }
 
   DefaultAssay(object = object) <- "refAssay"
