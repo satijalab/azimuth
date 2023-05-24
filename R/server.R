@@ -202,10 +202,9 @@ AzimuthServer <- function(input, output, session) {
   if (logging) {
     try(
       expr = {
-        gs4_auth(
-          email = getOption(x = "Azimuth.app.googletokenemail"),
-          cache = getOption(x = "Azimuth.app.googletoken")
-        )
+        token <- readRDS(getOption(x = "Azimuth.app.googletoken"))
+        gs4_auth(email = getOption(x = "Azimuth.app.googletokenemail"), 
+                 token = token)
         googlesheet <- gs4_get(ss = getOption(x = "Azimuth.app.googlesheet"))
         app_start_time <- Sys.time()
         app_session_id <- paste0(Sys.info()[["nodename"]], as.numeric(Sys.time()))
@@ -675,8 +674,6 @@ AzimuthServer <- function(input, output, session) {
               sep = c(":", "-"),
               annotation = app.env$annotations
             )
-            #app.env$o_hits <- findOverlaps(app.env$chromatin_assay_1, refs$bridge[["ATAC"]])
-            #qc_table <- OverlapQC(app.env$chromatin_assay_1, refs$bridge)
             perc_overlap <- round(x = OverlapTotal(app.env$chromatin_assay_1, refs$map[["ATAC"]]), digits = 4)
             if (perc_overlap >= 70) {
               output$valuebox_overlap <- renderValueBox(expr = {
@@ -1974,6 +1971,8 @@ AzimuthServer <- function(input, output, session) {
         x = JASPAR2020,
         opts = list(species = 9606, all_versions = FALSE)
       )
+
+      # Find Motifs
       for (i in app.env$metadataxfer[!app.env$singlepred]) {
         app.env$peaks.diff.expr[[paste(app.env$default.assay, i, sep = "_")]] <- wilcoxauc(X = app.env$object,
                                                                                            group_by = paste0("predicted.", i),
@@ -2240,7 +2239,6 @@ AzimuthServer <- function(input, output, session) {
         allowed.clusters <- sort(x = levels(x = droplevels(x = na.omit(
           object = allowed.clusters
         ))))
-        
         updateSelectizeInput(
           session = session,
           inputId = 'markerclusters',
@@ -2350,6 +2348,7 @@ AzimuthServer <- function(input, output, session) {
     eventExpr = input$motif.feature,
     handlerExpr = {
       if (nchar(x = input$motif.feature)) {
+        if (nchar(x = input$markerclustersgroup.motif)) {
           app.env$motif.feature <- ifelse(
             test = input$motif.feature %in% rownames(x = app.env$object),
             yes = paste0(
@@ -2369,6 +2368,7 @@ AzimuthServer <- function(input, output, session) {
           }
         }
       }
+    }
   )
   
   observeEvent( # Protein feature

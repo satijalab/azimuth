@@ -781,12 +781,20 @@ AzimuthReference <- function(
   DefaultAssay(object = object) <- "refAssay"
   DefaultAssay(object = object[["refDR"]]) <- "refAssay"
   Tool(object = object) <- ad
-  object <- DietSeurat(
-    object = object,
-    counts = FALSE,
-    assays = c("refAssay", assays),
-    dimreducs = c("refDR","refUMAP")
-  )
+  tool.name <- as.character(x = sys.calls())
+  tool.name <- lapply(
+    X = strsplit(x = tool.name, split = "(", fixed = TRUE), 
+    FUN = "[", 
+    1
+  )[[1]]
+  if (tool.name != "AzimuthReference") {
+    slot(object, name = "tools")["AzimuthReference"] <- slot(object, name = "tools")[tool.name]
+    slot(object, name = "tools")[tool.name] <- NULL
+  }
+  object <- DietSeurat(object = object, 
+                       counts = FALSE, 
+                       assays = c("refAssay", assays), 
+                       dimreducs = c("refDR", "refUMAP"))
   ValidateAzimuthReference(object = object, refAssay = refAssay)
   return(object)
 }
@@ -931,8 +939,16 @@ AzimuthBridgeReference <- function(
   DefaultAssay(object = object[["refDR"]]) <- "refAssay"
   DefaultAssay(object = object[["ref.refDR"]]) <- "refAssay"
   Tool(object = object) <- ad
-  object@tools$AzimuthReference <- object@tools$AzimuthBridgeReference  
-  object@tools$AzimuthBridgeReference <- NULL
+  tool.name <- as.character(x = sys.calls())
+  tool.name <- lapply(
+    X = strsplit(x = tool.name, split = "(", fixed = TRUE), 
+    FUN = "[", 
+    1
+  )[[1]]
+  if (tool.name != "AzimuthReference") {
+    slot(object, name = "tools")["AzimuthReference"] <- slot(object, name = "tools")[tool.name]
+    slot(object, name = "tools")[tool.name] <- NULL
+  }
   # set RNA for downstream functions
   object@tools$AzimuthReference@plotref@assay.used <- "RNA"
   object <- DietSeurat(
