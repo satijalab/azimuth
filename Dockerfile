@@ -25,7 +25,7 @@ RUN R --no-echo -e "install.packages('Matrix', repos='http://R-Forge.R-project.o
 RUN R --no-echo -e "install.packages(c('data.table', 'DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'Signac', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr'), repo='https://cloud.r-project.org')"
 RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveazure/seurat-disk', 'satijalab/seurat-data'), dependencies = FALSE)"
 RUN R --no-echo --no-restore --no-save -e "remotes::install_github('mojaveazure/seurat-object', 'seurat5', build = TRUE)"
-RUN R --no-echo --no-restore --no-save -e "remotes::install_github('satijalab/seurat-private', 'seurat5', build = FALSE)"
+RUN R --no-echo --no-restore --no-save -e "remotes::install_github('satijalab/seurat', 'seurat5', build = FALSE)"
 RUN R --no-echo --no-restore --no-save -e "remotes::install_github('stuart-lab/signac', 'seurat5')"
 
 
