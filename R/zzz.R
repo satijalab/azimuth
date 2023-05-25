@@ -417,7 +417,6 @@ RenderDiffExp <- function(
   logfc.thresh = 0L
 ) {
   # cols.keep <- c('logFC', 'auc', 'padj', 'pct_in', 'pct_out')
-  print("Rendering differential expression")
   cols.keep <- c('auc', 'padj', 'pct_in', 'pct_out')
   if (is.null(diff.exp)){
     print("Differential Expression is empty ")

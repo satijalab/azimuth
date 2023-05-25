@@ -31,7 +31,7 @@ NULL
 #' @importFrom Seurat CreateAssayObject GetAssayData DimPlot FeaturePlot FindNeighbors FindTransferAnchors
 #' IntegrateEmbeddings MappingScore NoLegend PercentageFeatureSet
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
-#' FindBridgeTransferAnchors MapQuery NormalizeData ScaleData
+#' FindBridgeTransferAnchors MapQuery NormalizeData ScaleData VariableFeatures<-
 #' @importFrom Signac AddMotifs Annotation CreateChromatinAssay Extend FindMotifs FindTopFeatures GRangesToString 
 #' GetGRangesFromEnsDb RunChromVAR RunSVD RunTFIDF AddMotifs
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
