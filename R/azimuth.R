@@ -1083,7 +1083,7 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 # @return Returns
 #
 #' @importFrom SeuratObject Cells Idents Indices as.Neighbor
-#' @importFrom Seurat RunPCA FindNeighbors FindClusters MinMax FindVariableFeatures VariableFeatures
+#' @importFrom Seurat RunPCA FindNeighbors FindClusters MinMax FindVariableFeatures VariableFeatures VariableFeatures<- `VariableFeatures<-`
 #' @importFrom Signac RunSVD
 #
 #' @keywords internal
@@ -1098,7 +1098,8 @@ ClusterPreservationScore <- function(query, ds.amount, type = "standard") {
       }
     } else {
         query <- FindVariableFeatures(query, assay = "RNA")
-        VariableFeatures(query) <- VariableFeatures(query, assay = "RNA")
+        var.features <- Seurat::VariableFeatures(query, assay = "RNA")
+        Seurat::VariableFeatures(query) <- var.features
       }
     query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
     if (ncol(x = query) > ds.amount) {
