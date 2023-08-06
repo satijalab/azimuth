@@ -588,7 +588,10 @@ GetColorMap.Seurat <- function(object, slot = "AzimuthReference", ...) {
 #' @method GetPlotRef AzimuthData
 #'
 GetPlotRef.AzimuthData <- function(object, ...) {
-  return(slot(object = object, name = "plotref"))
+  plotref <- slot(object = object, name = "plotref")
+  # temporary fix for Key of tonsil ref - Ideally we will update the SeuratData object 
+  Key(plotref) <- gsub("\\.", "", Key(plotref))
+  return(plotref)
 }
 
 #' @rdname GetPlotRef
