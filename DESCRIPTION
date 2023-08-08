@@ -25,6 +25,7 @@ biocViews:
 Remotes:
   immunogenomics/presto,
   satijalab/seurat-data@seurat5,
+  mojaveazure/seurat-disk@seurat5,
   mojaveazure/seurat-object@seurat5,
   stuart-lab/signac@seurat5
 Depends:
