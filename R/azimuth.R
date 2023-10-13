@@ -106,10 +106,10 @@ RunAzimuth.Seurat <- function(
     # Calculate nCount_RNA and nFeature_RNA if the query does not
     # contain them already
     if (!all(c("nCount_RNA", "nFeature_RNA") %in% c(colnames(x = query[[]])))) {
-      calcn <- as.data.frame(x = Seurat:::CalcN(object = query[["RNA"]]))
+      calcn <- as.data.frame(x = Seurat:::CalcN(object = query[[assay]]))
       colnames(x = calcn) <- paste(
         colnames(x = calcn),
-        "RNA",
+        assay,
         sep = '_'
       )
       query <- AddMetaData(
@@ -136,7 +136,7 @@ RunAzimuth.Seurat <- function(
       k.filter = NA,
       reference.neighbors = "refdr.annoy.neighbors",
       reference.assay = "refAssay",
-      query.assay = "RNA",
+      query.assay = assay,
       reference.reduction = "refDR",
       normalization.method = "SCT",
       features = rownames(Loadings(reference[["refDR"]])),
