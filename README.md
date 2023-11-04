@@ -18,7 +18,7 @@ We have made instances of the app available for public use, [described
 here](https://azimuth.hubmapconsortium.org).
 
 All the analysis and visualization functionality available in the app -
-and much more - is available in version 4 of the the [Seurat R
+and much more - is available in version 5 of the the [Seurat R
 package](https://satijalab.org/seurat).
 
 ## Installation
@@ -65,11 +65,12 @@ by default from Zenodo. Links are available on the Azimuth website
 ### Specifying options
 
 You can set options by passing a parameter to the `AzimuthApp` function.
-Options in the `Azimuth.app` namespace (e.g. `max_cells` as shown in the
-example below) can omit the “Azimuth.app.” prefix. Options in other
-namespaces (e.g. `Azimuth.de.digits` as shown in the example below)
-including non-Azimuth namespaces, must be specified using their full
-name.
+If you would like to run the Azimuth ATAC workflow with a sc/snATAC-seq
+query, specify: `"Azimuth.app.do_bridge": "TRUE"`. Options in the
+`Azimuth.app` namespace (e.g. `max_cells` as shown in the example below)
+can omit the “Azimuth.app.” prefix. Options in other namespaces
+(e.g. `Azimuth.de.digits` as shown in the example below) including
+non-Azimuth namespaces, must be specified using their full name.
 
 ``` r
 Azimuth::AzimuthApp(max_cells = 100000)
@@ -162,7 +163,7 @@ To use `RunAzimuth()` please see [this
 tutorial](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
 
 If you use the instance of the app we are hosting on the web, you can
-download a Seurat v4 R script once your analysis is complete that will
+download a Seurat R script once your analysis is complete that will
 guide you in reproducing the analysis. You do not need Azimuth to
 reproduce the analysis.
 
