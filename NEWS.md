@@ -1,3 +1,10 @@
+# Azimuth 0.5.0 (2023-11-04)
+
+## Changes
+- Azimuth ATAC
+  - Functionality added to `RunAzimuth()` ([vignette here](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html#scatac-seq-queries)), to `AzimuthApp`, and to the [Azimuth Website](https://azimuth.hubmapconsortium.org/) to support sc/snATAC-seq queries. 
+- Compatibility with Seurat v5
+
 # Azimuth 0.4.6 (2022-08-23)
 
 ## Changes
