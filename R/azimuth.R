@@ -164,6 +164,7 @@ RunAzimuth.Seurat <- function(
     query <- TransferData(
       reference = reference,
       query = query,
+      query.assay = assay,
       dims = 1:dims,
       anchorset = anchors,
       refdata = refdata,
@@ -177,6 +178,7 @@ RunAzimuth.Seurat <- function(
       anchorset = anchors,
       reference = reference,
       query = query,
+      query.assay = assay,
       reductions = "pcaproject",
       reuse.weights.matrix = TRUE,
       verbose = verbose
