@@ -1,7 +1,9 @@
-FROM satijalab/seurat:4.1.0
+FROM satijalab/seurat:5.0.0
 
 RUN apt-get update
 RUN apt-get install -y libv8-dev
+RUN apt-get install -y libbz2-dev
+RUN apt-get install -y liblzma-dev
 
 RUN mkdir lzf
 WORKDIR /lzf
@@ -16,10 +18,12 @@ ENV HDF5_PLUGIN_PATH=/lzf
 
 COPY Rprofile.site /usr/local/lib/R/etc/Rprofile.site
 
-RUN R --no-echo -e "BiocManager::install(c('glmGamPoi'))"
-RUN R --no-echo -e "install.packages(c('DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'stringr', 'withr'), repo='https://cloud.r-project.org')"
-RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveazure/seurat-disk', 'satijalab/seurat-data'), dependencies = FALSE)"
+RUN R --no-echo -e "BiocManager::install(c('BSgenome.Hsapiens.UCSC.hg38', 'glmGamPoi', 'GenomeInfoDb', 'GenomicRanges', 'TFBSTools', 'JASPAR2020', 'EnsDb.Hsapiens.v86', 'IRanges', 'Rsamtools', 'S4Vectors'), force = TRUE)"
 
+RUN R --no-echo -e "install.packages('sp', repos='http://cran.us.r-project.org')"
+RUN R --no-echo -e "install.packages('Matrix', repos='http://R-Forge.R-project.org')"
+RUN R --no-echo -e "install.packages(c('data.table', 'DT', 'future', 'ggplot2',  'googlesheets4', 'hdf5r', 'htmltools', 'httr', 'patchwork', 'rlang', 'shiny', 'shinyBS', 'shinydashboard', 'shinyjs', 'Signac', 'stringr', 'withr'), repo='https://cloud.r-project.org')"
+RUN R --no-echo -e "remotes::install_github(c('immunogenomics/presto', 'mojaveazure/seurat-disk', 'satijalab/seurat-data'), dependencies = FALSE)"
 
 ARG AZIMUTH_VER=unknown
 RUN echo "$AZIMUTH_VER"

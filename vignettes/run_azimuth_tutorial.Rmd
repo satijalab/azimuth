@@ -31,11 +31,11 @@ knitr::opts_chunk$set(
 
 # Overview 
 
-This vignette demonstrates how to map scRNA-seq data to Azimuth reference datasets in R.
+This vignette demonstrates how to map scRNA-seq and scATAC-seq data to Azimuth reference datasets directly in R, without the need to upload data into the web application. 
 
 Reference-based mapping provides an attractive alternative to unsupervised analysis. When well-curated and annotated references are available, reference-mapping can rapdidly, robustly, and sensitively annotate and interpret query datasets. As part of the [Human Biomolecular Atlas Project](portal.hubmapconsortium.org), we have built integrated references for multiple human tissues, available at [azimuth.hubmapconsortium.org](azimuth.hubmapconsortium.org). Azimuth is a web-tool that maps user-uploaded datasets - starting from an unnormalized expression counts matrix.
 
-We have recently released updated software that enables the Azimuth workflow to be replicated directly in R, without the need to upload data into the web application. Reference datasets are automatically downloaded as part of out previously released [SeuratData](https://github.com/satijalab/seurat-data) framework. Datasets can then be passed through Azimuth using a single command. 
+In this vignette, we demonstrate the use of a function `RunAzimuth()` which facilitates annotation of single cell datasets.
 
 As with the web application, Azimuth is compatible with a wide range of inputs, including Seurat objects, 10x HDF5 files, and Scanpy/h5ad files. Once Azimuth is run, a Seurat object is returned which contains
 
@@ -43,8 +43,32 @@ As with the web application, Azimuth is compatible with a wide range of inputs, 
 * Prediction scores (i.e. confidence scores) for each annotation
 * Projection onto the reference-derived 2-dimensional UMAP visualization
 
-In this vignette, we demonstrate the use of a function `RunAzimuth()` which facilitates annotation of single cell datasets.
+For scRNA-seq mapping, reference datasets are automatically downloaded as part of out previously released [SeuratData](https://github.com/satijalab/seurat-data) framework. Datasets can then be passed through Azimuth using a single command. 
 
+### Azimuth ATAC
+
+We recently released **Azimuth ATAC**, which uses the bridge integration methodology introduced in Hao, et al 2022. and demonstrated in [this vignette](https://satijalab.org/seurat/articles/bridge_integration_vignette.html). A multimodal bridge dataset, measuring both scRNA-seq and scATAC-seq data per cell, is used to transfer annotations from our high quality RNA references to an ATAC query. 
+The [Azimuth ATAC web application](https://azimuth.hubmapconsortium.org/) increases app efficiency by using a fast requantification method based on overlap to match the peaks in your query ATAC data to that of the multiome. Thus, users only need to upload the peak-cell matrix from their data. 
+Alternatively, if users would like to requantify peaks from the information stored in their fragment file, the `RunAzimuth()` function in R will run standard bridge integration using both the peak-cell matrix and the fragment file. For Azimuth ATAC, you can download the reference dataset [here](). 
+
+# Installation
+  
+We first install and load Seurat, Azimuth, and Seurat-Data. Note, that Azimuth ATAC requires Seurat v5, but Azimuth for scRNA-seq queries can work with Seurat v4 or v5. 
+
+```{r installlibraries, eval=FALSE}
+devtools::install_github("satijalab/seurat", "seurat5")
+devtools::install_github("satijalab/seurat-data", "seurat5")
+devtools::install_github("satijalab/azimuth", "seurat5")
+```
+
+```{r loadlibraries}
+library(Seurat)
+library(Azimuth)
+library(SeuratData)
+library(patchwork)
+```
+
+# scRNA-seq queries 
 <details>
   <summary>**View data download code**</summary>
   
@@ -56,24 +80,8 @@ wget https://figshare.com/ndownloader/files/27686835 -O human_cd34_bone_marrow.h
 
 </details>
   
-# Installation
-  
-We first install and load Seurat, Azimuth, and Seurat-Data
 
-```{r installlibraries, eval=FALSE}
-devtools::install_github("satijalab/seurat-data")
-devtools::install_github("satijalab/azimuth")
-install.packages("Seurat")
-```
-
-```{r loadlibraries}
-library(Seurat)
-library(Azimuth)
-library(SeuratData)
-library(patchwork)
-```
-
-## Map PBMC scRNA-seq datasets from 7 different technologies
+### Map PBMC scRNA-seq datasets from 7 different technologies
 
 We first consider a benchmark dataset from [Systematic comparison of single-cell and single-nucleus RNA-sequencing methods, Nat. Biotech 2020](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7289686/), which profiled a total of 31,021 human peripheral blood mononuclear cells (PBMCs) using seven different experimental technologies. The raw data is avaialble for download [here](https://singlecell.broadinstitute.org/single_cell/study/SCP424/single-cell-comparison-pbmc-data), but the dataset is also available for easy loading via SeuratData. We load the data in, and map it to our [PBMC reference](https://azimuth.hubmapconsortium.org/references/#Human%20-%20PBMC).
 
@@ -82,7 +90,7 @@ We first consider a benchmark dataset from [Systematic comparison of single-cell
 InstallData("pbmcsca")
 
 # returns a Seurat object named pbmcsca
-LoadData("pbmcsca")
+pbmcsca <- LoadData("pbmcsca")
 
 #The RunAzimuth function can take a Seurat object as input
 pbmcsca <- RunAzimuth(pbmcsca, reference = "pbmcref")
@@ -117,7 +125,7 @@ p4 <- FeaturePlot(pbmcsca, features = "predictionscorecelltypel2_Treg")
 p1 + p2 + p3 + p4 + plot_layout(ncol=2)
 ```
 
-## See available references
+### See available references
 
 You can search all available datasets in SeuratData (focusing on Azimuth references)
 
@@ -126,7 +134,7 @@ available_data <- AvailableData()
 available_data[grep("Azimuth", available_data[,3]), 1:3]
 ```
 
-## Map CD34+ cells from Human Bone Marrow (stored as an h5ad file)
+### Map CD34+ cells from Human Bone Marrow (stored as an h5ad file)
 
 As a final example, we map data from CD34+ human bone marrow cells from the manuscript [Characterization of cell fate probabilities in single-cell data with Palantir
 ](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7549125/). We map to our [Azimuth Human Bone Marrow reference](https://azimuth.hubmapconsortium.org/references/#Human%20-%20Bone%20Marrow), which includes both progenitor and differentiated cells.
@@ -135,7 +143,7 @@ Azimuth can also take the path to an h5ad object as input. In this case, Azimuth
 
 ```{r bm_annotate, message=FALSE, warning=FALSE, results='hide'}
 bm <- RunAzimuth(
-  query = "~/github/azimuth/vignettes/human_cd34_bone_marrow.h5ad",
+  query = "~/human_cd34_bone_marrow.h5ad",
   reference = "bonemarrowref"
 )
 ```
@@ -157,6 +165,57 @@ Lastly, we can visualize markers associated with lineage differentiation to veri
 bm <- NormalizeData(bm)
 FeaturePlot(bm, features = c("AVP", "KLF1", "MPO", "VWF"))
 ```
+
+
+
+# scATAC-seq queries 
+<details>
+  <summary>**Download Bridge Reference and Demo Data**</summary>
+
+Currently, we have two bridge references for scATAC-seq queries: PBMC and Bone Marrow. These references are built using the Azimuth RNA references and a multiome dataset from 10x genomics that measures both scATAC-seq and scRNA-seq per cell (available [here](https://www.10xgenomics.com/resources/datasets/pbmc-from-a-healthy-donor-granulocytes-removed-through-cell-sorting-10-k-1-standard-2-0-0)). 
+The extended reference for PBMC can be downloaded [here](https://zenodo.org/record/7770374#.ZB91X-zMJlk). The bone marrow extended reference can be downloaded [here](https://zenodo.org/record/7770389#.ZB91b-zMJlk).
+
+For demonstrating, we use a scATAC-seq query dataset with ~10,000 PBMC from a healthy donor which is available for download [here](https://www.10xgenomics.com/resources/datasets/10-k-human-pbm-cs-atac-v-1-1-chromium-x-1-1-standard-2-0-0). The filtered peak-cell matrix, fragment file, and the indexed fragment file must be downloaded which can be done in a shell with the below lines: 
+  
+```{sh, eval=FALSE}
+curl -O https://cf.10xgenomics.com/samples/cell-atac/2.0.0/10k_PBMC_ATAC_nextgem_Chromium_X/10k_PBMC_ATAC_nextgem_Chromium_X_filtered_peak_bc_matrix.h5
+curl -O https://cf.10xgenomics.com/samples/cell-atac/2.0.0/10k_PBMC_ATAC_nextgem_Chromium_X/10k_PBMC_ATAC_nextgem_Chromium_X_fragments.tsv.gz
+curl -O https://cf.10xgenomics.com/samples/cell-atac/2.0.0/10k_PBMC_ATAC_nextgem_Chromium_X/10k_PBMC_ATAC_nextgem_Chromium_X_fragments.tsv.gz.tbi
+```
+
+
+</details>
+
+### Map PBMC scATAC-seq dataset
+Here, we provide the path to the peak-cell matrix as the query and also include the path to the fragment file as a parameter. Alternatively, users can provide a Seurat Object with a [ChromatinAssay](https://stuartlab.org/signac/articles/data_structures.html#the-chromatinassay-class) that contains a `Fragments` class. The `reference` parameter is the directory containing the reference. 
+
+```{r pbmc_atac_load, results='hide'}
+#The RunAzimuth function can take a path or Seurat object as input
+atac <- RunAzimuth(query = "~/10k_PBMC_ATAC_nextgem_Chromium_X_filtered_peak_bc_matrix.h5", 
+                   query.modality = "ATAC", 
+                   reference = "~/reference", 
+                   fragment.path = "~/10k_PBMC_ATAC_nextgem_Chromium_X_fragments.tsv.gz")
+```
+
+We can now visualize the output of Azimuth ATAC. Note that all cells are labeled with high-resolution annotations transferred from the scRNA-seq query.
+
+```{r pbmc_atac_dimplot, fig.width=12, fig.height=5}
+DimPlot(atac, group.by = "predicted.celltype.l2", label = TRUE, label.size = 3) + NoLegend()
+```
+
+Lastly, we can validate the predicted cell types for the scATAC-seq data by examining their chromatin accessibility profiles at canonical loci. We use the `CoveragePlot` function from [Signac](https://stuartlab.org/signac/index.html) to visualize accessibility patterns at CD8A, FOXP3, and RORC, after grouping cells by their predicted labels. 
+
+```{r}
+library(Signac)
+CoveragePlot(atac, region  = "PAX5", group.by = "predicted.celltype.l1", idents = c("B", "CD4 T", "Mono", "NK"), window = 200, extend.upstream = -150000)
+CoveragePlot(atac, region = "CD8A", group.by = "predicted.celltype.l2", idents = c("CD8 Naive", "CD4 Naive", "CD4 TCM", "CD8 TCM"), extend.downstream = 5000, extend.upstream = 5000)
+CoveragePlot(atac, region = "FOXP3", group.by = "predicted.celltype.l2", idents = c( "CD4 Naive", "CD4 TCM", "CD4 TEM", "Treg"), extend.downstream = 0, extend.upstream = 0)
+```
+
+When Azimuth ATAC runs, we also compute gene activity scores based on the chromatin accessibility in each gene region. In `RunAzimuth()`, these scores are calculated using the [GeneActivity](https://stuartlab.org/signac/reference/geneactivity) function from Signac. Thus, users can visualize [feature plots](https://satijalab.org/seurat/reference/featureplot) or [violin plots](https://satijalab.org/seurat/reference/vlnplot) with features of interest. 
+
+The Azimuth ATAC web app also runs a simple motif analysis, but `RunAzimuth()` does not. If users are interested in running motif analysis on their object in R, please refer to this [vignette](https://stuartlab.org/signac/articles/motif_vignette.html) from [Signac](https://stuartlab.org/signac/index.html). 
+
 
 <details>
   <summary>**Session Info**</summary>

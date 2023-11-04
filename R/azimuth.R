@@ -14,6 +14,7 @@ NULL
 #' @return Seurat object with reference reductions and annotations
 #'
 #' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
+#' @importFrom SeuratObject CheckDots
 #'
 #' @export
 #' @method RunAzimuth Seurat
@@ -22,47 +23,263 @@ NULL
 RunAzimuth.Seurat <- function(
   query,
   reference,
+  query.modality = "RNA",
   annotation.levels = NULL,
   umap.name = "ref.umap",
   do.adt = FALSE,
   verbose = TRUE,
-  assay = "RNA",
+  assay = NULL,
   k.weight = 50,
   n.trees = 20,
-  mapping.score.k = 100
+  mapping.score.k = 100, 
+  ...
 ) {
-  if (dir.exists(reference)) {
-    reference <- LoadReference(reference)$map
+  CheckDots(...)
+  assay <- assay %||% DefaultAssay(query)
+  if (query.modality == "ATAC"){
+    query <- RunAzimuthATAC(query = query, 
+                            reference = reference, 
+                            annotation.levels = annotation.levels, 
+                            umap.name = umap.name,
+                            verbose = verbose, 
+                            assay = assay,
+                            k.weight = k.weight,
+                            n.trees = n.trees, 
+                            mapping.score.k = mapping.score.k, 
+                            ...)
   } else {
-    reference <- tolower(reference)
-    if (reference %in% InstalledData()$Dataset) {
-      # only get the `map` object since no plotting is performed
-      reference <- LoadData(reference, type = "azimuth")$map
-    } else if (reference %in% AvailableData()$Dataset) {
-      InstallData(reference)
-      # only get the `map` object since no plotting is performed
-      reference <- LoadData(reference, type = "azimuth")$map
+    if (dir.exists(reference)) {
+      reference <- LoadReference(reference)$map
     } else {
-      possible.references <- AvailableData()$Dataset[grepl("*ref", AvailableData()$Dataset)]
-      print("Choose one of:")
-      print(possible.references)
-      stop(paste("Could not find a reference for", reference))
+      reference <- tolower(reference)
+      if (reference %in% InstalledData()$Dataset) {
+        # only get the `map` object since no plotting is performed
+        reference <- LoadData(reference, type = "azimuth")$map
+      } else if (reference %in% AvailableData()$Dataset) {
+        InstallData(reference)
+        # only get the `map` object since no plotting is performed
+        reference <- LoadData(reference, type = "azimuth")$map
+      } else {
+        possible.references <- AvailableData()$Dataset[grepl("*ref", AvailableData()$Dataset)]
+        print("Choose one of:")
+        print(possible.references)
+        stop(paste("Could not find a reference for", reference))
+      }
+      # handle expected new parameters in uwot models beginning in v0.1.13
+      if (!"num_precomputed_nns" %in% names(Misc(reference[["refUMAP"]])$model)) {
+        Misc(reference[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+      }
+      key.pattern = "^[^_]*_"
+      new.colnames <- gsub(pattern = key.pattern, 
+                           replacement = Key(reference[["refDR"]]), 
+                           x = colnames(Loadings(
+                             object = reference[["refDR"]],
+                             projected = FALSE)))
+      colnames(Loadings(object = reference[["refDR"]], 
+                        projected = FALSE)) <- new.colnames
     }
-    # handle expected new parameters in uwot models beginning in v0.1.13
-    if (!"num_precomputed_nns" %in% names(Misc(reference[["refUMAP"]])$model)) {
-      Misc(reference[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+    dims <- as.double(slot(reference, "neighbors")$refdr.annoy.neighbors@alg.info$ndim)
+    if (isTRUE(do.adt) && !("ADT" %in% Assays(reference))) {
+      warning("Cannot impute an ADT assay because the reference does not have antibody data")
+      do.adt = FALSE
+    }
+    reference.version <- ReferenceVersion(reference)
+    azimuth.version <- as.character(packageVersion(pkg = "Azimuth"))
+    seurat.version <- as.character(packageVersion(pkg = "Seurat"))
+    meta.data <- names(slot(reference, "meta.data"))
+    
+    # is annotation levels are not specify, gather all levels of annotation
+    if (is.null(annotation.levels)) {
+      annotation.levels <- names(slot(object = reference, name = "meta.data"))
+      annotation.levels <- annotation.levels[!grepl(pattern = "^nCount", x = annotation.levels)]
+      annotation.levels <- annotation.levels[!grepl(pattern = "^nFeature", x = annotation.levels)]
+      annotation.levels <- annotation.levels[!grepl(pattern = "^ori", x = annotation.levels)]
+    }
+    
+    # Change the file path based on where the query file is located on your system.
+    query <- ConvertGeneNames(
+      object = query,
+      reference.names = rownames(x = reference),
+      homolog.table = 'https://seurat.nygenome.org/azimuth/references/homologs.rds'
+    )
+    
+    # Calculate nCount_RNA and nFeature_RNA if the query does not
+    # contain them already
+    if (!all(c("nCount_RNA", "nFeature_RNA") %in% c(colnames(x = query[[]])))) {
+      calcn <- as.data.frame(x = Seurat:::CalcN(object = query[[assay]]))
+      colnames(x = calcn) <- paste(
+        colnames(x = calcn),
+        assay,
+        sep = '_'
+      )
+      query <- AddMetaData(
+        object = query,
+        metadata = calcn
+      )
+      rm(calcn)
+    }
+    
+    # Calculate percent mitochondrial genes if the query contains genes
+    # matching the regular expression "^MT-"
+    if (any(grepl(pattern = '^MT-', x = rownames(x = query)))) {
+      query <- PercentageFeatureSet(
+        object = query,
+        pattern = '^MT-',
+        col.name = 'percent.mt',
+        assay = assay
+      )
+    }
+    # Find anchors between query and reference
+    anchors <- FindTransferAnchors(
+      reference = reference,
+      query = query,
+      k.filter = NA,
+      reference.neighbors = "refdr.annoy.neighbors",
+      reference.assay = "refAssay",
+      query.assay = assay,
+      reference.reduction = "refDR",
+      normalization.method = "SCT",
+      features = rownames(Loadings(reference[["refDR"]])),
+      dims = 1:dims,
+      n.trees = n.trees,
+      mapping.score.k = mapping.score.k,
+      verbose = verbose
+    )
+    # Transferred labels are in metadata columns named "predicted.*"
+    # The maximum prediction score is in a metadata column named "predicted.*.score"
+    # The prediction scores for each class are in an assay named "prediction.score.*"
+    # The imputed assay is named "impADT" if computed
+    refdata <- lapply(X = annotation.levels, function(x) {
+      reference[[x, drop = TRUE]]
+    })
+    names(x = refdata) <- annotation.levels
+    
+    if (isTRUE(do.adt)) {
+      refdata[["impADT"]] <- GetAssayData(
+        object = reference[["ADT"]],
+        slot = "data"
+      )
+    }
+    
+    query <- TransferData(
+      reference = reference,
+      query = query,
+      query.assay = assay,
+      dims = 1:dims,
+      anchorset = anchors,
+      refdata = refdata,
+      n.trees = 20,
+      store.weights = TRUE,
+      k.weight = k.weight,
+      verbose = verbose
+    )
+    # Calculate the embeddings of the query data on the reference SPCA
+    query <- IntegrateEmbeddings(
+      anchorset = anchors,
+      reference = reference,
+      query = query,
+      query.assay = assay,
+      reductions = "pcaproject",
+      reuse.weights.matrix = TRUE,
+      verbose = verbose
+    )
+    # Calculate the query neighbors in the reference
+    # with respect to the integrated embeddings
+    query[["query_ref.nn"]] <- FindNeighbors(
+      object = Embeddings(reference[["refDR"]]),
+      query = Embeddings(query[["integrated_dr"]]),
+      return.neighbor = TRUE,
+      l2.norm = TRUE,
+      verbose = verbose
+    )
+    # The reference used in the app is downsampled compared to the reference on which
+    # the UMAP model was computed. This step, using the helper function NNTransform,
+    # corrects the Neighbors to account for the downsampling.
+    query <- NNTransform(
+      object = query,
+      meta.data = reference[[]]
+    )
+    # Project the query to the reference UMAP.
+    query[[umap.name]] <- RunUMAP(
+      object = query[["query_ref.nn"]],
+      reduction.model = reference[["refUMAP"]],
+      reduction.key = 'UMAP_',
+      verbose = verbose
+    )
+    # Calculate mapping score and add to metadata
+    query <- AddMetaData(
+      object = query,
+      metadata = MappingScore(anchors = anchors, ndim = dims),
+      col.name = "mapping.score"
+    )
+  }
+  return(query)
+}
+
+
+#' @inheritParams RunAzimuthATAC
+#' @param reference Name of reference to map to or a path to a directory containing ext.Rds
+#' @param annotation.levels list of annotation levels to map. If not specified, all will be mapped.
+#' @param umap.name name of umap reduction in the returned object
+#' @param do.adt transfer ADT assay
+#' @param assay query assay name
+#' @param dims.atac dimensions
+#' @param dims.rna dimensions
+#'
+#' @return Seurat object with reference reductions and annotations
+#'
+#' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
+#' @importFrom Signac FeatureMatrix CreateChromatinAssay GetGRangesFromEnsDb 
+#' RunTFIDF RunChromVAR Fragments GeneActivity
+#' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
+#' @importFrom IRanges findOverlaps
+#' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
+#' @importFrom data.table as.data.table
+#' @importFrom JASPAR2020 JASPAR2020
+#' @importFrom TFBSTools getMatrixSet
+#' 
+#' @export
+#' @method RunAzimuthATAC Seurat
+#' @rdname RunAzimuthATAC
+#'
+RunAzimuthATAC.Seurat <- function(
+  query,
+  reference,
+  fragment.path = NULL,
+  annotation.levels = NULL,
+  umap.name = "ref.umap",
+  verbose = TRUE,
+  assay = NULL,
+  k.weight = 50,
+  n.trees = 20,
+  mapping.score.k = 100,
+  dims.atac = 2:50, 
+  dims.rna = 1:50
+) {
+  assay <- assay %||% DefaultAssay(object = query)
+  if (inherits(x = query[[assay]], what = "ChromatinAssay")) {
+    if ((length(x = Fragments(query)) == 0) && is.null(x = fragment.path)) {
+      stop("Must provide Seurat Object with `ChromatinAssay` that contains fragments info or ",
+           "path to fragment file with `fragment.path` parameter. ", 
+           "To run Azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
+    }
+  } else {
+    if (is.null(x = fragment.path)) {
+      stop("Must provide Seurat Object with `ChromatinAssay` that contains fragments info or ",
+           "path to fragment file with `fragment.path` parameter. ", 
+           "To run Azimuth for ATAC data without a fragment file, visit https://azimuth.hubmapconsortium.org/")
     }
   }
-  dims <- as.double(length(slot(reference, "reductions")$refDR))
-  if (isTRUE(do.adt) && !("ADT" %in% Assays(reference))) {
-    warning("Cannot impute an ADT assay because the reference does not have antibody data")
-    do.adt = FALSE
+  if (dir.exists(paths = reference)) { 
+    reference <- LoadBridgeReference(reference)
+    reference <- reference$map
+  } else {
+    stop("Can't find path to reference")
   }
   reference.version <- ReferenceVersion(reference)
   azimuth.version <- as.character(packageVersion(pkg = "Azimuth"))
   seurat.version <- as.character(packageVersion(pkg = "Seurat"))
   meta.data <- names(slot(reference, "meta.data"))
-
   # is annotation levels are not specify, gather all levels of annotation
   if (is.null(annotation.levels)) {
     annotation.levels <- names(slot(object = reference, name = "meta.data"))
@@ -71,137 +288,71 @@ RunAzimuth.Seurat <- function(
     annotation.levels <- annotation.levels[!grepl(pattern = "^ori", x = annotation.levels)]
   }
 
-  # Change the file path based on where the query file is located on your system.
-  query <- ConvertGeneNames(
-    object = query,
-    reference.names = rownames(x = reference),
-    homolog.table = 'https://seurat.nygenome.org/azimuth/references/homologs.rds'
-  )
-
-  # Calculate nCount_RNA and nFeature_RNA if the query does not
-  # contain them already
-  if (!all(c("nCount_RNA", "nFeature_RNA") %in% c(colnames(x = query[[]])))) {
-      calcn <- as.data.frame(x = Seurat:::CalcN(object = query))
-      colnames(x = calcn) <- paste(
-        colnames(x = calcn),
-        "RNA",
-        sep = '_'
-      )
-      query <- AddMetaData(
-        object = query,
-        metadata = calcn
-      )
-      rm(calcn)
+  annotation <- reference[["ATAC"]]@annotation
+  if (!is.null(x = fragment.path)){
+    fragments = fragment.path
+  } else {
+    fragments = Fragments(query)
   }
-
-  # Calculate percent mitochondrial genes if the query contains genes
-  # matching the regular expression "^MT-"
-  if (any(grepl(pattern = '^MT-', x = rownames(x = query)))) {
-    query <- PercentageFeatureSet(
-      object = query,
-      pattern = '^MT-',
-      col.name = 'percent.mt',
-      assay = assay
-    )
-  }
-
-  # Preprocess with SCTransform
-  query <- SCTransform(
-    object = query,
-    assay = assay,
-    new.assay.name = "refAssay",
-    residual.features = rownames(x = reference),
-    reference.SCT.model = reference[["refAssay"]]@SCTModel.list$refmodel,
-    method = 'glmGamPoi',
-    ncells = 2000,
-    n_genes = 2000,
-    do.correct.umi = FALSE,
-    do.scale = FALSE,
-    do.center = TRUE,
-    verbose = verbose
+  
+  query_assay <- CreateChromatinAssay(
+    counts = query[[assay]]$counts,
+    sep = c(":", "-"),
+    fragments = fragments,
+    annotation = annotation
   )
-  # Find anchors between query and reference
-  anchors <- FindTransferAnchors(
-    reference = reference,
-    query = query,
-    k.filter = NA,
-    reference.neighbors = "refdr.annoy.neighbors",
-    reference.assay = "refAssay",
-    query.assay = "refAssay",
-    reference.reduction = "refDR",
-    normalization.method = "SCT",
-    features = intersect(rownames(x = reference), VariableFeatures(object = query)),
-    dims = 1:dims,
-    n.trees = n.trees,
-    mapping.score.k = mapping.score.k,
-    verbose = verbose
+  query_requantified  <- FeatureMatrix(
+    fragments = Fragments(query_assay),
+    features = granges(reference[['ATAC']]),
+    cells = Cells(query_assay)
   )
+  # Create assay with requantified ATAC data
+  ATAC_assay <- CreateChromatinAssay(
+    counts = query_requantified,
+    fragments = fragments,
+    sep = c(":", "-"),
+    annotation = annotation
+  )
+  
+  # Create Seurat Object
+  options(Seurat.object.assay.calcn = TRUE)
+  obj.atac <- CreateSeuratObject(counts = ATAC_assay, assay = 'ATAC')
+  obj.atac[['peak.orig']] <- query_assay
+
+  # normalize query
+  obj.atac <- RunTFIDF(obj.atac)
+  
+  # Find anchors between query and reference # deleted find transfer anchors 
+  bridge.anchor <- FindBridgeTransferAnchors(extended.reference = reference,
+                                             query = obj.atac,
+                                             reduction = "lsiproject",
+                                             dims = dims.atac)
   # Transferred labels are in metadata columns named "predicted.*"
   # The maximum prediction score is in a metadata column named "predicted.*.score"
   # The prediction scores for each class are in an assay named "prediction.score.*"
-  # The imputed assay is named "impADT" if computed
-  refdata <- lapply(X = annotation.levels, function(x) {
-    reference[[x, drop = TRUE]]
-  })
-  names(x = refdata) <- annotation.levels
+  
+  refdata <- as.list(annotation.levels)
+  names(refdata) <- annotation.levels
 
-  if (isTRUE(do.adt)) {
-    refdata[["impADT"]] <- GetAssayData(
-      object = reference[["ADT"]],
-      slot = "data"
-    )
-  }
-
-  query <- TransferData(
-    reference = reference,
-    query = query,
-    dims = 1:dims,
-    anchorset = anchors,
-    refdata = refdata,
-    n.trees = 20,
-    store.weights = TRUE,
-    k.weight = k.weight,
-    verbose = verbose
+  obj.atac <- MapQuery(anchorset = bridge.anchor, 
+                       reference = reference, 
+                       query = obj.atac, 
+                       refdata = refdata,
+                       reduction.model = "refUMAP" 
   )
-  # Calculate the embeddings of the query data on the reference SPCA
-  query <- IntegrateEmbeddings(
-    anchorset = anchors,
-    reference = reference,
-    query = query,
-    reductions = "pcaproject",
-    reuse.weights.matrix = TRUE,
-    verbose = verbose
+  # Get Gene Activities 
+  gene.activities <- GeneActivity(obj.atac)
+  #add feature matrix to Chromatin Assay 
+  obj.atac[['RNA']] <- CreateAssayObject(counts = gene.activities)
+  #Normalize the feature data
+  obj.atac <- NormalizeData(
+    object = obj.atac,
+    assay = 'RNA',
+    normalization.method = 'LogNormalize',
+    scale.factor = median(unlist(obj.atac[[grep("nCount", 
+                                                colnames(obj.atac@meta.data))]]))
   )
-  # Calculate the query neighbors in the reference
-  # with respect to the integrated embeddings
-  query[["query_ref.nn"]] <- FindNeighbors(
-    object = Embeddings(reference[["refDR"]]),
-    query = Embeddings(query[["integrated_dr"]]),
-    return.neighbor = TRUE,
-    l2.norm = TRUE,
-    verbose = verbose
-  )
-  # The reference used in the app is downsampled compared to the reference on which
-  # the UMAP model was computed. This step, using the helper function NNTransform,
-  # corrects the Neighbors to account for the downsampling.
-  query <- NNTransform(
-    object = query,
-    meta.data = reference[[]]
-  )
-  # Project the query to the reference UMAP.
-  query[[umap.name]] <- RunUMAP(
-    object = query[["query_ref.nn"]],
-    reduction.model = reference[["refUMAP"]],
-    reduction.key = 'UMAP_',
-    verbose = verbose
-  )
-  # Calculate mapping score and add to metadata
-  query <- AddMetaData(
-    object = query,
-    metadata = MappingScore(anchors = anchors, ndim = dims),
-    col.name = "mapping.score"
-  )
-  return(query)
+  return(obj.atac)
 }
 
 
@@ -216,6 +367,19 @@ RunAzimuth.character <- function(
 ) {
   obj <- LoadFileInput(path = query)
   return(RunAzimuth(obj, ...))
+}
+
+#' @inheritParams RunAzimuthATAC
+#' @export
+#' @method RunAzimuthATAC character
+#' @rdname RunAzimuthATAC
+#'
+RunAzimuthATAC.character <- function(
+  query,
+  ...
+) {
+  obj <- LoadFileInput(path = query)
+  return(RunAzimuthATAC(obj, ...))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -300,7 +464,6 @@ AzimuthApp <- function(config = NULL, ...) {
     new = opts,
     code = getOption(x = 'Azimuth.app.max_cells')
   )
-  opts$future.globals.maxSize <- maxcells * 320000
   # Launch the app
   with_options(
     new = opts,
@@ -427,7 +590,10 @@ GetColorMap.Seurat <- function(object, slot = "AzimuthReference", ...) {
 #' @method GetPlotRef AzimuthData
 #'
 GetPlotRef.AzimuthData <- function(object, ...) {
-  return(slot(object = object, name = "plotref"))
+  plotref <- slot(object = object, name = "plotref")
+  # temporary fix for Key of tonsil ref - Ideally we will update the SeuratData object 
+  Key(plotref) <- gsub("\\.", "", Key(plotref))
+  return(plotref)
 }
 
 #' @rdname GetPlotRef
@@ -553,10 +719,10 @@ AzimuthReference <- function(
   if (length(x = levels(x = object[[refAssay]])) != 1) {
     stop("refAssay (", refAssay, ") should contain a single SCT model.")
   }
-
+  
   suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
   suppressWarnings(expr = object[["refDR"]] <- object[[refDR]])
-
+  
   # Calculate the Neighbors
   object <- FindNeighbors(
     object = object,
@@ -589,7 +755,7 @@ AzimuthReference <- function(
   # Add the "ori.index" column.
   ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
   object$ori.index <- ori.index
-
+  
   # Subset the features of the RNA assay
   DefaultAssay(object = object) <- refAssay
   object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
@@ -613,13 +779,197 @@ AzimuthReference <- function(
   DefaultAssay(object = object) <- "refAssay"
   DefaultAssay(object = object[["refDR"]]) <- "refAssay"
   Tool(object = object) <- ad
+  tool.name <- as.character(x = sys.calls())
+  tool.name <- lapply(
+    X = strsplit(x = tool.name, split = "(", fixed = TRUE), 
+    FUN = "[", 
+    1
+  )[[1]]
+  if (tool.name != "AzimuthReference") {
+    slot(object, name = "tools")["AzimuthReference"] <- slot(object, name = "tools")[tool.name]
+    slot(object, name = "tools")[tool.name] <- NULL
+  }
+  object <- DietSeurat(object = object, 
+                       counts = FALSE, 
+                       assays = c("refAssay", assays), 
+                       dimreducs = c("refDR", "refUMAP"))
+  ValidateAzimuthReference(object = object)
+  return(object)
+}
+
+
+#' Create a Seurat object compatible with Azimuth.
+#'
+#' @inheritParams CreateAzimuthData
+#' @param refUMAP Name of UMAP in reference to use for mapping
+#' @param refDR Name of DimReduc in reference to use for mapping
+#' @param refAssay Name of SCTAssay to use in reference
+#' @param dims Dimensions to use in reference neighbor finding
+#' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param ori.index Index of the cells used in mapping in the original object on
+#' which UMAP was run. Only need to provide if UMAP was run on different set of
+#' cells.
+#' @param assays Assays to retain for transfer
+#' @param metadata Metadata to retain for transfer
+#' @param verbose Display progress/messages
+#'
+#' @return Returns a Seurat object with AzimuthData stored in the tools slot for
+#' use with Azimuth.
+#'
+#' @import BSgenome.Hsapiens.UCSC.hg38
+#' @importFrom SeuratObject Reductions Misc Misc<- Assays Cells Loadings Idents
+#' DefaultAssay Tool<-
+#' @importFrom Seurat FindNeighbors NormalizeData AverageExpression DietSeurat
+#' @importFrom TFBSTools getMatrixSet
+#' @importFrom methods as
+#'
+#' @export
+#'
+AzimuthBridgeReference <- function(
+  object,
+  reference.reduction = "spca",
+  bridge.ref.reduction = "ref.spca",
+  bridge.query.reduction = "slsi",
+  laplacian.reduction = "lap",
+  refUMAP = "wnn.umap",
+  refAssay = "SCT",
+  dims = 1:50,
+  plotref = "wnn.umap",
+  plot.metadata = NULL,
+  ori.index = NULL,
+  colormap = NULL,
+  assays = c("Bridge","RNA"),
+  metadata = NULL,
+  reference.version = "0.0.0",
+  verbose = FALSE
+) {
+  # Parameter validation
+  for (i in c(reference.reduction, bridge.ref.reduction, bridge.query.reduction, laplacian.reduction, refUMAP)){
+    if (!i %in% Reductions(object = object)) {
+      stop("Reduction (", i, ") not found in Seurat object provided")
+    }
+  }
+  if (is.null(x = Misc(object = object[[refUMAP]], slot = "model"))) {
+    stop("refUMAP (", refUMAP, ") does not have the umap model info stored. ",
+         "Please rerun RunUMAP with return.model = TRUE.")
+  }
+  if (is.null(x = metadata)) {
+    stop("Please specify at least one metadata field (for transfer and plotting).")
+  }
+  for(i in metadata) {
+    if (! i %in% colnames(x = object[[]])) {
+      warning(i, " not found in Seurat object metadata")
+      next
+    }
+    if (! is.factor(x = object[[i, drop = TRUE]])) {
+      warning(i, " is not a factor. Converting to factor with alphabetical ",
+              "levels.", call. = FALSE)
+      object[[i, drop = TRUE]] <- factor(x = object[[i, drop = TRUE]], levels = sort(x = unique(object[[i, drop = TRUE]])))
+    }
+  }
+  if (!refAssay %in% Assays(object = object)) {
+    stop("Seurat object provided must have the SCT Assay stored.")
+  }
+  if (!inherits(x = object[[refAssay]], what = "SCTAssay")) {
+    stop("refAssay (", refAssay, ") is not an SCTAssay.")
+  }
+  if (length(x = levels(x = object[[refAssay]])) != 2) {
+    stop("refAssay (", refAssay, ") should contain two SCT models, one for rna reference and one for multiome.")
+  }
+  
+  suppressWarnings(expr = object[["refDR"]] <- object[[reference.reduction]])
+  suppressWarnings(expr = object[["refUMAP"]] <- object[[refUMAP]])
+  suppressWarnings(expr = object[["ref.refDR"]] <- object[[paste0("ref", bridge.ref.reduction)]])
+  # Turn atac data into empty sparse matrices 
+  object[["ATAC"]]$counts <- sparseMatrix(i = 1, j = 1, x = 1,
+                                          dims = c(nrow(object[['ATAC']]), ncol(object[['ATAC']])),
+                                          dimnames = dimnames(object[['ATAC']]@counts))
+  object[["ATAC"]]$data <- sparseMatrix(i = 1, j = 1, x = 1,
+                                        dims = c(nrow(object[['ATAC']]), ncol(object[['ATAC']])),
+                                        dimnames = dimnames(object[['ATAC']]@data))
+  
+  if (verbose) {
+    message("Computing pseudobulk averages")
+  }
+  features <- rownames(x = Loadings(object = object[[reference.reduction]]))
+  plot.metadata <- plot.metadata %||% object[[metadata]]
+  if (inherits(x = plotref, what = "DimReduc")) {
+    plot.metadata <- plot.metadata[Cells(x = plotref), ]
+  }
+  ad <- CreateAzimuthData(
+    object = object,
+    plotref = plotref,
+    plot.metadata  = plot.metadata,
+    colormap = colormap,
+    reference.version = reference.version
+  )
+  
+  # Add the "ori.index" column.
+  ori.index <- ori.index %||% match(Cells(x = object), Cells(x = object[["refUMAP"]]))
+  object$ori.index <- ori.index
+  
+  # Subset the features of the RNA assay
+  DefaultAssay(object = object) <- refAssay
+  object[[refAssay]] <- subset(x = object[[refAssay]], features = features)
+  # Preserves DR after DietSeurat
+  DefaultAssay(object = object[[reference.reduction]]) <- refAssay
+  atac <- object[["ATAC"]]
+  object <- DietSeurat(
+    object = object,
+    counts = FALSE,
+    assays = c(refAssay, assays),
+    dimreducs = c(reference.reduction, bridge.ref.reduction, bridge.query.reduction, laplacian.reduction, "refUMAP")
+  )
+  metadata <- c(metadata, "ori.index")
+  for (i in colnames(x = object[[]])) {
+    if (!i %in% metadata){
+      object[[i]] <- NULL
+    }
+  }
+  
+  # SCT assay
+  sct.model <- slot(object = object[[refAssay]], name = "SCTModel.list")[[1]]
+  object[["refAssay"]] <- as(object = suppressWarnings(Seurat:::CreateDummyAssay(assay = object[[refAssay]])), Class = "SCTAssay")
+  slot(object = object[["refAssay"]], name = "SCTModel.list") <- list(refmodel = sct.model)
+  DefaultAssay(object = object) <- "refAssay"
+  DefaultAssay(object = object[[reference.reduction]]) <- "refAssay"
+  DefaultAssay(object = object[["refUMAP"]]) <- "refAssay"
+  DefaultAssay(object = object[["refDR"]]) <- "refAssay"
+  DefaultAssay(object = object[["ref.refDR"]]) <- "refAssay"
+  Tool(object = object) <- ad
+  tool.name <- as.character(x = sys.calls())
+  tool.name <- lapply(
+    X = strsplit(x = tool.name, split = "(", fixed = TRUE), 
+    FUN = "[", 
+    1
+  )[[1]]
+  if (tool.name != "AzimuthReference") {
+    slot(object, name = "tools")["AzimuthReference"] <- slot(object, name = "tools")[tool.name]
+    slot(object, name = "tools")[tool.name] <- NULL
+  }
+  # set RNA for downstream functions
+  object@tools$AzimuthReference@plotref@assay.used <- "RNA"
   object <- DietSeurat(
     object = object,
     counts = FALSE,
     assays = c("refAssay", assays),
-    dimreducs = c("refDR","refUMAP")
+    dimreducs = c(bridge.query.reduction, laplacian.reduction, "ref.refDR", "refDR", "refUMAP")
   )
-  ValidateAzimuthReference(object = object)
+  object[["ATAC"]] <- atac
+  # Add motifs on multiome atac
+  pfm <- getMatrixSet(
+    x = JASPAR2020,
+    opts = list(species = 9606, all_versions = FALSE)
+  )
+  main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+  keep.peaks <- which(as.character(seqnames(granges(object[["ATAC"]]))) %in% main.chroms)
+  object[["ATAC"]]<- subset(object[["ATAC"]], features = rownames(object[["ATAC"]])[keep.peaks])
+  
+  object[["ATAC"]] <- AddMotifs(object = object[["ATAC"]], 
+                                genome = BSgenome.Hsapiens.UCSC.hg38, 
+                                pfm = pfm )
+  object[["ATAC"]] <- RegionStats(object[["ATAC"]], genome = BSgenome.Hsapiens.UCSC.hg38)
+  object[["ATAC"]]@motifs@positions <- NULL
   return(object)
 }
 
@@ -722,36 +1072,65 @@ CreateColorMap <- function(object, ids = NULL, colors = NULL, seed = NULL) {
 #
 # @param query Query object
 # @param ds.amount Amount to downsample query
+# @param type Standard or Bridge
 # @return Returns
 #
 #' @importFrom SeuratObject Cells Idents Indices as.Neighbor
 #' @importFrom Seurat RunPCA FindNeighbors FindClusters MinMax
+#' @importFrom Signac RunSVD
 #
 #' @keywords internal
 #
 #
-ClusterPreservationScore <- function(query, ds.amount) {
-  query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
-  if (ncol(x = query) > ds.amount) {
-    query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
-  }
+ClusterPreservationScore <- function(query, ds.amount, type = "standard") {
   dims <- min(50, getOption(x = "Azimuth.map.ndims"))
-  query <- RunPCA(object = query, npcs = dims, verbose = FALSE)
-  query <- FindNeighbors(
-    object = query,
-    reduction = 'pca',
-    dims = 1:dims,
-    graph.name = paste0("pca_", c("nn", "snn"))
-  )
-  query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_nn"]])
-  query <- FindClusters(object = query, resolution = 0.6, graph.name = 'pca_snn')
-  query <- FindNeighbors(
-    object = query,
-    reduction = 'integrated_dr',
-    dims = 1:dims,
-    return.neighbor = TRUE,
-    graph.name ="integrated_neighbors_nn"
-  )
+  if(type == "standard"){
+    if(inherits(query[["RNA"]], what = "Assay5")){
+      VariableFeatures(query) <- rownames(query[["refAssay"]]@SCTModel.list$model1@feature.attributes)
+    }
+    query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "integrated_dr")
+    if (ncol(x = query) > ds.amount) {
+      query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
+    }
+    query <- RunPCA(object = query, npcs = dims, verbose = FALSE)
+    query <- FindNeighbors(
+      object = query,
+      reduction = 'pca',
+      dims = 1:dims,
+      graph.name = paste0("pca_", c("nn", "snn"))
+    )
+    query[["orig_neighbors"]] <- as.Neighbor(x = query[["pca_nn"]])
+    query <- FindClusters(object = query, resolution = 0.6, graph.name = 'pca_snn')
+    query <- FindNeighbors(
+      object = query,
+      reduction = 'integrated_dr',
+      dims = 1:dims,
+      return.neighbor = TRUE,
+      graph.name ="integrated_neighbors_nn"
+    )
+  } else if(type == "bridge") {
+    query <- DietSeurat(object = query, assays = "refAssay", scale.data = TRUE, counts = FALSE, dimreducs = "ref.Bridge.reduc") 
+    if (ncol(x = query) > ds.amount) {
+      query <- subset(x = query, cells = sample(x = Cells(x = query), size = ds.amount))
+    }
+    query <- RunSVD(object = query, verbose = FALSE)
+    query <- FindNeighbors(
+      object = query,
+      reduction = 'lsi',
+      dims = 1:dims,
+      graph.name = paste0("lsi_", c("nn", "snn"))
+    )
+    query[["orig_neighbors"]] <- as.Neighbor(x = query[["lsi_nn"]])
+    query <- FindClusters(object = query, resolution = 0.6, graph.name = 'lsi_snn')
+    query <- FindNeighbors(
+      object = query,
+      reduction = 'ref.Bridge.reduc',
+      dims = 1:dims,
+      return.neighbor = TRUE,
+      graph.name ="integrated_neighbors_nn")
+  } else{
+    print("Incorrect type: Must be either 'standard' or 'bridge'")
+  }
   ids <- Idents(object = query)
   integrated.neighbor.indices <- Indices(object = query[["integrated_neighbors_nn"]])
   proj_ent <- unlist(x = lapply(X = 1:length(x = Cells(x = query)), function(x) {

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Azimuth annotation • Azimuth</title>
-<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script><!-- Bootstrap --><link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.4.0/flatly/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="../bootstrap-toc.css">
 <script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Azimuth</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.4.6</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.4.6.9001</span>
       </span>
     </div>
 
@@ -80,7 +80,7 @@
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Azimuth annotation</h1>
             
-            <h4 data-toc-skip class="date">Compiled: August 23, 2022</h4>
+            <h4 data-toc-skip class="date">Compiled: March 26, 2023</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/satijalab/azimuth/blob/HEAD/vignettes/run_azimuth_tutorial.Rmd" class="external-link"><code>vignettes/run_azimuth_tutorial.Rmd</code></a></small>
       <div class="hidden name"><code>run_azimuth_tutorial.Rmd</code></div>
@@ -93,52 +93,60 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>This vignette demonstrates how to map scRNA-seq data to Azimuth reference datasets in R.</p>
+<p>This vignette demonstrates how to map scRNA-seq and scATAC-seq data to Azimuth reference datasets directly in R, without the need to upload data into the web application.</p>
 <p>Reference-based mapping provides an attractive alternative to unsupervised analysis. When well-curated and annotated references are available, reference-mapping can rapdidly, robustly, and sensitively annotate and interpret query datasets. As part of the <a href="portal.hubmapconsortium.org">Human Biomolecular Atlas Project</a>, we have built integrated references for multiple human tissues, available at <a href="azimuth.hubmapconsortium.org">azimuth.hubmapconsortium.org</a>. Azimuth is a web-tool that maps user-uploaded datasets - starting from an unnormalized expression counts matrix.</p>
-<p>We have recently released updated software that enables the Azimuth workflow to be replicated directly in R, without the need to upload data into the web application. Reference datasets are automatically downloaded as part of out previously released <a href="https://github.com/satijalab/seurat-data" class="external-link">SeuratData</a> framework. Datasets can then be passed through Azimuth using a single command.</p>
+<p>In this vignette, we demonstrate the use of a function <code><a href="../reference/RunAzimuth.html">RunAzimuth()</a></code> which facilitates annotation of single cell datasets.</p>
 <p>As with the web application, Azimuth is compatible with a wide range of inputs, including Seurat objects, 10x HDF5 files, and Scanpy/h5ad files. Once Azimuth is run, a Seurat object is returned which contains</p>
 <ul>
 <li>Cell annotations (at multiple levels of resolution)</li>
 <li>Prediction scores (i.e. confidence scores) for each annotation</li>
 <li>Projection onto the reference-derived 2-dimensional UMAP visualization</li>
 </ul>
-<p>In this vignette, we demonstrate the use of a function <code><a href="../reference/RunAzimuth.html">RunAzimuth()</a></code> which facilitates annotation of single cell datasets.</p>
-<details><summary><strong>View data download code</strong>
-</summary><p>To download all the required files, you can run the following lines in a shell:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> https://figshare.com/ndownloader/files/27686835 <span class="at">-O</span> human_cd34_bone_marrow.h5ad</span></code></pre></div>
-</details>
+<p>For scRNA-seq mapping, reference datasets are automatically downloaded as part of out previously released <a href="https://github.com/satijalab/seurat-data" class="external-link">SeuratData</a> framework. Datasets can then be passed through Azimuth using a single command.</p>
+<div class="section level4">
+<h4 id="azimuth-atac">Azimuth ATAC<a class="anchor" aria-label="anchor" href="#azimuth-atac"></a>
+</h4>
+<p>We recently released <strong>Azimuth ATAC</strong>, which uses the bridge integration methodology introduced in Hao, et al 2022. and demonstrated in <a href="https://satijalab.org/seurat/articles/bridge_integration_vignette.html" class="external-link">this vignette</a>. A multimodal bridge dataset, measuring both scRNA-seq and scATAC-seq data per cell, is used to transfer annotations from our high quality RNA references to an ATAC query. The <a href="https://azimuth.hubmapconsortium.org/" class="external-link">Azimuth ATAC web application</a> increases app efficiency by using a fast requantification method based on overlap to match the peaks in your query ATAC data to that of the multiome. Thus, users only need to upload the peak-cell matrix from their data. Alternatively, if users would like to requantify peaks from the information stored in their fragment file, the <code><a href="../reference/RunAzimuth.html">RunAzimuth()</a></code> function in R will run standard bridge integration using both the peak-cell matrix and the fragment file. For Azimuth ATAC, you can download the reference dataset <a href="">here</a>.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>We first install and load Seurat, Azimuth, and Seurat-Data</p>
+<p>We first install and load Seurat, Azimuth, and Seurat-Data. Note, that Azimuth ATAC requires Seurat v5, but Azimuth for scRNA-seq queries can work with Seurat v4 or v5.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"satijalab/seurat"</span>, <span class="st">"seurat5"</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"satijalab/seurat-data"</span>, <span class="st">"seurat5"</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"satijalab/azimuth"</span>, <span class="st">"seurat5"</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/remote-reexports.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"satijalab/seurat-data"</span><span class="op">)</span>
-<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/remote-reexports.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"satijalab/azimuth"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"Seurat"</span><span class="op">)</span></code></pre></div>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat" class="external-link">Seurat</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/satijalab/azimuth" class="external-link">Azimuth</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://www.satijalab.org/seurat" class="external-link">SeuratData</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></code></pre></div>
-<div class="section level3">
-<h3 id="map-pbmc-scrna-seq-datasets-from-7-different-technologies">Map PBMC scRNA-seq datasets from 7 different technologies<a class="anchor" aria-label="anchor" href="#map-pbmc-scrna-seq-datasets-from-7-different-technologies"></a>
-</h3>
-<p>We first consider a benchmark dataset from <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7289686/" class="external-link">Systematic comparison of single-cell and single-nucleus RNA-sequencing methods, Nat. Biotech 2020</a>, which profiled a total of 31,021 human peripheral blood mononuclear cells (PBMCs) using seven different experimental technologies. The raw data is avaialble for download <a href="https://singlecell.broadinstitute.org/single_cell/study/SCP424/single-cell-comparison-pbmc-data" class="external-link">here</a>, but the dataset is also available for easy loading via SeuratData. We load the data in, and map it to our <a href="https://azimuth.hubmapconsortium.org/references/#Human%20-%20PBMC">PBMC reference</a>.</p>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat" class="external-link">Seurat</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/satijalab/azimuth" class="external-link">Azimuth</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://www.satijalab.org/seurat" class="external-link">SeuratData</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="scrna-seq-queries">scRNA-seq queries<a class="anchor" aria-label="anchor" href="#scrna-seq-queries"></a>
+</h2>
+<details><p><summary><strong>View data download code</strong></summary></p>
+<p>To download all the required files, you can run the following lines in a shell:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><a class="sourceLine" id="cb3-1" title="1"><span class="fu">wget</span> https://figshare.com/ndownloader/files/27686835 -O human_cd34_bone_marrow.h5ad</a></code></pre></div>
+</details><div class="section level4">
+<h4 id="map-pbmc-scrna-seq-datasets-from-7-different-technologies">Map PBMC scRNA-seq datasets from 7 different technologies<a class="anchor" aria-label="anchor" href="#map-pbmc-scrna-seq-datasets-from-7-different-technologies"></a>
+</h4>
+<p>We first consider a benchmark dataset from <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7289686/" class="external-link">Systematic comparison of single-cell and single-nucleus RNA-sequencing methods, Nat. Biotech 2020</a>, which profiled a total of 31,021 human peripheral blood mononuclear cells (PBMCs) using seven different experimental technologies. The raw data is avaialble for download <a href="https://singlecell.broadinstitute.org/single_cell/study/SCP424/single-cell-comparison-pbmc-data" class="external-link">here</a>, but the dataset is also available for easy loading via SeuratData. We load the data in, and map it to our <a href="https://azimuth.hubmapconsortium.org/references/#Human%20-%20PBMC" class="external-link">PBMC reference</a>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># Install the PBMC systematic comparative analyis (pmbcsca) dataset</span>
-<span class="fu"><a href="https://satijalab.org/seurat/reference/InstallData.html" class="external-link">InstallData</a></span><span class="op">(</span><span class="st">"pbmcsca"</span><span class="op">)</span>
-
-<span class="co"># returns a Seurat object named pbmcsca</span>
-<span class="fu"><a href="https://satijalab.org/seurat/reference/LoadData.html" class="external-link">LoadData</a></span><span class="op">(</span><span class="st">"pbmcsca"</span><span class="op">)</span>
-
-<span class="co"># The RunAzimuth function can take a Seurat object as input</span>
-<span class="va">pbmcsca</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span><span class="va">pbmcsca</span>, reference <span class="op">=</span> <span class="st">"pbmcref"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Install the PBMC systematic comparative analyis (pmbcsca) dataset</span></span>
+<span><span class="fu"><a href="https://satijalab.org/seurat/reference/InstallData.html" class="external-link">InstallData</a></span><span class="op">(</span><span class="st">"pbmcsca"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># returns a Seurat object named pbmcsca</span></span>
+<span><span class="va">pbmcsca</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/LoadData.html" class="external-link">LoadData</a></span><span class="op">(</span><span class="st">"pbmcsca"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># The RunAzimuth function can take a Seurat object as input</span></span>
+<span><span class="va">pbmcsca</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span><span class="va">pbmcsca</span>, reference <span class="op">=</span> <span class="st">"pbmcref"</span><span class="op">)</span></span></code></pre></div>
 <p>We can now visualize the outputs of Azimuth. Note that all cells are labeled with high-resolution annotations, and are projected into a harmonized space despite being analyzed from a wide variety of technologies.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, label <span class="op">=</span> <span class="cn">TRUE</span>, label.size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span>
-<span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, group.by <span class="op">=</span> <span class="st">"Method"</span><span class="op">)</span>
-<span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, label <span class="op">=</span> <span class="cn">TRUE</span>, label.size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, group.by <span class="op">=</span> <span class="st">"Method"</span><span class="op">)</span></span>
+<span><span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span></span></code></pre></div>
 <p><img src="run_azimuth_tutorial_files/figure-html/pbmc_dimplot-1.png" width="1152"></p>
 <p>We can visualize the expression of canonical marker genes to examine the accuracy of predictions. Note that Azimuth normalizes data (internally) before mapping, but does not return the results, so we normalize the data here before visualization.</p>
 <p>Here, we specifically visualize:</p>
@@ -149,146 +157,243 @@
 <li>Prediction scores for the annotation CD4+ regulatory T cells (Treg)</li>
 </ul>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">pbmcsca</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/NormalizeData.html" class="external-link">NormalizeData</a></span><span class="op">(</span><span class="va">pbmcsca</span><span class="op">)</span>
-<span class="fu"><a href="https://mojaveazure.github.io/seurat-object/reference/Idents.html" class="external-link">Idents</a></span><span class="op">(</span><span class="va">pbmcsca</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"predicted.celltype.l2"</span>
-
-<span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, features <span class="op">=</span> <span class="st">"CCR7"</span><span class="op">)</span>
-<span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, features <span class="op">=</span> <span class="st">"FCGR3A"</span><span class="op">)</span>
-<span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/VlnPlot.html" class="external-link">VlnPlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, features <span class="op">=</span> <span class="st">"AXL"</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, idents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ASDC"</span>,
-    <span class="st">"pDC"</span>, <span class="st">"cDC1"</span>, <span class="st">"cDC2"</span><span class="op">)</span><span class="op">)</span>
-<span class="va">p4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, features <span class="op">=</span> <span class="st">"predictionscorecelltypel2_Treg"</span><span class="op">)</span>
-
-<span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span> <span class="op">+</span> <span class="va">p3</span> <span class="op">+</span> <span class="va">p4</span> <span class="op">+</span> <span class="fu"><a href="https://patchwork.data-imaginist.com/reference/plot_layout.html" class="external-link">plot_layout</a></span><span class="op">(</span>ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">pbmcsca</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/NormalizeData.html" class="external-link">NormalizeData</a></span><span class="op">(</span><span class="va">pbmcsca</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mojaveazure.github.io/seurat-object/reference/Idents.html" class="external-link">Idents</a></span><span class="op">(</span><span class="va">pbmcsca</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"predicted.celltype.l2"</span></span>
+<span></span>
+<span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, features <span class="op">=</span> <span class="st">"CCR7"</span><span class="op">)</span></span>
+<span><span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, features <span class="op">=</span> <span class="st">"FCGR3A"</span><span class="op">)</span></span>
+<span><span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/VlnPlot.html" class="external-link">VlnPlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, features <span class="op">=</span> <span class="st">"AXL"</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, idents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ASDC"</span>,</span>
+<span>    <span class="st">"pDC"</span>, <span class="st">"cDC1"</span>, <span class="st">"cDC2"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">p4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">pbmcsca</span>, features <span class="op">=</span> <span class="st">"predictionscorecelltypel2_Treg"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span> <span class="op">+</span> <span class="va">p3</span> <span class="op">+</span> <span class="va">p4</span> <span class="op">+</span> <span class="fu"><a href="https://patchwork.data-imaginist.com/reference/plot_layout.html" class="external-link">plot_layout</a></span><span class="op">(</span>ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p><img src="run_azimuth_tutorial_files/figure-html/pbmc_res1-1.png" width="1152"></p>
 </div>
-<div class="section level3">
-<h3 id="see-available-references">See available references<a class="anchor" aria-label="anchor" href="#see-available-references"></a>
-</h3>
+<div class="section level4">
+<h4 id="see-available-references">See available references<a class="anchor" aria-label="anchor" href="#see-available-references"></a>
+</h4>
 <p>You can search all available datasets in SeuratData (focusing on Azimuth references)</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">available_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/AvailableData.html" class="external-link">AvailableData</a></span><span class="op">(</span><span class="op">)</span>
-<span class="va">available_data</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"Azimuth"</span>, <span class="va">available_data</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span><span class="op">)</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></code></pre></div>
-<pre><code><span class="co">##                                  Dataset Version                        Summary</span>
-<span class="co">## bonemarrowref.SeuratData   bonemarrowref   1.0.0  Azimuth Reference: bonemarrow</span>
-<span class="co">## fetusref.SeuratData             fetusref   1.0.0       Azimuth Reference: fetus</span>
-<span class="co">## humancortexref.SeuratData humancortexref   1.0.0 Azimuth Reference: humancortex</span>
-<span class="co">## kidneyref.SeuratData           kidneyref   1.0.1      Azimuth Reference: kidney</span>
-<span class="co">## lungref.SeuratData               lungref   2.0.0        Azimuth Reference: lung</span>
-<span class="co">## mousecortexref.SeuratData mousecortexref   1.0.0 Azimuth Reference: mousecortex</span>
-<span class="co">## pancreasref.SeuratData       pancreasref   1.0.0    Azimuth Reference: pancreas</span>
-<span class="co">## pbmcref.SeuratData               pbmcref   1.0.0        Azimuth Reference: pbmc</span></code></pre>
+<code class="sourceCode R"><span><span class="va">available_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/AvailableData.html" class="external-link">AvailableData</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">available_data</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"Azimuth"</span>, <span class="va">available_data</span><span class="op">[</span>, <span class="fl">3</span><span class="op">]</span><span class="op">)</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></code></pre></div>
+<pre><code><span><span class="co">##                                  Dataset Version                        Summary</span></span>
+<span><span class="co">## adiposeref.SeuratData         adiposeref   1.0.0     Azimuth Reference: adipose</span></span>
+<span><span class="co">## bonemarrowref.SeuratData   bonemarrowref   1.0.0  Azimuth Reference: bonemarrow</span></span>
+<span><span class="co">## fetusref.SeuratData             fetusref   1.0.0       Azimuth Reference: fetus</span></span>
+<span><span class="co">## heartref.SeuratData             heartref   1.0.0       Azimuth Reference: heart</span></span>
+<span><span class="co">## humancortexref.SeuratData humancortexref   1.0.0 Azimuth Reference: humancortex</span></span>
+<span><span class="co">## kidneyref.SeuratData           kidneyref   1.0.1      Azimuth Reference: kidney</span></span>
+<span><span class="co">## lungref.SeuratData               lungref   2.0.0        Azimuth Reference: lung</span></span>
+<span><span class="co">## mousecortexref.SeuratData mousecortexref   1.0.0 Azimuth Reference: mousecortex</span></span>
+<span><span class="co">## pancreasref.SeuratData       pancreasref   1.0.0    Azimuth Reference: pancreas</span></span>
+<span><span class="co">## pbmcref.SeuratData               pbmcref   1.0.0        Azimuth Reference: pbmc</span></span>
+<span><span class="co">## tonsilref.SeuratData           tonsilref   1.0.0      Azimuth Reference: tonsil</span></span></code></pre>
 </div>
-<div class="section level3">
-<h3 id="map-cd34-cells-from-human-bone-marrow-stored-as-an-h5ad-file">Map CD34+ cells from Human Bone Marrow (stored as an h5ad file)<a class="anchor" aria-label="anchor" href="#map-cd34-cells-from-human-bone-marrow-stored-as-an-h5ad-file"></a>
-</h3>
-<p>As a final example, we map data from CD34+ human bone marrow cells from the manuscript <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7549125/" class="external-link">Characterization of cell fate probabilities in single-cell data with Palantir</a>. We map to our <a href="https://azimuth.hubmapconsortium.org/references/#Human%20-%20Bone%20Marrow">Azimuth Human Bone Marrow reference</a>, which includes both progenitor and differentiated cells.</p>
+<div class="section level4">
+<h4 id="map-cd34-cells-from-human-bone-marrow-stored-as-an-h5ad-file">Map CD34+ cells from Human Bone Marrow (stored as an h5ad file)<a class="anchor" aria-label="anchor" href="#map-cd34-cells-from-human-bone-marrow-stored-as-an-h5ad-file"></a>
+</h4>
+<p>As a final example, we map data from CD34+ human bone marrow cells from the manuscript <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7549125/" class="external-link">Characterization of cell fate probabilities in single-cell data with Palantir</a>. We map to our <a href="https://azimuth.hubmapconsortium.org/references/#Human%20-%20Bone%20Marrow" class="external-link">Azimuth Human Bone Marrow reference</a>, which includes both progenitor and differentiated cells.</p>
 <p>Azimuth can also take the path to an h5ad object as input. In this case, Azimuth extracts the unnormalized counts from the object, and proceeds with mapping.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">bm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span>query <span class="op">=</span> <span class="st">"human_cd34_bone_marrow.h5ad"</span>, reference <span class="op">=</span> <span class="st">"bonemarrowref"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">bm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span>query <span class="op">=</span> <span class="st">"~/human_cd34_bone_marrow.h5ad"</span>, reference <span class="op">=</span> <span class="st">"bonemarrowref"</span><span class="op">)</span></span></code></pre></div>
 <p>As expected, query cells map to CD34+ celltypes which represent a subset of celltypes present in the reference. Rare cells that map to differentiated cell populations (i.e. CD4 memory), map with low prediction scores. Reference-mapping also harmonizes two separate runs.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">bm</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, label <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span>
-<span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">bm</span>, group.by <span class="op">=</span> <span class="st">"orig.ident"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">bm</span><span class="op">$</span><span class="va">predicted.celltype.l2</span><span class="op">)</span>, decreasing <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## </span>
-<span class="co">##           LMPP            GMP            HSC    Early Eryth            CLP </span>
-<span class="co">##           1138           1065           1028            849            470 </span>
-<span class="co">##          pre B     Late Eryth        pre-pDC            EMP transitional B </span>
-<span class="co">##            422            214            152            141             82 </span>
-<span class="co">##            pDC        Prog Mk          pro B         BaEoMa        pre-mDC </span>
-<span class="co">##             68             60             38             18             14 </span>
-<span class="co">##     CD4 Memory           cDC2           ASDC           MAIT        Stromal </span>
-<span class="co">##              8              6              5              1              1</span></code></pre>
+<code class="sourceCode R"><span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">bm</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, label <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">p2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">bm</span>, group.by <span class="op">=</span> <span class="st">"orig.ident"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">bm</span><span class="op">$</span><span class="va">predicted.celltype.l2</span><span class="op">)</span>, decreasing <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## </span></span>
+<span><span class="co">##           LMPP            GMP            HSC    Early Eryth            CLP </span></span>
+<span><span class="co">##           1138           1065           1028            849            470 </span></span>
+<span><span class="co">##          pre B     Late Eryth        pre-pDC            EMP transitional B </span></span>
+<span><span class="co">##            422            214            152            141             82 </span></span>
+<span><span class="co">##            pDC        Prog Mk          pro B         BaEoMa        pre-mDC </span></span>
+<span><span class="co">##             68             60             38             18             14 </span></span>
+<span><span class="co">##     CD4 Memory           cDC2           ASDC           MAIT        Stromal </span></span>
+<span><span class="co">##              8              6              5              1              1</span></span></code></pre>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/VlnPlot.html" class="external-link">VlnPlot</a></span><span class="op">(</span><span class="va">bm</span>, features <span class="op">=</span> <span class="st">"predicted.celltype.l2.score"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span>
-<span class="op">(</span><span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span><span class="op">)</span><span class="op">/</span><span class="va">p3</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">p3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/VlnPlot.html" class="external-link">VlnPlot</a></span><span class="op">(</span><span class="va">bm</span>, features <span class="op">=</span> <span class="st">"predicted.celltype.l2.score"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">(</span><span class="va">p1</span> <span class="op">+</span> <span class="va">p2</span><span class="op">)</span><span class="op">/</span><span class="va">p3</span></span></code></pre></div>
 <p><img src="run_azimuth_tutorial_files/figure-html/bm_plots-1.png" width="960"></p>
 <p>Lastly, we can visualize markers associated with lineage differentiation to verify our annotations including AVP (HSC), KLF1 (erythroid), MPO (myeloid), and VWF (platelet).</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># normalize before visualization</span>
-<span class="va">bm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/NormalizeData.html" class="external-link">NormalizeData</a></span><span class="op">(</span><span class="va">bm</span><span class="op">)</span>
-<span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">bm</span>, features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AVP"</span>, <span class="st">"KLF1"</span>, <span class="st">"MPO"</span>, <span class="st">"VWF"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># normalize before visualization</span></span>
+<span><span class="va">bm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/NormalizeData.html" class="external-link">NormalizeData</a></span><span class="op">(</span><span class="va">bm</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://satijalab.org/seurat/reference/FeaturePlot.html" class="external-link">FeaturePlot</a></span><span class="op">(</span><span class="va">bm</span>, features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"AVP"</span>, <span class="st">"KLF1"</span>, <span class="st">"MPO"</span>, <span class="st">"VWF"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="run_azimuth_tutorial_files/figure-html/bm_feature_plots-1.png" width="1152"></p>
-<details><summary><strong>Session Info</strong>
-</summary><div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
-<pre><code><span class="co">## R version 4.1.3 (2022-03-10)</span>
-<span class="co">## Platform: x86_64-pc-linux-gnu (64-bit)</span>
-<span class="co">## Running under: Ubuntu 20.04.4 LTS</span>
-<span class="co">## </span>
-<span class="co">## Matrix products: default</span>
-<span class="co">## BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0</span>
-<span class="co">## LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0</span>
-<span class="co">## </span>
-<span class="co">## locale:</span>
-<span class="co">##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              </span>
-<span class="co">##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    </span>
-<span class="co">##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   </span>
-<span class="co">##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 </span>
-<span class="co">##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            </span>
-<span class="co">## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       </span>
-<span class="co">## </span>
-<span class="co">## attached base packages:</span>
-<span class="co">## [1] stats     graphics  grDevices datasets  utils     methods   base     </span>
-<span class="co">## </span>
-<span class="co">## other attached packages:</span>
-<span class="co">##  [1] patchwork_1.1.2                pbmcsca.SeuratData_3.0.0      </span>
-<span class="co">##  [3] pbmcref.SeuratData_1.0.0       pbmc3k.SeuratData_3.1.4       </span>
-<span class="co">##  [5] lungref.SeuratData_1.0.0       kidneyref.SeuratData_1.0.0    </span>
-<span class="co">##  [7] bonemarrowref.SeuratData_1.0.0 SeuratData_0.2.2              </span>
-<span class="co">##  [9] Azimuth_0.4.6                  shinyBS_0.61.1                </span>
-<span class="co">## [11] sp_1.5-0                       SeuratObject_4.1.0            </span>
-<span class="co">## [13] Seurat_4.1.1                  </span>
-<span class="co">## </span>
-<span class="co">## loaded via a namespace (and not attached):</span>
-<span class="co">##   [1] systemfonts_1.0.4     plyr_1.8.7            igraph_1.3.4         </span>
-<span class="co">##   [4] lazyeval_0.2.2        shinydashboard_0.7.2  splines_4.1.3        </span>
-<span class="co">##   [7] listenv_0.8.0         scattermore_0.8       ggplot2_3.3.6        </span>
-<span class="co">##  [10] digest_0.6.29         htmltools_0.5.3       fansi_1.0.3          </span>
-<span class="co">##  [13] magrittr_2.0.3        memoise_2.0.1         googlesheets4_1.0.1  </span>
-<span class="co">##  [16] tensor_1.5            cluster_2.1.3         ROCR_1.0-11          </span>
-<span class="co">##  [19] globals_0.16.0        matrixStats_0.62.0    pkgdown_2.0.3        </span>
-<span class="co">##  [22] spatstat.sparse_2.1-1 colorspace_2.0-3      rappdirs_0.3.3       </span>
-<span class="co">##  [25] ggrepel_0.9.1         textshaping_0.3.6     xfun_0.30            </span>
-<span class="co">##  [28] dplyr_1.0.9           crayon_1.5.1          jsonlite_1.8.0       </span>
-<span class="co">##  [31] progressr_0.10.1      spatstat.data_2.2-0   survival_3.3-1       </span>
-<span class="co">##  [34] zoo_1.8-10            glue_1.6.2            polyclip_1.10-0      </span>
-<span class="co">##  [37] gargle_1.2.0          gtable_0.3.0          leiden_0.4.2         </span>
-<span class="co">##  [40] future.apply_1.9.0    abind_1.4-5           scales_1.2.1         </span>
-<span class="co">##  [43] DBI_1.1.2             spatstat.random_2.2-0 miniUI_0.1.1.1       </span>
-<span class="co">##  [46] Rcpp_1.0.9            viridisLite_0.4.1     xtable_1.8-4         </span>
-<span class="co">##  [49] reticulate_1.25       spatstat.core_2.4-4   bit_4.0.4            </span>
-<span class="co">##  [52] DT_0.24               htmlwidgets_1.5.4     httr_1.4.4           </span>
-<span class="co">##  [55] RColorBrewer_1.1-3    ellipsis_0.3.2        ica_1.0-3            </span>
-<span class="co">##  [58] farver_2.1.1          pkgconfig_2.0.3       sass_0.4.2           </span>
-<span class="co">##  [61] uwot_0.1.14           deldir_1.0-6          utf8_1.2.2           </span>
-<span class="co">##  [64] labeling_0.4.2        tidyselect_1.1.2      rlang_1.0.4          </span>
-<span class="co">##  [67] reshape2_1.4.4        later_1.3.0           cellranger_1.1.0     </span>
-<span class="co">##  [70] munsell_0.5.0         tools_4.1.3           cachem_1.0.6         </span>
-<span class="co">##  [73] cli_3.3.0             generics_0.1.3        ggridges_0.5.3       </span>
-<span class="co">##  [76] evaluate_0.15         stringr_1.4.1         fastmap_1.1.0        </span>
-<span class="co">##  [79] yaml_2.3.5            ragg_1.2.2            goftest_1.2-3        </span>
-<span class="co">##  [82] bit64_4.0.5           knitr_1.38            fs_1.5.2             </span>
-<span class="co">##  [85] fitdistrplus_1.1-8    purrr_0.3.4           RANN_2.6.1           </span>
-<span class="co">##  [88] pbapply_1.5-0         future_1.27.0         nlme_3.1-157         </span>
-<span class="co">##  [91] mime_0.12             formatR_1.12          hdf5r_1.3.5          </span>
-<span class="co">##  [94] compiler_4.1.3        rstudioapi_0.14       curl_4.3.2           </span>
-<span class="co">##  [97] plotly_4.10.0         png_0.1-7             spatstat.utils_2.3-1 </span>
-<span class="co">## [100] tibble_3.1.8          bslib_0.4.0           stringi_1.7.8        </span>
-<span class="co">## [103] highr_0.9             desc_1.4.1            rgeos_0.5-9          </span>
-<span class="co">## [106] lattice_0.20-45       Matrix_1.4-1          SeuratDisk_0.0.0.9020</span>
-<span class="co">## [109] shinyjs_2.1.0         vctrs_0.4.1           pillar_1.8.1         </span>
-<span class="co">## [112] lifecycle_1.0.1       BiocManager_1.30.16   spatstat.geom_2.4-0  </span>
-<span class="co">## [115] lmtest_0.9-40         jquerylib_0.1.4       RcppAnnoy_0.0.19     </span>
-<span class="co">## [118] data.table_1.14.2     cowplot_1.1.1         irlba_2.3.5          </span>
-<span class="co">## [121] httpuv_1.6.5          R6_2.5.1              promises_1.2.0.1     </span>
-<span class="co">## [124] renv_0.15.4           KernSmooth_2.23-20    gridExtra_2.3        </span>
-<span class="co">## [127] parallelly_1.32.1     codetools_0.2-18      MASS_7.3-56          </span>
-<span class="co">## [130] assertthat_0.2.1      rprojroot_2.0.3       withr_2.5.0          </span>
-<span class="co">## [133] presto_1.0.0          sctransform_0.3.4     mgcv_1.8-40          </span>
-<span class="co">## [136] parallel_4.1.3        grid_4.1.3            rpart_4.1.16         </span>
-<span class="co">## [139] tidyr_1.2.0           rmarkdown_2.13        googledrive_2.0.0    </span>
-<span class="co">## [142] Rtsne_0.16            shiny_1.7.2</span></code></pre>
+</div>
+</div>
+<div class="section level2">
+<h2 id="scatac-seq-queries">scATAC-seq queries<a class="anchor" aria-label="anchor" href="#scatac-seq-queries"></a>
+</h2>
+<details><p><summary><strong>Download Bridge Reference and Demo Data</strong></summary></p>
+<p>Currently, we have two bridge references for scATAC-seq queries: PBMC and Bone Marrow. These references are built using the Azimuth RNA references and a multiome dataset from 10x genomics that measures both scATAC-seq and scRNA-seq per cell (available <a href="https://www.10xgenomics.com/resources/datasets/pbmc-from-a-healthy-donor-granulocytes-removed-through-cell-sorting-10-k-1-standard-2-0-0" class="external-link">here</a>). The extended reference for PBMC can be downloaded <a href="https://zenodo.org/record/7770374#.ZB91X-zMJlk" class="external-link">here</a>. The bone marrow extended reference can be downloaded <a href="https://zenodo.org/record/7770389#.ZB91b-zMJlk" class="external-link">here</a>.</p>
+<p>For demonstrating, we use a scATAC-seq query dataset with ~10,000 PBMC from a healthy donor which is available for download <a href="https://www.10xgenomics.com/resources/datasets/10-k-human-pbm-cs-atac-v-1-1-chromium-x-1-1-standard-2-0-0" class="external-link">here</a>. The filtered peak-cell matrix, fragment file, and the indexed fragment file must be downloaded which can be done in a shell with the below lines:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode sh"><code class="sourceCode bash"><a class="sourceLine" id="cb14-1" title="1"><span class="ex">curl</span> -O https://cf.10xgenomics.com/samples/cell-atac/2.0.0/10k_PBMC_ATAC_nextgem_Chromium_X/10k_PBMC_ATAC_nextgem_Chromium_X_filtered_peak_bc_matrix.h5</a>
+<a class="sourceLine" id="cb14-2" title="2"><span class="ex">curl</span> -O https://cf.10xgenomics.com/samples/cell-atac/2.0.0/10k_PBMC_ATAC_nextgem_Chromium_X/10k_PBMC_ATAC_nextgem_Chromium_X_fragments.tsv.gz</a>
+<a class="sourceLine" id="cb14-3" title="3"><span class="ex">curl</span> -O https://cf.10xgenomics.com/samples/cell-atac/2.0.0/10k_PBMC_ATAC_nextgem_Chromium_X/10k_PBMC_ATAC_nextgem_Chromium_X_fragments.tsv.gz.tbi</a></code></pre></div>
+</details><div class="section level4">
+<h4 id="map-pbmc-scatac-seq-dataset">Map PBMC scATAC-seq dataset<a class="anchor" aria-label="anchor" href="#map-pbmc-scatac-seq-dataset"></a>
+</h4>
+<p>Here, we provide the path to the peak-cell matrix as the query and also include the path to the fragment file as a parameter. Alternatively, users can provide a Seurat Object with a <a href="https://stuartlab.org/signac/articles/data_structures.html#the-chromatinassay-class" class="external-link">ChromatinAssay</a> that contains a <code>Fragments</code> class. The <code>reference</code> parameter is the directory containing the reference.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># The RunAzimuth function can take a path or Seurat object as input</span></span>
+<span><span class="va">atac</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/RunAzimuth.html">RunAzimuth</a></span><span class="op">(</span>query <span class="op">=</span> <span class="st">"~/10k_PBMC_ATAC_nextgem_Chromium_X_filtered_peak_bc_matrix.h5"</span>, query.modality <span class="op">=</span> <span class="st">"ATAC"</span>,</span>
+<span>    reference <span class="op">=</span> <span class="st">"~/reference"</span>, fragment.path <span class="op">=</span> <span class="st">"~/10k_PBMC_ATAC_nextgem_Chromium_X_fragments.tsv.gz"</span><span class="op">)</span></span></code></pre></div>
+<p>We can now visualize the output of Azimuth ATAC. Note that all cells are labeled with high-resolution annotations transferred from the scRNA-seq query.</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://satijalab.org/seurat/reference/DimPlot.html" class="external-link">DimPlot</a></span><span class="op">(</span><span class="va">atac</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, label <span class="op">=</span> <span class="cn">TRUE</span>, label.size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/SeuratTheme.html" class="external-link">NoLegend</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="run_azimuth_tutorial_files/figure-html/pbmc_atac_dimplot-1.png" width="1152"></p>
+<p>Lastly, we can validate the predicted cell types for the scATAC-seq data by examining their chromatin accessibility profiles at canonical loci. We use the <code>CoveragePlot</code> function from <a href="https://stuartlab.org/signac/index.html" class="external-link">Signac</a> to visualize accessibility patterns at CD8A, FOXP3, and RORC, after grouping cells by their predicted labels.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/stuart-lab/signac" class="external-link">Signac</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://stuartlab.org/signac/reference/CoveragePlot.html" class="external-link">CoveragePlot</a></span><span class="op">(</span><span class="va">atac</span>, region <span class="op">=</span> <span class="st">"PAX5"</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l1"</span>, idents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B"</span>, <span class="st">"CD4 T"</span>,</span>
+<span>    <span class="st">"Mono"</span>, <span class="st">"NK"</span><span class="op">)</span>, window <span class="op">=</span> <span class="fl">200</span>, extend.upstream <span class="op">=</span> <span class="op">-</span><span class="fl">150000</span><span class="op">)</span></span></code></pre></div>
+<p><img src="run_azimuth_tutorial_files/figure-html/unnamed-chunk-3-1.png" width="700"></p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://stuartlab.org/signac/reference/CoveragePlot.html" class="external-link">CoveragePlot</a></span><span class="op">(</span><span class="va">atac</span>, region <span class="op">=</span> <span class="st">"CD8A"</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, idents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CD8 Naive"</span>,</span>
+<span>    <span class="st">"CD4 Naive"</span>, <span class="st">"CD4 TCM"</span>, <span class="st">"CD8 TCM"</span><span class="op">)</span>, extend.downstream <span class="op">=</span> <span class="fl">5000</span>, extend.upstream <span class="op">=</span> <span class="fl">5000</span><span class="op">)</span></span></code></pre></div>
+<p><img src="run_azimuth_tutorial_files/figure-html/unnamed-chunk-3-2.png" width="700"></p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://stuartlab.org/signac/reference/CoveragePlot.html" class="external-link">CoveragePlot</a></span><span class="op">(</span><span class="va">atac</span>, region <span class="op">=</span> <span class="st">"FOXP3"</span>, group.by <span class="op">=</span> <span class="st">"predicted.celltype.l2"</span>, idents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CD4 Naive"</span>,</span>
+<span>    <span class="st">"CD4 TCM"</span>, <span class="st">"CD4 TEM"</span>, <span class="st">"Treg"</span><span class="op">)</span>, extend.downstream <span class="op">=</span> <span class="fl">0</span>, extend.upstream <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+<p><img src="run_azimuth_tutorial_files/figure-html/unnamed-chunk-3-3.png" width="700"></p>
+<p>When Azimuth ATAC runs, we also compute gene activity scores based on the chromatin accessibility in each gene region. In <code><a href="../reference/RunAzimuth.html">RunAzimuth()</a></code>, these scores are calculated using the <a href="https://stuartlab.org/signac/reference/geneactivity" class="external-link">GeneActivity</a> function from Signac. Thus, users can visualize <a href="https://satijalab.org/seurat/reference/featureplot" class="external-link">feature plots</a> or <a href="https://satijalab.org/seurat/reference/vlnplot" class="external-link">violin plots</a> with features of interest.</p>
+<p>The Azimuth ATAC web app also runs a simple motif analysis, but <code><a href="../reference/RunAzimuth.html">RunAzimuth()</a></code> does not. If users are interested in running motif analysis on their object in R, please refer to this <a href="https://stuartlab.org/signac/articles/motif_vignette.html" class="external-link">vignette</a> from <a href="https://stuartlab.org/signac/index.html" class="external-link">Signac</a>.</p>
+<details><p><summary><strong>Session Info</strong></summary></p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## R version 4.2.2 Patched (2022-11-10 r83330)</span></span>
+<span><span class="co">## Platform: x86_64-pc-linux-gnu (64-bit)</span></span>
+<span><span class="co">## Running under: Ubuntu 20.04.6 LTS</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## Matrix products: default</span></span>
+<span><span class="co">## BLAS:   /usr/lib/x86_64-linux-gnu/blas/libblas.so.3.9.0</span></span>
+<span><span class="co">## LAPACK: /usr/lib/x86_64-linux-gnu/lapack/liblapack.so.3.9.0</span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## locale:</span></span>
+<span><span class="co">##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              </span></span>
+<span><span class="co">##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    </span></span>
+<span><span class="co">##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   </span></span>
+<span><span class="co">##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 </span></span>
+<span><span class="co">##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            </span></span>
+<span><span class="co">## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       </span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## attached base packages:</span></span>
+<span><span class="co">## [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## other attached packages:</span></span>
+<span><span class="co">##  [1] Signac_1.9.0.9000              BPCells_0.0.0.9000            </span></span>
+<span><span class="co">##  [3] patchwork_1.1.2                pbmcsca.SeuratData_3.0.0      </span></span>
+<span><span class="co">##  [5] pbmcref.SeuratData_1.0.0       bonemarrowref.SeuratData_1.0.0</span></span>
+<span><span class="co">##  [7] SeuratData_0.2.2.9001          Azimuth_0.4.6.9001            </span></span>
+<span><span class="co">##  [9] shinyBS_0.61.1                 Seurat_4.9.9.9039             </span></span>
+<span><span class="co">## [11] SeuratObject_4.9.9.9079        sp_1.6-0                      </span></span>
+<span><span class="co">## </span></span>
+<span><span class="co">## loaded via a namespace (and not attached):</span></span>
+<span><span class="co">##   [1] rappdirs_0.3.3                    rtracklayer_1.58.0               </span></span>
+<span><span class="co">##   [3] scattermore_0.8                   R.methodsS3_1.8.2                </span></span>
+<span><span class="co">##   [5] ragg_1.2.5                        tidyr_1.3.0                      </span></span>
+<span><span class="co">##   [7] JASPAR2020_0.99.10                ggplot2_3.4.1                    </span></span>
+<span><span class="co">##   [9] bit64_4.0.5                       knitr_1.42                       </span></span>
+<span><span class="co">##  [11] R.utils_2.12.2                    irlba_2.3.5.1                    </span></span>
+<span><span class="co">##  [13] DelayedArray_0.24.0               data.table_1.14.8                </span></span>
+<span><span class="co">##  [15] KEGGREST_1.38.0                   TFBSTools_1.36.0                 </span></span>
+<span><span class="co">##  [17] RCurl_1.98-1.10                   AnnotationFilter_1.22.0          </span></span>
+<span><span class="co">##  [19] generics_0.1.3                    BiocGenerics_0.44.0              </span></span>
+<span><span class="co">##  [21] GenomicFeatures_1.50.4            cowplot_1.1.1                    </span></span>
+<span><span class="co">##  [23] RSQLite_2.3.0                     RANN_2.6.1                       </span></span>
+<span><span class="co">##  [25] future_1.32.0                     bit_4.0.5                        </span></span>
+<span><span class="co">##  [27] tzdb_0.3.0                        spatstat.data_3.0-1              </span></span>
+<span><span class="co">##  [29] xml2_1.3.3                        httpuv_1.6.9                     </span></span>
+<span><span class="co">##  [31] SummarizedExperiment_1.28.0       DirichletMultinomial_1.40.0      </span></span>
+<span><span class="co">##  [33] gargle_1.3.0                      xfun_0.38                        </span></span>
+<span><span class="co">##  [35] hms_1.1.3                         jquerylib_0.1.4                  </span></span>
+<span><span class="co">##  [37] evaluate_0.20                     promises_1.2.0.1                 </span></span>
+<span><span class="co">##  [39] fansi_1.0.4                       restfulr_0.0.15                  </span></span>
+<span><span class="co">##  [41] progress_1.2.2                    caTools_1.18.2                   </span></span>
+<span><span class="co">##  [43] dbplyr_2.3.2                      igraph_1.4.1                     </span></span>
+<span><span class="co">##  [45] DBI_1.1.3                         htmlwidgets_1.6.2                </span></span>
+<span><span class="co">##  [47] spatstat.geom_3.1-0               googledrive_2.1.0                </span></span>
+<span><span class="co">##  [49] stats4_4.2.2                      purrr_1.0.1                      </span></span>
+<span><span class="co">##  [51] ellipsis_0.3.2                    RSpectra_0.16-1                  </span></span>
+<span><span class="co">##  [53] dplyr_1.1.1                       annotate_1.76.0                  </span></span>
+<span><span class="co">##  [55] biomaRt_2.54.1                    deldir_1.0-6                     </span></span>
+<span><span class="co">##  [57] MatrixGenerics_1.10.0             vctrs_0.6.1                      </span></span>
+<span><span class="co">##  [59] Biobase_2.58.0                    SeuratDisk_0.0.0.9021            </span></span>
+<span><span class="co">##  [61] ensembldb_2.22.0                  ROCR_1.0-11                      </span></span>
+<span><span class="co">##  [63] abind_1.4-5                       cachem_1.0.7                     </span></span>
+<span><span class="co">##  [65] withr_2.5.0                       BSgenome.Hsapiens.UCSC.hg38_1.4.5</span></span>
+<span><span class="co">##  [67] BSgenome_1.66.3                   progressr_0.13.0                 </span></span>
+<span><span class="co">##  [69] presto_1.0.0                      sctransform_0.3.5                </span></span>
+<span><span class="co">##  [71] GenomicAlignments_1.34.1          prettyunits_1.1.1                </span></span>
+<span><span class="co">##  [73] goftest_1.2-3                     cluster_2.1.4                    </span></span>
+<span><span class="co">##  [75] dotCall64_1.0-2                   lazyeval_0.2.2                   </span></span>
+<span><span class="co">##  [77] seqLogo_1.64.0                    crayon_1.5.2                     </span></span>
+<span><span class="co">##  [79] hdf5r_1.3.8                       spatstat.explore_3.1-0           </span></span>
+<span><span class="co">##  [81] labeling_0.4.2                    pkgconfig_2.0.3                  </span></span>
+<span><span class="co">##  [83] GenomeInfoDb_1.34.9               vipor_0.4.5                      </span></span>
+<span><span class="co">##  [85] nlme_3.1-162                      ProtGenerics_1.30.0              </span></span>
+<span><span class="co">##  [87] rlang_1.1.0                       globals_0.16.2                   </span></span>
+<span><span class="co">##  [89] lifecycle_1.0.3                   miniUI_0.1.1.1                   </span></span>
+<span><span class="co">##  [91] filelock_1.0.2                    fastDummies_1.6.3                </span></span>
+<span><span class="co">##  [93] BiocFileCache_2.6.1               ggrastr_1.0.1                    </span></span>
+<span><span class="co">##  [95] cellranger_1.1.0                  rprojroot_2.0.3                  </span></span>
+<span><span class="co">##  [97] polyclip_1.10-4                   RcppHNSW_0.4.1                   </span></span>
+<span><span class="co">##  [99] matrixStats_0.63.0                lmtest_0.9-40                    </span></span>
+<span><span class="co">## [101] Matrix_1.5-3                      zoo_1.8-11                       </span></span>
+<span><span class="co">## [103] beeswarm_0.4.0                    googlesheets4_1.1.0              </span></span>
+<span><span class="co">## [105] ggridges_0.5.4                    png_0.1-8                        </span></span>
+<span><span class="co">## [107] viridisLite_0.4.1                 rjson_0.2.21                     </span></span>
+<span><span class="co">## [109] shinydashboard_0.7.2              bitops_1.0-7                     </span></span>
+<span><span class="co">## [111] R.oo_1.25.0                       KernSmooth_2.23-20               </span></span>
+<span><span class="co">## [113] spam_2.9-1                        Biostrings_2.66.0                </span></span>
+<span><span class="co">## [115] blob_1.2.4                        stringr_1.5.0                    </span></span>
+<span><span class="co">## [117] parallelly_1.35.0                 spatstat.random_3.1-4            </span></span>
+<span><span class="co">## [119] readr_2.1.4                       S4Vectors_0.36.2                 </span></span>
+<span><span class="co">## [121] CNEr_1.34.0                       scales_1.2.1                     </span></span>
+<span><span class="co">## [123] memoise_2.0.1                     magrittr_2.0.3                   </span></span>
+<span><span class="co">## [125] plyr_1.8.8                        ica_1.0-3                        </span></span>
+<span><span class="co">## [127] zlibbioc_1.44.0                   compiler_4.2.2                   </span></span>
+<span><span class="co">## [129] BiocIO_1.8.0                      RColorBrewer_1.1-3               </span></span>
+<span><span class="co">## [131] fitdistrplus_1.1-8                Rsamtools_2.14.0                 </span></span>
+<span><span class="co">## [133] cli_3.6.1                         XVector_0.38.0                   </span></span>
+<span><span class="co">## [135] listenv_0.9.0                     pbapply_1.7-0                    </span></span>
+<span><span class="co">## [137] formatR_1.14                      MASS_7.3-58.2                    </span></span>
+<span><span class="co">## [139] tidyselect_1.2.0                  stringi_1.7.12                   </span></span>
+<span><span class="co">## [141] textshaping_0.3.6                 highr_0.10                       </span></span>
+<span><span class="co">## [143] yaml_2.3.7                        ggrepel_0.9.3                    </span></span>
+<span><span class="co">## [145] grid_4.2.2                        sass_0.4.5                       </span></span>
+<span><span class="co">## [147] fastmatch_1.1-3                   EnsDb.Hsapiens.v86_2.99.0        </span></span>
+<span><span class="co">## [149] tools_4.2.2                       future.apply_1.10.0              </span></span>
+<span><span class="co">## [151] parallel_4.2.2                    TFMPvalue_0.0.9                  </span></span>
+<span><span class="co">## [153] gridExtra_2.3                     farver_2.1.1                     </span></span>
+<span><span class="co">## [155] Rtsne_0.16                        digest_0.6.31                    </span></span>
+<span><span class="co">## [157] shiny_1.7.4                       pracma_2.4.2                     </span></span>
+<span><span class="co">## [159] Rcpp_1.0.10                       GenomicRanges_1.50.2             </span></span>
+<span><span class="co">## [161] later_1.3.0                       RcppAnnoy_0.0.20                 </span></span>
+<span><span class="co">## [163] httr_1.4.5                        AnnotationDbi_1.60.2             </span></span>
+<span><span class="co">## [165] colorspace_2.1-0                  XML_3.99-0.14                    </span></span>
+<span><span class="co">## [167] fs_1.6.1                          tensor_1.5                       </span></span>
+<span><span class="co">## [169] reticulate_1.28                   IRanges_2.32.0                   </span></span>
+<span><span class="co">## [171] splines_4.2.2                     uwot_0.1.14                      </span></span>
+<span><span class="co">## [173] RcppRoll_0.3.0                    spatstat.utils_3.0-2             </span></span>
+<span><span class="co">## [175] pkgdown_2.0.7                     plotly_4.10.1                    </span></span>
+<span><span class="co">## [177] systemfonts_1.0.4                 xtable_1.8-4                     </span></span>
+<span><span class="co">## [179] jsonlite_1.8.4                    poweRlaw_0.70.6                  </span></span>
+<span><span class="co">## [181] R6_2.5.1                          pillar_1.9.0                     </span></span>
+<span><span class="co">## [183] htmltools_0.5.5                   mime_0.12                        </span></span>
+<span><span class="co">## [185] glue_1.6.2                        fastmap_1.1.1                    </span></span>
+<span><span class="co">## [187] DT_0.27                           BiocParallel_1.32.6              </span></span>
+<span><span class="co">## [189] codetools_0.2-19                  utf8_1.2.3                       </span></span>
+<span><span class="co">## [191] lattice_0.20-45                   bslib_0.4.2                      </span></span>
+<span><span class="co">## [193] spatstat.sparse_3.0-1             tibble_3.2.1                     </span></span>
+<span><span class="co">## [195] ggbeeswarm_0.7.1                  curl_5.0.0                       </span></span>
+<span><span class="co">## [197] leiden_0.4.3                      gtools_3.9.4                     </span></span>
+<span><span class="co">## [199] shinyjs_2.1.0                     GO.db_3.16.0                     </span></span>
+<span><span class="co">## [201] survival_3.5-5                    rmarkdown_2.20                   </span></span>
+<span><span class="co">## [203] desc_1.4.2                        munsell_0.5.0                    </span></span>
+<span><span class="co">## [205] GenomeInfoDbData_1.2.9            reshape2_1.4.4                   </span></span>
+<span><span class="co">## [207] gtable_0.3.3</span></span></code></pre>
 </details>
 </div>
 </div>
@@ -311,7 +416,7 @@
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer>

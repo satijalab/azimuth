@@ -6,7 +6,7 @@
 \alias{Azimuth-package}
 \title{Azimuth: A Shiny App Demonstrating a Query-Reference Mapping Algorithm for Single-Cell Data}
 \description{
-What the package does (one paragraph).
+Azimuth uses an annotated reference dataset to automate the processing, analysis, and interpretation of a new single-cell RNA-seq or ATAC-seq experiment. Azimuth leverages a 'reference-based mapping' pipeline that inputs a counts matrix and performs normalization, visualization, cell annotation, and differential expression (biomarker discovery).
 }
 \section{Package options}{
 
@@ -74,13 +74,15 @@ welcome page
 }
 \item{\code{Azimuth.app.welcomebox}}{
 Provide (as a string) the code to render the box on the welcome page
-(quotes escaped). Example:\preformatted{box(
+(quotes escaped). Example:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{box(
   h3(\\"Header\\"),
   \\"body text\\",
   a(\\"link\\", href=\\"www.satijalab.org\\", target=\\"_blank\\"),
   width = 12
 )
-}
+}\if{html}{\out{</div>}}
 
 }
 \item{\code{Azimuth.app.homologs}}{
@@ -196,6 +198,8 @@ Authors:
   \item Andrew Butler \email{abutler@nygenome.org} (\href{https://orcid.org/0000-0003-3608-0463}{ORCID})
   \item Charlotte Darby \email{cdarby@nygenome.org} (\href{https://orcid.org/0000-0003-2195-5300}{ORCID})
   \item Yuhan Hao \email{yhao@nygenome.org} (\href{https://orcid.org/0000-0002-1810-0822}{ORCID})
+  \item Austin Hartman \email{ahartman@nygenome.org} (\href{https://orcid.org/0000-0001-7278-1852}{ORCID})
+  \item Gesmira Molla \email{gmolla@nygenome.org} (\href{https://orcid.org/0000-0002-8628-5056}{ORCID})
   \item Rahul Satija \email{rsatija@nygenome.org} (\href{https://orcid.org/0000-0001-9448-8833}{ORCID})
 }
 

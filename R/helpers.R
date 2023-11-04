@@ -105,12 +105,119 @@ ConvertGeneNames <- function(object, reference.names, homolog.table) {
     # subset/rename object accordingly
     counts <- GetAssayData(object = object[["RNA"]], slot = "counts")[rownames(x = object)[new.indices], ]
     rownames(x = counts) <- new.names
+    reductions <- slot(object = object, name = "reductions")
     object <- CreateSeuratObject(
       counts = counts,
       meta.data = object[[]]
     )
+    slot(object = object, name = "reductions") <- reductions
     return(object)
   }
+}
+
+ConvertEnsembleToSymbol <- function(
+    mat,
+    species = c('human', 'mouse')
+) {
+  species <- match.arg(arg = species)
+  if (species == 'human') {
+    database <- 'hsapiens_gene_ensembl'
+    symbol <- 'hgnc_symbol'
+
+  } else if (species == 'mouse') {
+    database <- 'mmusculus_gene_ensembl'
+    symbol <- 'mgi_symbol'
+
+  } else {
+    stop('species name not found')
+  }
+
+  library("biomaRt")
+  library("dplyr")
+
+  name_df <- data.frame(gene_id = c(rownames(mat)))
+  name_df$orig.id <- name_df$gene_id
+  #make this a character, otherwise it will throw errors with left_join
+  name_df$gene_id <- as.character(name_df$gene_id)
+  # in case it's gencode, this mostly works
+  #if ensembl, will leave it alone
+  name_df$gene_id <- sub("[.][0-9]*","",name_df$gene_id)
+  mart <- useDataset(dataset = database, useMart("ensembl"))
+  genes <-  name_df$gene_id
+  gene_IDs <- getBM(filters= "ensembl_gene_id",
+                    attributes= c("ensembl_gene_id", symbol),
+                    values = genes,
+                    mart= mart)
+  gene.df <- left_join(name_df, gene_IDs, by = c("gene_id"="ensembl_gene_id"))
+  rownames(gene.df) <- make.unique(gene.df$orig.id)
+  gene.df <- gene.df[rownames(mat),]
+  gene.df <-gene.df[gene.df[,symbol] != '',]
+  gene.df <- gene.df[ !is.na(gene.df$orig.id),]
+  mat.filter <- mat[gene.df$orig.id,]
+  rownames(mat.filter) <- make.unique(gene.df[,symbol])
+  return(mat.filter)
+}
+
+#' Connect to a single-cell HDF5 dataset
+#'
+#' @param filename Name of on-disk file
+#' @param type Type of single-cell dataset to connect as; choose from:
+#' \itemize{
+#'  \item h5seurat
+#' }
+#' Leave as \code{NULL} to guess type from file extension
+#' @param mode Mode to connect to data as; choose from:
+#' \describe{
+#'  \item{r}{Open existing dataset in read-only mode}
+#'  \item{r+}{Open existing dataset in read/write mode}
+#' }
+#' @param force Force a connection if validation steps fail; returns a
+#' \code{\link[hdf5r]{H5File}} object
+#'
+#' @return An object of class \code{type}, opened in mode \code{mode}
+#'
+#' @importFrom hdf5r H5File
+#'
+#' @export
+#'
+Connect <- function(
+  filename,
+  type = NULL,
+  mode = c('r', 'r+'),
+  force = FALSE
+) {
+  type <- type %||% FileType(file = filename)
+  mode <- match.arg(arg = mode)
+  if (!file.exists(filename)) {
+    stop("Cannot find ", type, " file ", filename, call. = FALSE)
+  }
+  return(tryCatch(
+    expr = {
+      cls <- GetSCDisk(r6class = type)
+      cls$new(filename = filename, mode = mode)
+    },
+    error = function(err) {
+      if (!isTRUE(x = force)) {
+        stop(err$message, call. = FALSE)
+      }
+      warning(err$message, call. = FALSE, immediate. = TRUE)
+      return(H5File$new(filename = filename, mode = mode))
+    }
+  ))
+}
+
+#' Determine a filetype based on its extension
+#'
+#' @param file Name of file
+#'
+#' @return The extension, all lowercase
+#'
+#' @importFrom tools file_ext
+#'
+FileType <- function(file) {
+  ext <- file_ext(x = file)
+  ext <- ifelse(test = nchar(x = ext), yes = ext, no = basename(path = file))
+  return(tolower(x = ext))
 }
 
 # Return CSS styling for hover box on interactive plots
@@ -177,7 +284,7 @@ HoverBoxStyle <- function(x, y) {
 #' @inheritSection LoadH5AD AnnData H5AD File (extension \code{h5ad})
 #' @export
 #'
-LoadFileInput <- function(path) {
+LoadFileInput <- function(path, bridge = FALSE) {
   # TODO: add support for loom files
   on.exit(expr = gc(verbose = FALSE))
   type <- tolower(x = tools::file_ext(x = path))
@@ -188,24 +295,51 @@ LoadFileInput <- function(path) {
       if (is.list(x = mat)) {
         mat <- mat[[1]]
       }
-      CreateSeuratObject(counts = mat, min.cells = 1, min.features = 1)
+      object <- CreateSeuratObject(counts = mat, min.cells = 1, min.features = 1)
+      if (inherits(x = object[["RNA"]], what = "Assay5")) {
+        object[["RNA"]]$data <- object[["RNA"]]$counts
+      }
+      object
     },
     'rds' = {
       object <- readRDS(file = path)
       if (inherits(x = object, what = c('Matrix', 'matrix', 'data.frame'))) {
         object <- CreateSeuratObject(counts = as.sparse(x = object), min.cells = 1, min.features = 1)
       } else if (inherits(x = object, what = 'Seurat')) {
-        if (!'RNA' %in% Assays(object = object)) {
-          stop("No RNA assay provided", call. = FALSE)
-        } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
-          stop("No RNA counts matrix present", call. = FALSE)
+        if (isTRUE(x = bridge)){
+          if (!'ATAC' %in% Assays(object = object)) {
+            stop("No ATAC assay provided", call. = FALSE)
+          } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'ATAC'))) {
+            stop("No ATAC counts matrix present", call. = FALSE)
+          }
+          assay <- "ATAC"
+        } else{
+          if (!'RNA' %in% Assays(object = object)) {
+            stop("No RNA assay provided", call. = FALSE)
+          } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
+            stop("No RNA counts matrix present", call. = FALSE)
+          }
+          assay <- "RNA"
         }
-        object <- CreateSeuratObject(
-          counts = GetAssayData(object = object[["RNA"]], slot = "counts"),
-          min.cells = 1,
-          min.features = 1,
-          meta.data = object[[]]
-        )
+        object <- tryCatch({
+          CreateSeuratObject(
+            counts = GetAssayData(object = object[[assay]], slot = "counts"),
+            min.cells = 1,
+            min.features = 1,
+            meta.data = object[[]]
+          )
+        }, error = function(e){
+          object <- UpdateSeuratObject(object)
+          CreateSeuratObject(
+            counts = GetAssayData(object = object[[assay]], slot = "counts"),
+            min.cells = 1,
+            min.features = 1,
+            meta.data = object[[]]
+          )
+        })
+        if (inherits(x = object[["RNA"]], what = "Assay5")) {
+          object[["RNA"]]$data <- object[["RNA"]]$counts
+        }
       } else {
         stop("The RDS file must be a Seurat object", call. = FALSE)
       }
@@ -218,24 +352,50 @@ LoadFileInput <- function(path) {
       }
       hfile <- suppressWarnings(expr = SeuratDisk::Connect(filename = path))
       on.exit(expr = hfile$close_all())
-      if (!'RNA' %in% names(x = hfile[['assays']])) {
-        stop("Cannot find the RNA assay in this h5Seurat file", call. = FALSE)
-      } else if (!'counts' %in% names(x = hfile[['assays/RNA']])) {
-        stop("No RNA counts matrix provided", call. = FALSE)
+      if (isTRUE(x = bridge)){
+        if (!'ATAC' %in% names(x = hfile[['assays']])) {
+          stop("Cannot find the ATAC assay in this h5Seurat file", call. = FALSE)
+        } else if (!'counts' %in% names(x = hfile[['assays/ATAC']])) {
+          stop("No ATAC counts matrix provided", call. = FALSE)
+        }
+        object <- as.Seurat(
+          x = hfile,
+          assays = list(ATAC = 'counts'),
+          reductions = FALSE,
+          graphs = FALSE,
+          images = FALSE
+        )
+        assay <- 'ATAC'
+      } else {
+        if (!'RNA' %in% names(x = hfile[['assays']])) {
+          stop("Cannot find the RNA assay in this h5Seurat file", call. = FALSE)
+        } else if (!'counts' %in% names(x = hfile[['assays/RNA']])) {
+          stop("No RNA counts matrix provided", call. = FALSE)
+        }
+        object <- as.Seurat(
+          x = hfile,
+          assays = list(RNA = 'counts'),
+          reductions = FALSE,
+          graphs = FALSE,
+          images = FALSE
+        )
+        assay <- 'RNA'
       }
-      object <- as.Seurat(
-        x = hfile,
-        assays = list('RNA' = 'counts'),
-        reductions = FALSE,
-        graphs = FALSE,
-        images = FALSE
-      )
+      if (inherits(x = object[[assay]], what = "Assay5")) {
+        if (length(Layers(object, search = "counts")) > 1) {
+          object[[assay]] <- JoinLayers(object[[assay]], 
+                                        layers = "counts", new = "counts")
+        }
+      }
       object <- CreateSeuratObject(
-        counts = GetAssayData(object = object[["RNA"]], slot = "counts"),
+        counts = GetAssayData(object = object[[assay]], slot = "counts"),
         min.cells = 1,
         min.features = 1,
         meta.data = object[[]]
       )
+      if (inherits(x = object[[assay]], what = "Assay5")) {
+        object[[assay]]$data <- object[[assay]]$counts
+      }
     },
     stop("Unknown file type: ", type, call. = FALSE)
   ))
@@ -411,6 +571,7 @@ LoadH5AD <- function(path) {
   colnames <- rownames(metadata)
   rownames(x = counts) <- rownames
   colnames(x = counts) <- colnames
+  options(Seurat.object.assay.calcn = TRUE)
   object <- CreateSeuratObject(counts = counts)
   if (ncol(x = metadata)) {
     object <- AddMetaData(object = object, metadata = metadata)
@@ -418,6 +579,68 @@ LoadH5AD <- function(path) {
   object <- subset(object, subset = nCount_RNA > 0)
   return(object)
 }
+
+
+#' Load obs from a H5AD file
+#'
+#' Read in only the metadata of an H5AD file and
+#' return a data.frame object
+#' @section AnnData H5AD File (extension \code{h5ad}):
+#' @importFrom rhdf5 h5read
+#' @export
+#'
+LoadH5ADobs <- function(path, cell.groups = NULL) {
+  cell.var <- rhdf5::h5readAttributes(file = path, name = 'obs')$`_index`
+  cells.index <- h5read(file = path, name = 'obs')[[cell.var]]
+  suppressWarnings(expr = hfile <- Connect(filename = path, force = TRUE))
+  hfile_obs <- hfile[['obs']]
+  #cell.groups <- cell.groups %||% intersect(names(hfile_obs), c('_index', 'cell', 'cell_id'))
+  obs_groups <- setdiff(names(hfile_obs), c('__categories',  c('_index', 'cell', 'cell_id')))
+  matrix <- as.data.frame(
+    x = matrix(data = NA,
+               nrow = length(cells.index),
+               ncol = length(obs_groups))
+  )
+  colnames(matrix) <- obs_groups
+  rownames(matrix) <- cells.index
+  if ('__categories' %in% names(x = hfile_obs)) {
+    hfile_cate <- hfile_obs[['__categories']]
+    for (i in seq_along(obs_groups)) {
+      obs.i <- obs_groups[i]
+      obs_value_i <- hfile_obs[[obs.i]][]
+      if (obs.i %in% names(x = hfile_cate)){
+        obs_value_i <- factor(x = obs_value_i, labels =  hfile_cate[[obs.i]][])
+      }
+      matrix[,i] <- obs_value_i
+    }
+  } else {
+    for (i in seq_along(obs_groups)) {
+      obs.i <- obs_groups[i]
+      if (all(names(hfile_obs[[obs.i]]) == c("categories", "codes"))) {
+        if (
+          length(unique(hfile_obs[[obs.i]][['codes']][])) == length(hfile_obs[[obs.i]][['categories']][])
+        ) {
+          obs_value_i <- factor(
+            x = hfile_obs[[obs.i]][['codes']][],
+            labels =  hfile_obs[[obs.i]][['categories']][]
+          )
+        } else {
+          obs_value_i <- hfile_obs[[obs.i]][['codes']][]
+        }
+      } else {
+        # list of list, skip for now
+        obs_value_i <- tryCatch(expr = hfile_obs[[obs.i]][],
+                                error = function(e) {
+          return('unknown')
+        })
+      }
+      matrix[,i] <- obs_value_i
+    }
+  }
+  hfile$close_all()
+  return(matrix)
+}
+
 
 #' Load the reference RDS files
 #'
@@ -442,8 +665,8 @@ LoadH5AD <- function(path) {
 #'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
 #' }
 #'
-#' @importFrom SeuratObject Idents<-
-#' @importFrom Seurat LoadAnnoyIndex
+#' @importFrom SeuratObject Idents<- Loadings<- 
+#' @importFrom Seurat LoadAnnoyIndex Loadings
 #' @importFrom httr build_url parse_url status_code GET timeout
 #' @importFrom utils download.file
 #' @importFrom Matrix sparseMatrix
@@ -458,6 +681,8 @@ LoadH5AD <- function(path) {
 #' }
 #'
 LoadReference <- function(path, seconds = 10L) {
+  op <- options(Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
   ref.names <- list(
     map = 'ref.Rds',
     ann = 'idx.annoy'
@@ -522,6 +747,15 @@ LoadReference <- function(path, seconds = 10L) {
          regenerate reference with requested dimensionality or adjust ",
          "the Azimuth.map.ndims option.")
   }
+  # Fix colnames of 'feature.loadings' in reference 
+  key.pattern = "^[^_]*_"
+  new.colnames <- gsub(pattern = key.pattern, 
+                       replacement = Key(map[["refDR"]]), 
+                       x = colnames(Loadings(
+                         object = map[["refDR"]],
+                         projected = FALSE)))
+  colnames(Loadings(object = map[["refDR"]], 
+                    projected = FALSE)) <- new.colnames
   # Create plotref
   ad <- Tool(object = map, slot = "AzimuthReference")
   plotref.dr <- GetPlotRef(object = ad)
@@ -529,9 +763,132 @@ LoadReference <- function(path, seconds = 10L) {
     i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
     dimnames = list("placeholder", Cells(x = plotref.dr))
   )
-  plot <- CreateSeuratObject(
-    counts = cm
+  op <- options(Seurat.object.assay.version = "v3")
+  on.exit(expr = options(op), add = TRUE)
+  plot <- CreateSeuratObject(counts = cm)
+  plot[["refUMAP"]] <- plotref.dr
+  DefaultAssay(plot[["refUMAP"]]) <- DefaultAssay(plot)
+  plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
+  gc(verbose = FALSE)
+  return(list(
+    map = map,
+    plot = plot
+  ))
+}
+
+#' Load the extended reference RDS file for bridge integration
+#'
+#' Read in a precomputed extended reference. This function can
+#' read either from URLs or a file path. The function looks for a file 
+#' called ext.Rds for the extended reference \code{Seurat} object 
+#'
+#' @param path Path or URL to the RDS file
+#' @param seconds Timeout to check for URLs in seconds
+#'
+#' @return A list with two entries:
+#' \describe{
+#'  \item{\code{map}}{
+#'   The extended reference \code{\link[Seurat]{Seurat}}
+#'   object 
+#'  }
+#'  \item{\code{plot}}{The reference \code{Seurat} object (for plotting)}
+#' }
+#'
+#' @importFrom SeuratObject Idents<- RenameAssays Loadings<- 
+#' @importFrom Seurat LoadAnnoyIndex Loadings
+#' @importFrom httr build_url parse_url status_code GET timeout
+#' @importFrom utils download.file
+#' @importFrom Matrix sparseMatrix
+#'
+#' @export
+#' @examples
+#' \dontrun{
+#' # Load from a URL
+#' ref <- LoadBridgeReference("https://seurat.nygenome.org/references/pbmc")
+#' # Load a file from the path to a directory 
+#' ref2 <- LoadBridgeReference("path/")
+#' # Load a file directly
+#' ref3 <- LoadBridgeReference("ext.Rds")
+#' }
+
+LoadBridgeReference<- function(path, seconds = 10L) {
+  op <- options(Seurat.object.assay.calcn = FALSE)
+  on.exit(expr = options(op), add = TRUE)
+  ref.names <- list(
+    map = 'ext.Rds'
   )
+  if (substr(x = path, start = nchar(x = path), stop = nchar(x = path)) == '/') {
+    path <- substr(x = path, start = 1, stop = nchar(x = path) - 1)
+  }
+  uri <- httr::build_url(url = httr::parse_url(url = path))
+  if (grepl(pattern = '^://', x = uri) | grepl(pattern = '^[a-zA-Z]{1}://', x = uri)) {
+    if (file.exists(path) && !dir.exists(path)){
+      extref <- path
+    } else if (!dir.exists(paths = path)) {
+        stop("Cannot find directory ", path, call. = FALSE)
+    } else {
+      extref <- file.path(path, ref.names$map)
+    }
+    exists <- file.exists(c(extref))
+    if (!all(exists)) {
+      stop(
+        "Missing the following files from the directory provided: ",
+        Oxford(unlist(x = ref.names)[!exists], join = 'and')
+      )
+    }
+  } else {
+    ref.uris <- paste(uri, ref.names, sep = '/')
+    names(x = ref.uris) <- names(x = ref.names)
+    online <- vapply(
+      X = ref.uris,
+      FUN = Online,
+      FUN.VALUE = logical(length = 1L),
+      USE.NAMES = FALSE
+    )
+    if (!all(online)) {
+      stop(
+        "Cannot find the following files at the site given: ",
+        Oxford(unlist(x = ref.names)[!online], join = 'and')
+      )
+    }
+    #mapref <- url(description = ref.uris[['map']])
+    on.exit(expr = {
+      close(con = extref)
+      unlink(x = annref)
+    })
+  }
+  # Load the map reference
+  map <- readRDS(file = extref)
+  # handle new parameters in uwot models beginning in v0.1.13
+  if (!"num_precomputed_nns" %in% names(Misc(map[["refUMAP"]])$model)) {
+    Misc(map[["refUMAP"]], slot="model")$num_precomputed_nns <- 1
+  }
+  
+  # Validate that reference contains required dims
+  if (ncol(x = map[["refDR"]]) < getOption(x = "Azimuth.map.ndims")) {
+    stop("Provided reference doesn't contain at least ",
+         getOption(x = "Azimuth.map.ndims"), " dimensions. Please either
+         regenerate reference with requested dimensionality or adjust ",
+         "the Azimuth.map.ndims option.")
+  }
+  key.pattern = "^[^_]*_"
+  new.colnames <- gsub(pattern = key.pattern, 
+                       replacement = Key(map[["refDR"]]), 
+                       x = colnames(Loadings(
+                         object = map[["refDR"]],
+                         projected = FALSE)))
+  colnames(Loadings(object = map[["refDR"]], 
+                    projected = FALSE)) <- new.colnames
+  # Create plotref
+  ad <- Tool(object = map, slot = "AzimuthReference")
+  plotref.dr <- GetPlotRef(object = ad)
+  cm <- sparseMatrix(
+    i = 1, j = 1, x = 0, dims = c(1, nrow(x = plotref.dr)),
+    dimnames = list("placeholder", Cells(x = plotref.dr))
+  )
+  op <- options(Seurat.object.assay.version = "v3")
+  on.exit(expr = options(op), add = TRUE)
+  plot <- CreateSeuratObject(counts = cm)
   plot[["refUMAP"]] <- plotref.dr
   plot <- AddMetaData(object = plot, metadata = Misc(object = plotref.dr, slot = "plot.metadata"))
   gc(verbose = FALSE)
@@ -540,6 +897,52 @@ LoadReference <- function(path, seconds = 10L) {
     plot = plot
   ))
 }
+
+
+
+#' Save \code{Azimuth} references and neighbors index to same folder
+#'
+#' @param object An \code{\link{Azimuth}} reference
+#' @param file Path to save \code{Azimuth} reference to; defaults to
+#' \code{file.path(getwd(), "azimuth_reference/"))}
+#' @inheritDotParams base::saveRDS
+#'
+#' @return Invisibly returns \code{file}
+#'
+#' @export
+#' @seealso \code{\link{saveRDS}()} \code{\link{readRDS}()}
+#'
+#'
+#' @examples
+#' # Make Azimuth Reference object
+#' obj.azimuth <- AzimuthReference(object)
+#' 
+#' # Save 
+#' SaveAzimuthReference(object = obj.azimuth, folder = "azimuth_reference")
+#' 
+#' # Run Azimuth
+#' 
+#' query <- RunAzimuth(query = query, 
+#'                     reference = "azimuth_reference", 
+#'                     ...)
+#' 
+#'
+SaveAzimuthReference <- function(
+    object = NULL,
+    folder = NULL
+) {
+  if (is.null(Tool(object, "AzimuthReference"))){
+    stop("The object is not an AzimuthReference object.", 
+         "Please run AzimuthReference() and try again.")
+  }
+  folder <- folder %||% file.path(getwd(), "azimuth_reference/")
+  base::saveRDS(object = object, file = paste0(folder, "ref.Rds"), compress=F)
+  SaveAnnoyIndex(object = object[["refdr.annoy.neighbors"]], file = paste0(folder, "idx.annoy"))
+  message("Saved 'ref.Rds' and 'idx.annoy' in ", folder, "folder")
+  return(invisible(x = folder))
+}
+
+
 
 #' Transform an NN index
 #'
@@ -673,4 +1076,305 @@ WelcomePlot <- function(...) {
     plot.background = element_rect(color = '#ecf0f5', fill = '#ecf0f5')
   )
   return(welcomeplot.theme)
+}
+
+
+
+############### Overlap Functionality ###############
+# QC For Overlap between multiomic bridge and atac query 
+#
+# @param query_assay 
+# @param multiome_atac 
+#
+# @return No return value
+#
+
+OverlapDistPlot <- function(query_assay, multiome){
+  atac_peaks <- OverlapQC(query = query_assay, subject = multiome)
+  d <- density(atac_peaks$perc_overlap)
+  plot(d, xlab='Percentage of Overlap', main = 'Distribution of Overlap Percentages')
+}
+
+# Calculate Overlap percentage for dataframe of overlap info per peak 
+#
+# @param atac_peaks dataframe with coordinates for each peak and overlap 
+#
+# @return Percentage of Overlap 
+#
+PercOverlap <- function(overlap_df){
+  # if no overlap  
+  len_overlap <- overlap_df$o_end - overlap_df$o_start
+  len_q <- overlap_df$end - overlap_df$start
+  perc <- (len_overlap/len_q)
+  return(perc)
+}
+
+# Calculate Create dataframe with info for each peaks's overlap in multiome 
+#
+# @param o_hits Iranges object of overlapping hits 
+# @param query 
+# @param subject multi[["ATAC"]] for example
+#
+# @return Percentage of Overlap 
+#
+OverlapQC <- function(query, subject) {
+  o_hits <- findOverlaps(query, subject)
+  query_inds <- queryHits(o_hits)
+  subject_inds <- subjectHits(o_hits)
+  overlap_df <- as.data.table(GetAssayData(query, slot = "ranges")[query_inds,])
+  subject_peaks <- as.data.table(GetAssayData(subject, assay = "query", slot = "ranges")[subject_inds,])
+  overlap_df$o_start <- mapply(max, overlap_df$start, subject_peaks$start)
+  overlap_df$o_end <- mapply(min, overlap_df$end, subject_peaks$end)
+  overlap_df$perc_overlap <- PercOverlap(overlap_df)
+  overlap_df
+}
+
+OverlapTotal <- function(query, subject){ 
+  overlap_df <- OverlapQC(query, subject)
+  q_width <- sum(overlap_df$width) # but there will be repeats in this 
+  o_width <- sum(overlap_df$o_end - overlap_df$o_start)
+  amount_covered <- (o_width/q_width) * 100
+  return(amount_covered)
+}
+
+PeakJaccard <- function(query, subject) {
+  overlap_df <- OverlapQC(query, subject)
+  intersection = sum(overlap_df$o_end - overlap_df$o_start) # this is the total overlap 
+  total_query_width = sum(width(query@ranges))
+  total_subject_width = sum(width(subject@ranges))
+  union = total_query_width + total_subject_width - intersection
+  return ((intersection/union) * 100)
+}
+
+# Requantify atac peaks to either multiomic peaks or to genes 
+#
+# @param o_hits Iranges object of overlapping hits (Should use same assay as assay for requantification)
+# @param ATAC chromatin assay or Seurat Object
+# @param subject ATAC assay from Bridge or Transcripts dataframe 
+# @param assay assay to use in requantifying peaks to genes (original peaks "peak.orig" or requantified peaks "ATAC")
+# @param verbose
+#
+# @return Percentage of Overlap 
+#
+RequantifyPeaks <- function(
+    #o_hits, 
+    atac, 
+    subject,
+    assay = "peak.orig",
+    verbose = TRUE){
+  # Query peaks that have overlap w/ multiome peaks
+  if (inherits(x = atac, what = "ChromatinAssay")){
+    o_hits <- findOverlaps(atac, subject[["ATAC"]])
+    atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
+    atac_inds <- queryHits(o_hits)
+    atac_subset <- atac[atac_inds, ]
+    new_names <- rownames(subject[["ATAC"]])[subjectHits(o_hits)]
+    if (verbose){
+      message("Requantifying query peaks to match multiome")
+    }
+    # Reassign query row names
+    row.names(atac_subset) <- new_names
+    # Merge duplicates
+    row.names <- row.names(atac_subset)
+    model.matrix <- sparse.model.matrix(
+      object = ~ 0 + row.names
+    )  
+    colnames(x = model.matrix) <- sapply(
+      X = colnames(x = model.matrix),
+      FUN = function(name) {
+        name <- gsub(pattern = "row.names", replacement = "", x = name)
+        return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))),
+                      collapse = "__"
+        ))
+      }
+    )
+    # Multiply matrices to combine counts
+    atac_final <- as((Matrix::t(model.matrix) %*% atac_subset), "dgCMatrix")
+  } else if (inherits(x = atac, what = "Seurat")){ 
+    o_hits <- suppressWarnings(findOverlaps(atac[[assay]], subject))
+    atac_inds <- queryHits(o_hits)
+    DefaultAssay(atac) <- assay
+    print(atac)
+    atac_data <- GetAssayData(atac, assay = assay, slot = "counts")
+    atac_final <- atac_data[atac_inds, ]
+    new_names <- GRangesToString(subject[subjectHits(o_hits)])
+    if (verbose){
+      message("Requantifying query peaks to genes")
+    }
+    # Reassign query row names
+    rownames(atac_final) <- new_names
+    # Merge duplicates
+    atac_final <- rowsum(atac_final, row.names(atac_final), reorder=FALSE)  
+    atac_final <- Matrix::Matrix(atac_final, sparse = TRUE) 
+  } else{
+    stop("Incorrect object type ")
+  }
+  ##### code from signac 
+  if (inherits(x = subject, what = "GRanges")){
+    gene.key <- subject$gene_name
+    names(x = gene.key) <- GRangesToString(grange = subject)
+    rownames(x = atac_final) <- as.vector(x = gene.key[rownames(x = atac_final)])
+    atac_final <- atac_final[rownames(x = atac_final) != "", ]
+  }
+  return(atac_final)
+}
+
+# Requantify atac peaks to either multiomic peaks or to genes (optimized for a large set of features)
+#
+# @param o_hits Iranges object of overlapping hits (Should use same assay as assay for requantification)
+# @param ATAC chromatin assay or Seurat Object
+# @param subject ATAC assay from Bridge or Transcripts dataframe 
+# @param assay assay to use in requantifying peaks to genes (original peaks "peak.orig" or requantified peaks "ATAC")
+# @param verbose
+#
+# @return Percentage of Overlap 
+#
+RequantifyPeaksLarge <- function(
+    atac, 
+    subject,
+    assay = "peak.orig",
+    verbose = TRUE){
+  # Query peaks that have overlap w/ multiome peaks
+  if (inherits(x = atac, what = "ChromatinAssay")){
+    o_hits <- findOverlaps(atac, subject[["ATAC"]])
+    atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
+    atac_inds <- queryHits(o_hits)
+    atac_subset <- atac[atac_inds, ]
+    new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)]) 
+    if (verbose){
+      message("Requantifying query peaks to match multiome")
+    }
+  } else if (inherits(x = atac, what = "Seurat")){ 
+    o_hits <- suppressWarnings(findOverlaps(atac[[assay]], subject))
+    atac_inds <- queryHits(o_hits)
+    DefaultAssay(atac) <- assay
+    atac_data <- GetAssayData(atac, assay = assay, slot = "counts")
+    atac_subset <- atac_data[atac_inds, ]
+    new_names <- GRangesToString(subject[subjectHits(o_hits)])
+    if (verbose){
+      message("Requantifying query peaks to genes")
+    }
+  } else{
+    stop("Incorrect object type ")
+  }
+  # Reassign query row names
+  row.names(atac_subset) <- new_names
+  # Merge duplicates
+  row.names <- row.names(atac_subset)
+  model.matrix <- sparse.model.matrix(
+    object = ~ 0 + row.names
+  )  
+  colnames(x = model.matrix) <- sapply(
+    X = colnames(x = model.matrix),
+    FUN = function(name) {
+      name <- gsub(pattern = "row.names", replacement = "", x = name)
+      return(paste0(rev(x = unlist(x = strsplit(x = name, split = ":"))),
+                    collapse = "__"
+      ))
+    }
+  )
+  # Multiply matrices to combine counts
+  atac_final <- as((Matrix::t(model.matrix) %*% atac_subset), "dgCMatrix")
+  ##### code from signac 
+  if (inherits(x = subject, what = "GRanges")){
+    gene.key <- subject$gene_name
+    names(x = gene.key) <- GRangesToString(grange = subject)
+    rownames(x = atac_final) <- as.vector(x = gene.key[rownames(x = atac_final)])
+    atac_final <- atac_final[rownames(x = atac_final) != "", ]
+  }
+  return(atac_final)
+}
+
+
+#' Get transcripts modified from Signac::GeneActivity
+#'
+#' @param object A Seurat object
+#' @param assay Name of assay to use. If NULL, use the default assay
+#' @param features Genes to include. If NULL, use all protein-coding genes in
+#' the annotations stored in the object
+#' @param extend.upstream Number of bases to extend upstream of the TSS
+#' @param extend.downstream Number of bases to extend downstream of the TTS
+#' @param biotypes Gene biotypes to include. If NULL, use all biotypes in the
+#' gene annotation.
+#' @param max.width Maximum allowed gene width for a gene to be quantified.
+#' Setting this parameter can avoid quantifying extremely long transcripts that
+#' can add a relatively long amount of time. If NULL, do not filter genes based
+#' on width.
+#' @param process_n Number of regions to load into memory at a time, per thread.
+#' Processing more regions at once can be faster but uses more memory.
+#' @param gene.id Record gene IDs in output matrix rather than gene name.
+#' @param verbose
+#'
+#' @importFrom SeuratObject DefaultAssay
+#' 
+#' @return Transcripts 
+#'
+GetTranscripts <- function( 
+  object,
+  assay = NULL,
+  features = NULL,
+  extend.upstream = 2000,
+  extend.downstream = 0,
+  biotypes = "protein_coding",
+  max.width = 500000,
+  process_n = 2000,
+  gene.id = FALSE,
+  verbose = TRUE
+) {
+  if (!is.null(x = features)) {
+    if (length(x = features) == 0) {
+      stop("Empty list of features provided")
+    }
+  }
+  # collapse to longest protein coding transcript
+  assay <- Signac:::SetIfNull(x = assay, y = DefaultAssay(object = object))
+  if (!inherits(x = object[[assay]], what = "ChromatinAssay")) {
+    stop("The requested assay is not a ChromatinAssay.")
+  }
+  annotation <- Annotation(object = object[[assay]])
+  # replace NA names with gene IDD
+  annotation$gene_name <- ifelse(
+    test = is.na(x = annotation$gene_name) | (annotation$gene_name == ""),
+    yes = annotation$gene_id,
+    no = annotation$gene_name
+  )
+  if (length(x = annotation) == 0) {
+    stop("No gene annotations present in object")
+  }
+  if (verbose) {
+    message("Extracting gene coordinates")
+  }
+  transcripts <- Signac:::CollapseToLongestTranscript(ranges = annotation)
+  if (gene.id) {
+    transcripts$gene_name <- transcripts$gene_id
+  }
+  if (!is.null(x = biotypes)) {
+    transcripts <- transcripts[transcripts$gene_biotype %in% biotypes]
+    if (length(x = transcripts) == 0) {
+      stop("No genes remaining after filtering for requested biotypes")
+    }
+  }
+  
+  # filter genes if provided
+  if (!is.null(x = features)) {
+    transcripts <- transcripts[transcripts$gene_name %in% features]
+    if (length(x = transcripts) == 0) {
+      stop("None of the requested genes were found in the gene annotation")
+    }
+  }
+  if (!is.null(x = max.width)) {
+    transcript.keep <- which(x = width(x = transcripts) < max.width)
+    transcripts <- transcripts[transcript.keep]
+    if (length(x = transcripts) == 0) {
+      stop("No genes remaining after filtering for max.width")
+    }
+  }
+  
+  # extend to include promoters
+  transcripts <- Extend(
+    x = transcripts,
+    upstream = extend.upstream,
+    downstream = extend.downstream
+  )
+  
 }

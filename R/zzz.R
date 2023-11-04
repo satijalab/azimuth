@@ -180,6 +180,7 @@ app.title <- 'Azimuth'
 default.options <- list(
   Azimuth.app.default_adt = "CD3-1",
   Azimuth.app.default_gene = "GNLY",
+  Azimuth.app.default_motif = "POU2F3",
   Azimuth.app.default_metadata = NULL,
   Azimuth.app.demodataset = NULL,
   Azimuth.app.max_cells = 50000,
@@ -416,7 +417,11 @@ RenderDiffExp <- function(
   logfc.thresh = 0L
 ) {
   # cols.keep <- c('logFC', 'auc', 'padj', 'pct_in', 'pct_out')
+  print("Rendering differential expression")
   cols.keep <- c('auc', 'padj', 'pct_in', 'pct_out')
+  if (is.null(diff.exp)){
+    print("Differential Expression is empty ")
+  }
   groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
   diff.exp <- lapply(
     X = groups.use,
@@ -427,6 +432,7 @@ RenderDiffExp <- function(
       return(head(x = group.de, n = n))
     }
   )
+  # the things might be characters so they cant be ordered? 
   diff.exp <- do.call(what = 'rbind', diff.exp)
   rownames(x = diff.exp) <- make.unique(names = diff.exp$feature)
   diff.exp <- signif(
@@ -437,6 +443,64 @@ RenderDiffExp <- function(
     )
   )
   return(diff.exp)
+}
+
+
+#' Prepare differential expression motif results for rendering
+#'
+#' @param diff.exp A dataframe with differential expression results from 
+#' \code{\link[Seurat:FindAllMarkers]{Seurat::FindAllMarkers}}
+#' @param groups.use Names of groups to filter \code{diff.exp} to; groups must
+#' be found in \code{diff.exp$cluster}
+#' @param n Number of feature to filter \code{diff.exp} to per group
+#'
+#' @return \code{diff.exp}, ordered by adjusted p-value, filtered to \code{n}
+#' features per group in \code{group.use}
+#'
+#' @importFrom rlang %||%
+#' @importFrom utils head
+#'
+#' @seealso \code{\link[Seurat]{FindAllMarkers}}
+#'
+#' @keywords internal
+#'
+RenderDiffMotifExp <- function(
+    diff.exp,
+    groups.use = NULL,
+    n = 10L
+    #logfc.thresh = 0L
+) {
+  # cols.keep <- c('logFC', 'auc', 'padj', 'pct_in', 'pct_out')
+  print("Rendering differential motifexpression")
+  cols.keep <- c('percent.observed', 'percent.background', 'fold.enrichment', 'pvalue')
+  if (is.null(diff.exp)){
+    print("Differential Expression is empty ")
+  }
+  print(head(diff.exp))
+  groups.use <- groups.use %||% unique(x = as.character(x = diff.exp$group))
+  diff.exp <- lapply(
+    X = groups.use,
+    FUN = function(cluster) {
+      cluster.de <- diff.exp[diff.exp$group == cluster, , drop = FALSE]
+      #cluster.de <- cluster.de[cluster.de$logFC > logfc.thresh, , drop = FALSE]
+      cluster.de <- cluster.de[order(cluster.de$pvalue, -cluster.de$fold.enrichment), , drop = FALSE]
+      return(head(x = cluster.de, n = n))
+    }
+  )
+  # the things might be characters so they cant be ordered? 
+  diff.exp <- do.call(what = 'rbind', diff.exp)
+  rownames(x = diff.exp) <- make.unique(names = diff.exp$motif.name)
+  diff.exp.num <- signif(
+    x = diff.exp[, cols.keep, drop = FALSE],
+    digits = getOption(
+      x = "Azimuth.de.digits",
+      default = default.options$Azimuth.de.digits
+    )
+  )
+  diff.exp.num$motif_id <- diff.exp$motif
+  print("FINALIZED DIFF EXP")
+  print(head(diff.exp.num))
+  return(diff.exp.num)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
