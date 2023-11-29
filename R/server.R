@@ -46,7 +46,6 @@ NULL
 #' @importFrom stringr str_interp str_trim str_split
 #' @importFrom patchwork wrap_plots
 #' @importFrom stats na.omit quantile setNames median
-#' @importFrom TFBSTools getMatrixSet
 #' @importFrom S4Vectors queryHits subjectHits
 #' @importFrom utils write.table packageVersion
 #' @importFrom plotly plotlyOutput renderPlotly toWebGL ggplotly plot_ly
@@ -1914,7 +1913,7 @@ AzimuthServer <- function(input, output, session) {
       keep.peaks <- which(as.character(seqnames(granges(app.env$object))) %in% main.chroms)
       app.env$object[["ATAC"]] <- subset(app.env$object[["ATAC"]], features = rownames(app.env$object[["ATAC"]])[keep.peaks])
       
-      pfm <- getMatrixSet(
+      pfm <- TFBSTools::getMatrixSet(
         x = JASPAR2020,
         opts = list(species = 9606, all_versions = FALSE)
       )

@@ -236,7 +236,6 @@ RunAzimuth.Seurat <- function(
 #' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
 #' @importFrom data.table as.data.table
 #' @importFrom JASPAR2020 JASPAR2020
-#' @importFrom TFBSTools getMatrixSet
 #' 
 #' @export
 #' @method RunAzimuthATAC Seurat
@@ -820,7 +819,6 @@ AzimuthReference <- function(
 #' @importFrom SeuratObject Reductions Misc Misc<- Assays Cells Loadings Idents
 #' DefaultAssay Tool<-
 #' @importFrom Seurat FindNeighbors NormalizeData AverageExpression DietSeurat
-#' @importFrom TFBSTools getMatrixSet
 #' @importFrom methods as
 #'
 #' @export
@@ -957,7 +955,7 @@ AzimuthBridgeReference <- function(
   )
   object[["ATAC"]] <- atac
   # Add motifs on multiome atac
-  pfm <- getMatrixSet(
+  pfm <- TFBSTools::getMatrixSet(
     x = JASPAR2020,
     opts = list(species = 9606, all_versions = FALSE)
   )
