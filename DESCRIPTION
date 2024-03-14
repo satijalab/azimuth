@@ -23,10 +23,7 @@ LazyData: true
 RoxygenNote: 7.2.3
 biocViews:
 Remotes:
-  immunogenomics/presto,
-  satijalab/seurat-data@seurat5,
-  mojaveazure/seurat-object@seurat5,
-  stuart-lab/signac@seurat5
+  immunogenomics/presto
 Depends:
   R (>= 4.0.0)
 Imports:
@@ -57,6 +54,7 @@ Imports:
   shinyBS (>= 0.61),
   shinydashboard (>= 0.7.1),
   shinyjs (>= 2.0.0),
+  Signac (>=1.12.0),
   stats,
   stringr (>= 1.4.0),
   TFBSTools,
