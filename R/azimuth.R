@@ -206,6 +206,10 @@ RunAzimuth.Seurat <- function(
       reduction.key = 'UMAP_',
       verbose = verbose
     )
+    
+    # debug mappnig score - remove later
+    metadata = MappingScore(anchors = anchors, ndim = dims)
+    
     # Calculate mapping score and add to metadata
     query <- AddMetaData(
       object = query,
