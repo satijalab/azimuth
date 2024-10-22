@@ -207,8 +207,7 @@ RunAzimuth.Seurat <- function(
       verbose = verbose
     )
     
-    # debug mappnig score - remove later
-    metadata = MappingScore(anchors = anchors, ndim = dims)
+    metadata = MappingScore(anchors = anchors, ndim = dims) # remove later
     
     # Calculate mapping score and add to metadata
     query <- AddMetaData(
