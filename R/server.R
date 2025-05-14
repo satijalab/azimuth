@@ -468,12 +468,18 @@ AzimuthServer <- function(input, output, session) {
   }
   # React to events
   # Load the data and prepare for QC
+  volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()())
+  shinyFiles::shinyFileChoose(input, "file", roots = volumes, session = session)
   observeEvent(
     eventExpr = input$file,
     handlerExpr = {
       ResetEnv()
-      if (nchar(x = input$file$datapath)) {
-        react.env$path <- input$file$datapath
+      # if (nchar(x = input$file$datapath)) {
+      #   react.env$path <- input$file$datapath
+      # }
+      df = shinyFiles::parseFilePaths(volumes, input$file)
+      if (nchar(x = df$datapath)) {
+        react.env$path <- df$datapath
       }
     }
   )
