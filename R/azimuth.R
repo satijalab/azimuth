@@ -779,7 +779,8 @@ AzimuthReference <- function(
   DefaultAssay(object = object) <- "refAssay"
   DefaultAssay(object = object[["refDR"]]) <- "refAssay"
   Tool(object = object) <- ad
-  tool.name <- as.character(x = sys.calls())
+  call_list <- sys.calls()
+  tool.name <- as.character(x = call_list[[length(call_list)]])
   tool.name <- lapply(
     X = strsplit(x = tool.name, split = "(", fixed = TRUE), 
     FUN = "[", 
