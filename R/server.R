@@ -809,7 +809,7 @@ AzimuthServer <- function(input, output, session) {
             message = 'Calculating nCount and nFeature',
             expr = {
               setProgress(value = 0)
-              calcn <- as.data.frame(x = Seurat:::CalcN(object = GetAssayData(app.env$object, slot = "counts")))
+              calcn <- as.data.frame(x = Seurat:::CalcN(object = GetAssayData(app.env$object, layer = "counts")))
               colnames(x = calcn) <- paste(
                 colnames(x = calcn),
                 app.env$default.assay,
@@ -1315,7 +1315,7 @@ AzimuthServer <- function(input, output, session) {
         if (do.adt) {
           refdata[["impADT"]] <- GetAssayData(
             object = refs$map[['ADT']],
-            slot = 'data'
+            layer = 'data'
           )
         }
         app.env$object <- TransferData(
@@ -1409,7 +1409,7 @@ AzimuthServer <- function(input, output, session) {
         names(refdata) <- app.env$metadataxfer
         if (do.adt) {
           refdata[["impADT"]] <- GetAssayData(object = refs$map[["ADT"]], 
-                                              slot = "data")
+                                              layer = "data")
         }
         app.env$object <-  MapQuery(anchorset = app.env$anchors,  # deleted transfer data 
                                     reference = refs$map, 
@@ -1764,7 +1764,7 @@ AzimuthServer <- function(input, output, session) {
           app.env$object <- SetAssayData(
             object = app.env$object,
             assay = 'refAssay',
-            slot = 'scale.data',
+            layer = 'scale.data',
             new.data = new(Class = 'matrix')
           )
         }

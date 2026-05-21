@@ -124,7 +124,7 @@ names(x = refdata) <- ${metadataxfer}
 if (${do.adt}) {
   refdata[["impADT"]] <- GetAssayData(
     object = reference$map[['ADT']],
-    slot = 'data'
+    layer = 'data'
   )
 }
 query <- TransferData(

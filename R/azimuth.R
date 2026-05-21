@@ -157,7 +157,7 @@ RunAzimuth.Seurat <- function(
     if (isTRUE(do.adt)) {
       refdata[["impADT"]] <- GetAssayData(
         object = reference[["ADT"]],
-        slot = "data"
+        layer = "data"
       )
     }
     
