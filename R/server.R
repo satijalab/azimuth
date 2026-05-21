@@ -33,7 +33,7 @@ NULL
 #' RunUMAP TransferData SCTransform VlnPlot LabelClusters
 #' FindBridgeTransferAnchors MapQuery NormalizeData
 #' @importFrom Signac AddMotifs Annotation CreateChromatinAssay Extend FindMotifs FindTopFeatures GRangesToString 
-#' GetGRangesFromEnsDb RunChromVAR RunSVD RunTFIDF AddMotifs
+#' GetGRangesFromEnsDb RunSVD RunTFIDF AddMotifs
 #' @importFrom shiny downloadHandler observeEvent isolate Progress
 #' reactiveValues renderPlot renderTable renderText removeUI setProgress
 #' safeError updateNumericInput updateSelectizeInput updateCheckboxInput updateTextAreaInput

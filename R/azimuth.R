@@ -230,7 +230,7 @@ RunAzimuth.Seurat <- function(
 #'
 #' @importFrom SeuratData InstallData InstalledData LoadData AvailableData
 #' @importFrom Signac FeatureMatrix CreateChromatinAssay GetGRangesFromEnsDb 
-#' RunTFIDF RunChromVAR Fragments GeneActivity
+#' RunTFIDF Fragments GeneActivity
 #' @importFrom EnsDb.Hsapiens.v86 EnsDb.Hsapiens.v86
 #' @importFrom IRanges findOverlaps
 #' @importFrom Seurat FindBridgeTransferAnchors MapQuery NormalizeData
