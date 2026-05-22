@@ -103,7 +103,7 @@ ConvertGeneNames <- function(object, reference.names, homolog.table) {
     new.indices <- new.indices[notdup]
     new.names <- new.names[notdup]
     # subset/rename object accordingly
-    counts <- GetAssayData(object = object[["RNA"]], slot = "counts")[rownames(x = object)[new.indices], ]
+    counts <- GetAssayData(object = object[["RNA"]], layer = "counts")[rownames(x = object)[new.indices], ]
     rownames(x = counts) <- new.names
     reductions <- slot(object = object, name = "reductions")
     object <- CreateSeuratObject(
@@ -309,21 +309,21 @@ LoadFileInput <- function(path, bridge = FALSE) {
         if (isTRUE(x = bridge)){
           if (!'ATAC' %in% Assays(object = object)) {
             stop("No ATAC assay provided", call. = FALSE)
-          } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'ATAC'))) {
+          } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, layer = 'counts', assay = 'ATAC'))) {
             stop("No ATAC counts matrix present", call. = FALSE)
           }
           assay <- "ATAC"
         } else{
           if (!'RNA' %in% Assays(object = object)) {
             stop("No RNA assay provided", call. = FALSE)
-          } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, slot = 'counts', assay = 'RNA'))) {
+          } else if (Seurat:::IsMatrixEmpty(x = GetAssayData(object = object, layer = 'counts', assay = 'RNA'))) {
             stop("No RNA counts matrix present", call. = FALSE)
           }
           assay <- "RNA"
         }
         object <- tryCatch({
           CreateSeuratObject(
-            counts = GetAssayData(object = object[[assay]], slot = "counts"),
+            counts = GetAssayData(object = object[[assay]], layer = "counts"),
             min.cells = 1,
             min.features = 1,
             meta.data = object[[]]
@@ -331,7 +331,7 @@ LoadFileInput <- function(path, bridge = FALSE) {
         }, error = function(e){
           object <- UpdateSeuratObject(object)
           CreateSeuratObject(
-            counts = GetAssayData(object = object[[assay]], slot = "counts"),
+            counts = GetAssayData(object = object[[assay]], layer = "counts"),
             min.cells = 1,
             min.features = 1,
             meta.data = object[[]]
@@ -388,7 +388,7 @@ LoadFileInput <- function(path, bridge = FALSE) {
         }
       }
       object <- CreateSeuratObject(
-        counts = GetAssayData(object = object[[assay]], slot = "counts"),
+        counts = GetAssayData(object = object[[assay]], layer = "counts"),
         min.cells = 1,
         min.features = 1,
         meta.data = object[[]]
@@ -1121,8 +1121,8 @@ OverlapQC <- function(query, subject) {
   o_hits <- findOverlaps(query, subject)
   query_inds <- queryHits(o_hits)
   subject_inds <- subjectHits(o_hits)
-  overlap_df <- as.data.table(GetAssayData(query, slot = "ranges")[query_inds,])
-  subject_peaks <- as.data.table(GetAssayData(subject, assay = "query", slot = "ranges")[subject_inds,])
+  overlap_df <- as.data.table(GetAssayData(query, layer = "ranges")[query_inds,])
+  subject_peaks <- as.data.table(GetAssayData(subject, assay = "query", layer = "ranges")[subject_inds,])
   overlap_df$o_start <- mapply(max, overlap_df$start, subject_peaks$start)
   overlap_df$o_end <- mapply(min, overlap_df$end, subject_peaks$end)
   overlap_df$perc_overlap <- PercOverlap(overlap_df)
@@ -1165,7 +1165,7 @@ RequantifyPeaks <- function(
   # Query peaks that have overlap w/ multiome peaks
   if (inherits(x = atac, what = "ChromatinAssay")){
     o_hits <- findOverlaps(atac, subject[["ATAC"]])
-    atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
+    atac <- GetAssayData(atac, assay = "ATAC", layer = "counts")
     atac_inds <- queryHits(o_hits)
     atac_subset <- atac[atac_inds, ]
     new_names <- rownames(subject[["ATAC"]])[subjectHits(o_hits)]
@@ -1195,7 +1195,7 @@ RequantifyPeaks <- function(
     atac_inds <- queryHits(o_hits)
     DefaultAssay(atac) <- assay
     print(atac)
-    atac_data <- GetAssayData(atac, assay = assay, slot = "counts")
+    atac_data <- GetAssayData(atac, assay = assay, layer = "counts")
     atac_final <- atac_data[atac_inds, ]
     new_names <- GRangesToString(subject[subjectHits(o_hits)])
     if (verbose){
@@ -1237,7 +1237,7 @@ RequantifyPeaksLarge <- function(
   # Query peaks that have overlap w/ multiome peaks
   if (inherits(x = atac, what = "ChromatinAssay")){
     o_hits <- findOverlaps(atac, subject[["ATAC"]])
-    atac <- GetAssayData(atac, assay = "ATAC", slot = "counts")
+    atac <- GetAssayData(atac, assay = "ATAC", layer = "counts")
     atac_inds <- queryHits(o_hits)
     atac_subset <- atac[atac_inds, ]
     new_names <- rownames(subject[["ATAC"]][subjectHits(o_hits)]) 
@@ -1248,7 +1248,7 @@ RequantifyPeaksLarge <- function(
     o_hits <- suppressWarnings(findOverlaps(atac[[assay]], subject))
     atac_inds <- queryHits(o_hits)
     DefaultAssay(atac) <- assay
-    atac_data <- GetAssayData(atac, assay = assay, slot = "counts")
+    atac_data <- GetAssayData(atac, assay = assay, layer = "counts")
     atac_subset <- atac_data[atac_inds, ]
     new_names <- GRangesToString(subject[subjectHits(o_hits)])
     if (verbose){

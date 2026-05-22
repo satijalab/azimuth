@@ -33,7 +33,7 @@ update.packages(oldPkgs = c("withr", "rlang"))
 You can install Azimuth from GitHub with:
 
 ``` r
-if (!requireNamespace('remotes', quietly = TRUE) {
+if (!requireNamespace('remotes', quietly = TRUE)) {
   install.packages('remotes')
 }
 remotes::install_github('satijalab/azimuth', ref = 'master')
