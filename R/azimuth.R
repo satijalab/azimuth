@@ -99,6 +99,7 @@ RunAzimuth.Seurat <- function(
     # Change the file path based on where the query file is located on your system.
     query <- ConvertGeneNames(
       object = query,
+      assay = assay,
       reference.names = rownames(x = reference),
       homolog.table = 'https://seurat.nygenome.org/azimuth/references/homologs.rds'
     )

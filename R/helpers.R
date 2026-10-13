@@ -1,7 +1,8 @@
 #' Converts gene names of query to match type/species of reference names (human
 #' or mouse).
 #'
-#' @param object Object to convert, must contain only RNA counts matrix
+#' @param object Object to convert, must contain RNA counts matrix
+#' @param assay Name of RNA assay to retain (if not "RNA"); other assays are dropped.
 #' @param reference.names Gene names of reference
 #' @param homolog.table Location of file (or URL) containing table with
 #' human/mouse homologies
@@ -12,7 +13,7 @@
 #' @useDynLib Azimuth
 #' @export
 #'
-ConvertGeneNames <- function(object, reference.names, homolog.table) {
+ConvertGeneNames <- function(object, assay = "RNA", reference.names, homolog.table) {
   uri <- httr::build_url(url = httr::parse_url(url = homolog.table))
   if (grepl(pattern = '^://', x = uri)) {
     if (!file.exists(homolog.table)) {
@@ -103,11 +104,12 @@ ConvertGeneNames <- function(object, reference.names, homolog.table) {
     new.indices <- new.indices[notdup]
     new.names <- new.names[notdup]
     # subset/rename object accordingly
-    counts <- GetAssayData(object = object[["RNA"]], layer = "counts")[rownames(x = object)[new.indices], ]
+    counts <- GetAssayData(object = object[[assay]], layer = "counts")[rownames(x = object)[new.indices], ]
     rownames(x = counts) <- new.names
     reductions <- slot(object = object, name = "reductions")
     object <- CreateSeuratObject(
       counts = counts,
+      assay = assay,
       meta.data = object[[]]
     )
     slot(object = object, name = "reductions") <- reductions
